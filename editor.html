@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yuet Wan London — Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+/* ---- editor chrome (on top of the shared site styles) ---- */
+body{background:var(--mist)}
+.ebar{position:fixed;top:0;left:0;right:0;height:50px;z-index:60;background:var(--ink);color:var(--paper);display:flex;align-items:center;gap:14px;padding:0 18px}
+.ebar .lg{font-family:var(--grot);font-weight:800;font-size:13.5px;letter-spacing:.02em}
+.ebar .lg .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--vermilion);margin-right:8px;vertical-align:middle}
+.ebar .sp{flex:1}
+.ebar button,.ebar a{font-family:var(--grot);font-size:12.5px;font-weight:600;border-radius:30px;padding:7px 13px;cursor:pointer;border:1px solid rgba(244,236,221,.25);background:transparent;color:var(--paper);text-decoration:none}
+.ebar .save{background:var(--jade);border-color:var(--jade)}
+.ebar .save:disabled{opacity:.45;cursor:default}
+.ebar .save.dirty{box-shadow:0 0 0 3px rgba(46,126,114,.3)}
+.canvas{padding-top:50px}
+.sec-wrap{padding:46px 0 0}
+.sec-wrap.first{padding-top:30px}
+.addbtn{font-family:var(--grot);font-size:13px;font-weight:600;color:var(--vermilion-d);background:#fff;border:1.5px dashed var(--vermilion);border-radius:12px;padding:11px 18px;cursor:pointer;margin-top:16px}
+.addbtn:hover{background:#fbeae6}
+
+/* editable affordance */
+.ed{position:relative}
+.ed::after{content:"";position:absolute;inset:0;border:2px dashed transparent;border-radius:16px;pointer-events:none;transition:.15s;z-index:4}
+.ed:hover::after{border-color:var(--brass)}
+.ed-tools{position:absolute;top:8px;right:8px;z-index:6;display:flex;gap:4px;opacity:0;transform:translateY(-4px);transition:.15s;pointer-events:none}
+.ed:hover .ed-tools{opacity:1;transform:none;pointer-events:auto}
+.ed-tools button{width:30px;height:30px;border-radius:8px;border:none;background:rgba(22,19,15,.92);color:var(--paper);display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.ed-tools button:hover{background:var(--vermilion)}
+.ed-tools button svg{width:15px;height:15px}
+.ev-grid>.ed>.ecard{height:100%}
+.gal>.ed{position:relative}
+.gal>.ed.big{grid-column:span 2;grid-row:span 2}
+.gal>.ed>.t{position:absolute;inset:0}
+
+/* hero in editor: static preview */
+.hero.preview .slide{position:absolute;inset:0;opacity:0}
+.hero.preview .slide.on{opacity:1}
+.hero .dots{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);z-index:4;display:flex;gap:7px}
+.hero .dots button{width:9px;height:9px;border-radius:50%;border:none;background:rgba(244,236,221,.45);cursor:pointer}
+.hero .dots button.on{background:var(--paper)}
+
+/* settings panel */
+.setpanel{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.setrow{display:grid;grid-template-columns:200px 1fr;gap:14px;padding:14px 18px;border-bottom:1px solid var(--line-2,#EFEAE0);align-items:center}
+.setrow:last-child{border-bottom:none}
+.setrow .k{font-family:var(--grot);font-size:12.5px;font-weight:700;color:var(--ink-80)}
+.setrow .k small{display:block;font-weight:500;color:var(--ink-55);font-size:11px;margin-top:2px}
+.setrow input{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-size:14px;font-family:var(--grot)}
+
+/* drawer */
+.dscrim{position:fixed;inset:0;background:rgba(22,19,15,.4);z-index:70;opacity:0;pointer-events:none;transition:.2s}
+.dscrim.open{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(460px,92vw);background:#fff;z-index:71;transform:translateX(100%);transition:transform .25s ease;display:flex;flex-direction:column;box-shadow:-20px 0 60px rgba(0,0,0,.2)}
+.drawer.open{transform:none}
+.drawer .dh{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--line)}
+.drawer .dh h3{font-family:var(--disp);font-size:17px;margin:0;font-weight:800}
+.drawer .db{padding:18px 20px;overflow:auto;flex:1}
+.drawer .df{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end}
+.iconbtn{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:#fff;display:grid;place-items:center;cursor:pointer;color:var(--ink-55)}
+.iconbtn:hover{color:var(--ink);border-color:var(--brass)}.iconbtn svg{width:16px;height:16px}
+.btn-sm{height:auto;padding:10px 16px;font-size:13.5px;border-radius:10px}
+.fld{margin-bottom:15px}
+.fld>label{display:block;font-size:11.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-55);margin-bottom:6px}
+.fld input[type=text],.fld input[type=number],.fld select,.fld textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px;font-family:var(--grot)}
+.fld textarea{min-height:80px;resize:vertical;line-height:1.5}
+.fld .cjk-in{font-family:var(--cjk)}
+.bi{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bi .t{font-size:10px;color:var(--ink-55);margin-bottom:4px;font-weight:600}
+.chk{display:flex;align-items:center;gap:9px;font-size:13.5px}.chk input{width:18px;height:18px}
+.imgbox{display:flex;gap:13px}
+.imgbox .pv{width:90px;height:90px;border-radius:10px;border:1px solid var(--line);background:var(--mist);overflow:hidden;flex:0 0 auto;display:grid;place-items:center;color:var(--ink-55);font-size:11px}
+.imgbox .pv img{width:100%;height:100%;object-fit:cover}
+.imgbox .ic{flex:1}.imgbox .ic input{margin-bottom:8px}
+.filebtn{position:relative;overflow:hidden;display:inline-block}
+.filebtn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+/* login / toast / busy */
+.login{min-height:100vh;display:grid;place-items:center;padding:24px}
+.login .card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:34px 32px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(22,19,15,.08)}
+.login h1{font-size:20px;margin:0 0 4px;font-weight:800}.login p{color:var(--ink-55);font-size:13.5px;margin:0 0 22px}
+.login .fld{margin-bottom:14px}.login .err{color:var(--vermilion-d);font-size:13px;min-height:18px}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--paper);padding:12px 20px;border-radius:40px;font-size:13.5px;font-weight:600;opacity:0;transition:.25s;z-index:90;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.busy{position:fixed;inset:0;background:rgba(246,243,238,.55);z-index:80;display:none;place-items:center}
+.busy.on{display:grid}
+.spin{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--vermilion);border-radius:50%;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.hidden{display:none!important}
+.hint{color:var(--ink-55);font-size:13px;margin:-14px 0 4px}
+</style>
+</head>
+<body>
+
+<div class="login" id="loginView">
+  <div class="card">
+    <h1>Yuet Wan London</h1>
+    <p>Website editor — please sign in.</p>
+    <div class="fld"><label>Username</label><input type="text" id="luser" autocomplete="username"></div>
+    <div class="fld"><label>Password</label><input type="password" id="lpass" autocomplete="current-password"></div>
+    <div class="err" id="lerr"></div>
+    <button class="btn btn-fill" style="width:100%;margin-top:8px" id="lbtn">Sign in</button>
+  </div>
+</div>
+
+<div id="appView" class="hidden">
+  <div class="ebar">
+    <span class="lg"><span class="dot"></span>Editor mode</span>
+    <span class="sp"></span>
+    <button id="langBtn">中文 preview</button>
+    <a href="index.html" target="_blank" rel="noopener">View site ↗</a>
+    <button class="save" id="saveBtn" disabled>Saved</button>
+    <button id="logout">Sign out</button>
+  </div>
+  <div class="canvas"><div class="wrap" id="canvas"></div></div>
+</div>
+
+<div class="dscrim" id="dscrim"></div>
+<aside class="drawer" id="drawer">
+  <div class="dh"><h3 id="dTitle">Edit</h3><button class="iconbtn" id="dClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="db" id="dBody"></div>
+  <div class="df"><button class="btn btn-ghost btn-sm" id="dCancel">Cancel</button><button class="btn btn-fill btn-sm" id="dApply">Apply</button></div>
+</aside>
+
+<div class="busy" id="busy"><div class="spin"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="assets/app.js"></script>
+<script>
+const SCHEMA = {
+  events:{ tab:"Events",
+    fields:[
+      {k:"id",t:"text",label:"ID (unique, no spaces)"},
+      {k:"status",t:"select",label:"Status",opts:["upcoming","past"]},
+      {k:"category",t:"select",label:"Category",opts:["Performance","Workshop","Talk","Music"]},
+      {k:"date_start",t:"text",label:"Start date (YYYY-MM-DD)"},
+      {k:"date_end",t:"text",label:"End date (optional)"},
+      {k:"date_label",t:"text",label:"Date label — overrides the shown date"},
+      {k:"title",t:"bi",label:"Title"},
+      {k:"venue",t:"bi",label:"Venue"},
+      {k:"time",t:"bi",label:"Time"},
+      {k:"duration",t:"bi",label:"Duration"},
+      {k:"price",t:"bi",label:"Price / tickets"},
+      {k:"language",t:"bi",label:"Language"},
+      {k:"level",t:"bi",label:"Level (workshops)"},
+      {k:"capacity",t:"text",label:"Capacity (workshops)"},
+      {k:"artists",t:"bitext",label:"Artists"},
+      {k:"speaker",t:"bitext",label:"Speaker (talks)"},
+      {k:"desc",t:"bitext",label:"Short description (on cards)"},
+      {k:"body",t:"bitext",label:"Full description — one paragraph per line"},
+      {k:"programme",t:"bitext",label:"Programme — one item per line"},
+      {k:"learn",t:"bitext",label:"What you'll take away — one per line"},
+      {k:"bring",t:"bitext",label:"What to bring — one per line"},
+      {k:"image",t:"img",label:"Main image / poster"},
+      {k:"gallery",t:"imgs",label:"Event gallery — one image per line"},
+      {k:"link",t:"text",label:"Ticket link (blank = email enquiry)"},
+    ]},
+  people:{ tab:"People",
+    fields:[
+      {k:"id",t:"text",label:"ID (unique)"},
+      {k:"group",t:"select",label:"Group",opts:["honorary","performer","music-leader","musician"]},
+      {k:"featured",t:"bool",label:"Featured — large profile card"},
+      {k:"honorific",t:"bi",label:"Honorific (Mr. / 先生 · Master / 師傅)"},
+      {k:"name",t:"bi",label:"Name"},
+      {k:"role",t:"bi",label:"Role / title"},
+      {k:"credentials",t:"bitext",label:"Credentials — one per line"},
+      {k:"bio",t:"bitext",label:"Bio — one paragraph per line"},
+      {k:"photo",t:"img",label:"Photo"},
+    ]},
+  gallery:{ tab:"Gallery",
+    fields:[
+      {k:"id",t:"text",label:"ID (unique)"},
+      {k:"image",t:"img",label:"Image"},
+      {k:"title",t:"bi",label:"Title"},
+      {k:"info",t:"bitext",label:"Info / caption"},
+    ]},
+  hero:{ tab:"Hero",
+    fields:[
+      {k:"id",t:"text",label:"ID (unique)"},
+      {k:"image",t:"img",label:"Slide image"},
+      {k:"kicker",t:"bi",label:"Kicker (small label)"},
+      {k:"title",t:"bi",label:"Title"},
+      {k:"sub",t:"bitext",label:"Subtitle"},
+      {k:"cta_label",t:"bi",label:"Button label (optional)"},
+      {k:"cta_link",t:"text",label:"Button link (optional)"},
+    ]},
+};
+const GROUPS=[
+  {key:"honorary",en:"Honorary",zh:"名譽"},
+  {key:"performer",en:"Performing Artists",zh:"粵劇演員"},
+  {key:"music-leader",en:"Music & Percussion Leaders",zh:"音樂・擊樂領導"},
+  {key:"musician",en:"Musicians",zh:"樂師"}
+];
+const SETKEYS=[
+  {key:"site_email",note:"Contact email"},{key:"site_phone",note:"Contact phone"},
+  {key:"location_en",note:"Location (EN)"},{key:"location_zh",note:"Location (中文)"},
+  {key:"newsletter_url",note:"Newsletter form URL"},
+  {key:"tagline_en",note:"Strapline (EN)"},{key:"tagline_zh",note:"Strapline (中文)"},{key:"motto_zh",note:"Motto"}
+];
+
+const $=id=>document.getElementById(id);
+let AUTH=null, DATA={events:[],people:[],gallery:[],hero:[],settings:[]}, LANG="en", DIRTY=new Set(), HSEL=0, EDIT={tab:null,i:-1};
+const E=YW.esc, T=YW.isTrue, LN=YW.lines;
+function Lf(o,b){return LANG==="zh"?(o[b+"_zh"]||o[b+"_en"]||""):(o[b+"_en"]||o[b+"_zh"]||"");}
+function busy(on){$("busy").classList.toggle("on",on);}
+function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200);}
+function mark(tab){DIRTY.add(tab);const b=$("saveBtn");b.disabled=false;b.textContent="Save changes";b.classList.add("dirty");}
+
+/* ---------- auth ---------- */
+async function login(){
+  const user=$("luser").value.trim(), pass=$("lpass").value;
+  if(!user||!pass){$("lerr").textContent="Enter your username and password.";return;}
+  busy(true);
+  try{ const res=await YW.post({action:"login",user,pass});
+    if(res&&res.ok){AUTH={user,pass};sessionStorage.setItem("yw_auth",JSON.stringify(AUTH));await boot();}
+    else $("lerr").textContent="Incorrect username or password.";
+  }catch(e){$("lerr").textContent="Couldn't reach the server — check the deployment.";}
+  busy(false);
+}
+async function boot(){
+  busy(true);
+  try{
+    const j=await YW.fetchData();
+    ["events","people","gallery","hero","settings"].forEach(k=>DATA[k]=(j&&j[k])?j[k]:[]);
+    if(!DATA.settings.length) DATA.settings=SETKEYS.map(s=>({key:s.key,value:"",note:s.note}));
+    Object.keys(DATA).forEach(k=>DATA[k].sort((a,b)=>(+a.order||0)-(+b.order||0)));
+    $("loginView").classList.add("hidden"); $("appView").classList.remove("hidden");
+    renderAll();
+  }catch(e){toast("Could not load data.");}
+  busy(false);
+}
+
+/* ---------- photo / card helpers (match the site) ---------- */
+function initials(p){return String(p.name_en||"").split(/\s+/).filter(Boolean).map(w=>w[0]).join("").slice(0,2).toUpperCase();}
+function photo(p,big){ if(p.photo) return `<img class="cover" src="${E(p.photo)}" alt="">`; const i=initials(p); return `<div class="place">${YW.lat()}${i?`<span class="init">${i}</span>`:`<span class="usr">${YW.USER_ICON}</span>`}</div>`; }
+function tools(tab,i){return `<div class="ed-tools">
+  <button data-op="up" title="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+  <button data-op="down" title="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg></button>
+  <button data-op="edit" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+  <button data-op="del" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button></div>`;}
+function gridClass(n){return n<=1?"cols-1":n===2?"cols-2":n===3?"cols-3":"cols-4";}
+
+function eCard(ev,i){
+  const cat=ev.category||"Performance", past=YW.isPast(ev);
+  const img=ev.image?`<img src="${E(ev.image)}" alt="">`:`<div class="ph">${YW.lat()}${YW.ICON[cat]||YW.ICON.Performance}</div>`;
+  return `<div class="ed" data-tab="events" data-i="${i}">${tools("events",i)}
+    <article class="ecard">
+      <div class="img">${img}<span class="cat">${LANG==="zh"?(YW.CAT_ZH[cat]||cat):cat}</span></div>
+      <div class="bd">
+        <div class="date">${E(YW.fmtDate(ev,LANG))}</div>
+        <h3><span class="cjk">${E(Lf(ev,"title"))}</span></h3>
+        ${Lf(ev,"venue")?`<div class="venue">${E(Lf(ev,"venue"))}</div>`:""}
+        ${Lf(ev,"desc")?`<div class="desc">${E(Lf(ev,"desc"))}</div>`:""}
+        <div class="go">${past?(LANG==="zh"?"查看詳情 →":"View details →"):(LANG==="zh"?"了解更多 →":"Learn more →")}</div>
+      </div>
+    </article></div>`;
+}
+
+function renderEventsGrid(host, status){
+  const items=DATA.events.map((e,i)=>({e,i})).filter(x=>(String(x.e.status||"").toLowerCase()||(YW.isPast(x.e)?"past":"upcoming"))===status);
+  host.innerHTML = items.length
+    ? `<div class="ev-grid ${gridClass(items.length)}">${items.map(x=>eCard(x.e,x.i)).join("")}</div>`
+    : `<p class="hint">No ${status} events yet.</p>`;
+}
+
+function renderHero(host){
+  const slides=DATA.hero;
+  if(HSEL>=slides.length) HSEL=Math.max(0,slides.length-1);
+  const inner = slides.length ? slides.map((s,i)=>{
+    const img=s.image?`<img class="cover" src="${E(s.image)}" alt="">`:`<div class="ph">${YW.lat()}</div>`;
+    return `<div class="slide ${i===HSEL?'on':''}">${img}<div class="scrim"></div>
+      <div class="inner"><div class="wrap">
+        ${Lf(s,"kicker")?`<div class="kick">${E(Lf(s,"kicker"))}</div>`:""}
+        <h1>${E(Lf(s,"title")||"Slide title")}</h1>
+        ${Lf(s,"sub")?`<p class="sub">${E(Lf(s,"sub"))}</p>`:""}
+      </div></div></div>`;
+  }).join("") : `<div class="slide on"><div class="ph">${YW.lat()}</div><div class="scrim"></div><div class="inner"><div class="wrap"><h1 style="opacity:.6">No hero slides yet</h1></div></div></div>`;
+  const dots = slides.length>1 ? `<div class="dots">${slides.map((s,i)=>`<button data-h="${i}" class="${i===HSEL?'on':''}"></button>`).join("")}</div>`:"";
+  const ed = slides.length ? `<div class="ed" style="position:absolute;inset:0">${tools("hero",HSEL)}</div>`:"";
+  host.innerHTML=`<div class="hero preview" style="border-radius:18px">${inner}${dots}${ed}</div>`;
+  host.querySelectorAll(".dots button").forEach(b=>b.onclick=()=>{HSEL=+b.dataset.h;renderHero(host);});
+}
+
+function galCard(g,i,big){
+  const img=g.image?`<img src="${E(g.image)}" alt="">`:`<div class="ph">${YW.lat()}</div>`;
+  return `<div class="ed ${big?'big':''}" data-tab="gallery" data-i="${i}">${tools("gallery",i)}<div class="t">${img}</div></div>`;
+}
+function renderGallery(host){
+  const items=DATA.gallery.slice(0,5);
+  host.innerHTML = items.length
+    ? `<div class="gal">${items.map((g,i)=>galCard(g,i,i===0)).join("")}</div>`
+    : `<p class="hint">No gallery photos yet.</p>`;
+}
+
+function pFeat(p,i){
+  const creds=LN(Lf(p,"credentials")), bio=LN(Lf(p,"bio"));
+  const nm = LANG==="zh" ? `<span class="cjk">${E(p.name_zh||p.name_en)}</span>${Lf(p,"honorific")?`<small>${E(p.honorific_zh||Lf(p,"honorific"))}</small>`:""}` : `${E(p.name_en||p.name_zh)}${p.name_zh&&p.name_en?` <small class="cjk">${E(p.name_zh)}</small>`:""}`;
+  return `<div class="ed" data-tab="people" data-i="${i}">${tools("people",i)}
+    <article class="pfeat"><div class="ph">${photo(p)}</div><div class="body">
+      <div class="role">${E(Lf(p,"role"))}</div><div class="nm">${nm}</div>
+      ${creds.length?`<ul class="creds">${creds.map(c=>`<li>${E(c)}</li>`).join("")}</ul>`:""}
+      ${bio.length?`<div class="bio">${bio.map(t=>`<p>${E(t)}</p>`).join("")}</div>`:""}
+    </div></article></div>`;
+}
+function pCard(p,i){
+  return `<div class="ed" data-tab="people" data-i="${i}">${tools("people",i)}
+    <div class="pcard"><div class="ph">${photo(p)}</div><div class="pb">
+      <div class="role">${E(Lf(p,"role"))}</div>
+      <div class="nm">${E(p.name_zh||p.name_en)}${p.name_en&&p.name_zh?`<small>${E(p.name_en)}</small>`:""}</div>
+    </div></div></div>`;
+}
+function renderPeople(host){
+  host.innerHTML=GROUPS.map(g=>{
+    const ppl=DATA.people.map((p,i)=>({p,i})).filter(x=>String(x.p.group||"").trim()===g.key);
+    const feat=ppl.filter(x=>T(x.p.featured)), reg=ppl.filter(x=>!T(x.p.featured));
+    if(!ppl.length) return "";
+    let h=`<div class="slabel" style="margin-top:34px"><h2>${E(LANG==="zh"?g.zh:g.en)}</h2><span class="ln"></span><span class="sub">${E(LANG==="zh"?g.en:g.zh)}</span></div>`;
+    if(feat.length) h+=`<div class="feats">${feat.map(x=>pFeat(x.p,x.i)).join("")}</div>`;
+    if(reg.length) h+=`<div class="memgrid" ${feat.length?'style="margin-top:18px"':''}>${reg.map(x=>pCard(x.p,x.i)).join("")}</div>`;
+    return h;
+  }).join("");
+}
+
+function renderSettings(host){
+  host.innerHTML=`<div class="setpanel">${SETKEYS.map(sk=>{
+    const row=DATA.settings.find(s=>s.key===sk.key)||{key:sk.key,value:""};
+    return `<div class="setrow"><div class="k">${E(sk.key)}<small>${E(sk.note)}</small></div><input type="text" data-key="${E(sk.key)}" value="${E(row.value)}"></div>`;
+  }).join("")}</div><button class="addbtn" id="setSave" style="border-style:solid">Save settings</button>`;
+  host.querySelector("#setSave").onclick=()=>{
+    host.querySelectorAll("input[data-key]").forEach(inp=>{
+      let row=DATA.settings.find(s=>s.key===inp.dataset.key);
+      if(!row){row={key:inp.dataset.key,value:"",note:""};DATA.settings.push(row);}
+      row.value=inp.value;
+    });
+    mark("settings"); toast("Settings updated — press Save changes");
+  };
+}
+
+/* ---------- master render ---------- */
+function renderAll(){
+  $("langBtn").textContent = LANG==="en" ? "中文 preview" : "EN preview";
+  $("canvas").innerHTML=`
+    <div class="sec-wrap first"><div class="slabel"><h2>Hero</h2><span class="ln"></span><span class="sub">首頁橫幅</span></div><div id="s_hero"></div><button class="addbtn" data-add="hero">+ Add hero slide</button></div>
+    <div class="sec-wrap"><div class="slabel"><h2>What's On</h2><span class="ln"></span><span class="sub">即將舉行</span></div><div id="s_up"></div><button class="addbtn" data-add="events" data-status="upcoming">+ Add event</button></div>
+    <div class="sec-wrap"><div class="slabel"><h2>Past Events</h2><span class="ln"></span><span class="sub">過往活動</span></div><div id="s_past"></div><button class="addbtn" data-add="events" data-status="past">+ Add past event</button></div>
+    <div class="sec-wrap"><div class="slabel"><h2>Gallery</h2><span class="ln"></span><span class="sub">花絮 · up to 5</span></div><div id="s_gal"></div><button class="addbtn" data-add="gallery">+ Add photo</button></div>
+    <div class="sec-wrap"><div class="slabel"><h2>People</h2><span class="ln"></span><span class="sub">我們的團隊</span></div><div id="s_ppl"></div><button class="addbtn" data-add="people">+ Add person</button></div>
+    <div class="sec-wrap"><div class="slabel"><h2>Settings</h2><span class="ln"></span><span class="sub">網站設定</span></div><div id="s_set"></div></div>
+    <div style="height:60px"></div>`;
+  renderHero($("s_hero")); renderEventsGrid($("s_up"),"upcoming"); renderEventsGrid($("s_past"),"past");
+  renderGallery($("s_gal")); renderPeople($("s_ppl")); renderSettings($("s_set"));
+}
+
+/* ---------- canvas actions ---------- */
+$("canvas") && document.addEventListener("click",e=>{
+  const add=e.target.closest("[data-add]");
+  if(add){ addNew(add.dataset.add, add.dataset.status); return; }
+  const btn=e.target.closest(".ed-tools button"); if(!btn) return;
+  const ed=btn.closest(".ed"); const tab=ed.dataset.tab, i=+ed.dataset.i, op=btn.dataset.op;
+  if(op==="edit") openDrawer(tab,i);
+  else if(op==="del"){ if(confirm("Delete this item? (Then press Save changes.)")){DATA[tab].splice(i,1);mark(tab);renderAll();} }
+  else if(op==="up"||op==="down"){ moveItem(tab,i,op==="up"?-1:1); }
+});
+function moveItem(tab,i,d){
+  /* reorder among the items of the same visual group (status for events, group for people) */
+  const arr=DATA[tab]; const it=arr[i];
+  let peers;
+  if(tab==="events"){ const st=String(it.status||"").toLowerCase()||(YW.isPast(it)?"past":"upcoming"); peers=arr.map((x,ix)=>({x,ix})).filter(o=>(String(o.x.status||"").toLowerCase()||(YW.isPast(o.x)?"past":"upcoming"))===st); }
+  else if(tab==="people"){ peers=arr.map((x,ix)=>({x,ix})).filter(o=>String(o.x.group||"")===String(it.group||"")); }
+  else peers=arr.map((x,ix)=>({x,ix}));
+  const pos=peers.findIndex(o=>o.ix===i); const np=pos+d;
+  if(np<0||np>=peers.length) return;
+  const a=peers[pos].ix, b=peers[np].ix; [arr[a],arr[b]]=[arr[b],arr[a]];
+  arr.forEach((r,k)=>r.order=k+1); mark(tab); renderAll();
+}
+function addNew(tab,status){
+  const o={}; SCHEMA[tab].fields.forEach(f=>{ if(f.t==="bi"||f.t==="bitext"){o[f.k+"_en"]="";o[f.k+"_zh"]="";} else o[f.k]=""; });
+  o.id=tab.slice(0,4)+"-"+Date.now().toString(36);
+  o.order=DATA[tab].reduce((m,r)=>Math.max(m,+r.order||0),0)+1;
+  if(tab==="events"){o.status=status||"upcoming";o.category="Performance";}
+  if(tab==="people"){o.group="musician";o.featured="FALSE";}
+  DATA[tab].push(o); mark(tab); renderAll(); openDrawer(tab,DATA[tab].length-1);
+}
+
+/* ---------- drawer form ---------- */
+function openDrawer(tab,i){
+  EDIT={tab,i}; const r=DATA[tab][i];
+  $("dTitle").textContent="Edit "+tab.replace(/s$/,"");
+  $("dBody").innerHTML=SCHEMA[tab].fields.map(f=>fieldHTML(f,r)).join("");
+  $("dBody").querySelectorAll("input[type=file]").forEach(inp=>inp.onchange=()=>onFile(inp));
+  $("dscrim").classList.add("open"); $("drawer").classList.add("open");
+}
+function closeDrawer(){ $("dscrim").classList.remove("open"); $("drawer").classList.remove("open"); }
+function fieldHTML(f,r){
+  const id="f_"+f.k;
+  if(f.t==="bi"||f.t==="bitext"){
+    const tag=f.t==="bitext"?"textarea":"input";
+    const mk=(s,v,cjk)=> tag==="textarea"?`<textarea id="${id}_${s}" class="${cjk?'cjk-in':''}">${E(v)}</textarea>`:`<input type="text" id="${id}_${s}" class="${cjk?'cjk-in':''}" value="${E(v)}">`;
+    return `<div class="fld"><label>${E(f.label)}</label><div class="bi"><div><div class="t">English</div>${mk('en',r[f.k+'_en'],false)}</div><div><div class="t">中文</div>${mk('zh',r[f.k+'_zh'],true)}</div></div></div>`;
+  }
+  if(f.t==="select") return `<div class="fld"><label>${E(f.label)}</label><select id="${id}">${f.opts.map(o=>`<option ${String(r[f.k])===o?'selected':''}>${o}</option>`).join("")}</select></div>`;
+  if(f.t==="num") return `<div class="fld"><label>${E(f.label)}</label><input type="number" id="${id}" value="${E(r[f.k])}"></div>`;
+  if(f.t==="bool") return `<div class="fld"><label class="chk"><input type="checkbox" id="${id}" ${T(r[f.k])?'checked':''}> ${E(f.label)}</label></div>`;
+  if(f.t==="img"){ const v=E(r[f.k]); return `<div class="fld"><label>${E(f.label)}</label><div class="imgbox"><div class="pv">${v?`<img id="pv_${f.k}" src="${v}">`:`<span>no image</span>`}</div><div class="ic"><input type="text" id="${id}" value="${v}" placeholder="Image URL (or upload →)"><span class="btn btn-ghost btn-sm filebtn">Upload<input type="file" accept="image/*" data-k="${f.k}" data-multi="0"></span></div></div></div>`; }
+  if(f.t==="imgs") return `<div class="fld"><label>${E(f.label)}</label><textarea id="${id}" placeholder="One image URL per line">${E(r[f.k])}</textarea><div style="margin-top:8px"><span class="btn btn-ghost btn-sm filebtn">Upload &amp; add<input type="file" accept="image/*" data-k="${f.k}" data-multi="1"></span></div></div>`;
+  return `<div class="fld"><label>${E(f.label)}</label><input type="text" id="${id}" value="${E(r[f.k])}"></div>`;
+}
+function fileB64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f);});}
+async function onFile(inp){
+  if(!inp.files[0])return; const k=inp.dataset.k, multi=inp.dataset.multi==="1"; busy(true);
+  try{
+    const data=await fileB64(inp.files[0]);
+    const res=await YW.post({action:"upload",pass:AUTH.pass,filename:inp.files[0].name,mimeType:inp.files[0].type,data});
+    if(!res||!res.ok||!res.url) throw new Error(res&&res.error||"upload failed");
+    if(multi){ const ta=$("f_"+k); ta.value=(ta.value.trim()?ta.value.trim()+"\n":"")+res.url; }
+    else{ $("f_"+k).value=res.url; const box=$("f_"+k).closest(".imgbox").querySelector(".pv"); box.innerHTML=`<img src="${res.url}">`; }
+    toast("Image uploaded");
+  }catch(e){ alert("Upload failed: "+e.message); }
+  inp.value=""; busy(false);
+}
+function applyDrawer(){
+  const r=DATA[EDIT.tab][EDIT.i];
+  SCHEMA[EDIT.tab].fields.forEach(f=>{
+    if(f.t==="bi"||f.t==="bitext"){ r[f.k+"_en"]=($("f_"+f.k+"_en")||{}).value||""; r[f.k+"_zh"]=($("f_"+f.k+"_zh")||{}).value||""; }
+    else if(f.t==="bool"){ r[f.k]=$("f_"+f.k).checked?"TRUE":"FALSE"; }
+    else { r[f.k]=($("f_"+f.k)||{}).value||""; }
+  });
+  mark(EDIT.tab); closeDrawer(); renderAll();
+}
+
+/* ---------- save ---------- */
+async function saveAll(){
+  if(!DIRTY.size) return;
+  busy(true); let ok=true;
+  for(const tab of Array.from(DIRTY)){
+    try{ const res=await YW.post({action:"save",tab:SCHEMA[tab]?SCHEMA[tab].tab:tab[0].toUpperCase()+tab.slice(1),rows:DATA[tab],pass:AUTH.pass});
+      if(!res||!res.ok){ok=false;} }catch(e){ok=false;}
+  }
+  busy(false);
+  if(ok){ DIRTY.clear(); const b=$("saveBtn"); b.classList.remove("dirty"); b.textContent="Saved"; b.disabled=true; toast("Saved to website ✓"); }
+  else toast("Some changes didn't save — try again.");
+}
+
+/* ---------- wire ---------- */
+$("lbtn").onclick=login; $("lpass").addEventListener("keydown",e=>{if(e.key==="Enter")login();});
+$("logout").onclick=()=>{sessionStorage.removeItem("yw_auth");location.reload();};
+$("langBtn").onclick=()=>{LANG=LANG==="en"?"zh":"en";renderAll();};
+$("saveBtn").onclick=saveAll;
+$("dClose").onclick=closeDrawer; $("dCancel").onclick=closeDrawer; $("dApply").onclick=applyDrawer;
+$("dscrim").onclick=closeDrawer;
+window.addEventListener("beforeunload",e=>{ if(DIRTY.size){ e.preventDefault(); e.returnValue=""; } });
+(function(){ const a=sessionStorage.getItem("yw_auth"); if(a){ AUTH=JSON.parse(a); boot(); } })();
+</script>
+</body>
+</html>

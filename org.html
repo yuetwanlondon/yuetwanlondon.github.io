@@ -1,0 +1,126 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Our People · Yuet Wan London</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+.phead{padding:calc(var(--nav-h) + 54px) 0 10px;background:var(--ink);color:var(--paper)}
+.phead .eyebrow{color:var(--brass-l)}
+.phead h1{font-family:var(--disp);font-weight:800;font-size:clamp(30px,5vw,52px);margin:6px 0 0;letter-spacing:-.02em}
+.phead p{color:rgba(244,236,221,.8);max-width:54ch;margin:14px 0 0}
+.phead .lat-bg{position:absolute;inset:0;opacity:.06;pointer-events:none}
+.phead-wrap{position:relative;overflow:hidden}
+.modal{position:fixed;inset:0;z-index:100;background:rgba(8,7,5,.6);display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);padding:24px}
+.modal.open{display:flex}
+.modal .box{background:#fff;border-radius:20px;max-width:560px;width:100%;max-height:88vh;overflow:auto;position:relative}
+.modal .box .top{display:grid;grid-template-columns:130px 1fr;gap:20px;padding:26px 26px 0}
+.modal .box .ph{position:relative;aspect-ratio:1/1;border-radius:14px;overflow:hidden;background:var(--ink)}
+.modal .box .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.modal .box .ph .place{position:absolute;inset:0;display:grid;place-items:center;background:radial-gradient(120% 120% at 55% 22%,#26303a,#16130F)}
+.modal .box .ph .place .init{font-family:var(--disp);font-weight:800;font-size:32px;color:var(--brass-l);position:relative;z-index:1}
+.modal .box .role{font-family:var(--grot);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--vermilion-d);font-weight:600}
+.modal .box .nm{font-family:var(--disp);font-weight:800;font-size:23px;margin:6px 0 0;line-height:1.1}
+.modal .box .nm .cjk{font-family:var(--cjk)}
+.modal .box .creds{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.modal .box .creds li{font-family:var(--grot);font-size:12px;color:var(--ink-80);background:var(--mist);border:1px solid var(--line);border-radius:7px;padding:5px 10px}
+.modal .box .bio{padding:18px 26px 26px}.modal .box .bio p{font-size:14.5px;line-height:1.65;color:var(--ink-80);margin:0 0 10px}
+.modal .box .close{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;display:grid;place-items:center}
+</style></head><body>
+<nav class="nav"><div class="wrap">
+<a class="brandlink" href="index.html"><img src="assets/brush_paper.png" alt=""><span><b>Yuet Wan London</b><span class="cjk">倫敦粵韻曲藝文化協會</span></span></a>
+<button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button>
+<div class="navlinks" id="navlinks">
+<a href="index.html" data-en="Home" data-zh="主頁">Home</a>
+<a href="index.html#whatson" data-en="What's On" data-zh="近期活動">What's On</a>
+<a href="org.html" class="active" data-en="People" data-zh="團隊">People</a>
+<a href="about.html" data-en="About" data-zh="關於我們">About</a>
+<a href="contact.html" data-en="Contact" data-zh="聯絡">Contact</a>
+<button class="langtog" id="langtog">中文</button>
+<a class="cta" href="contact.html" data-en="Get involved" data-zh="參與我們">Get involved</a>
+</div></div></nav>
+
+<header class="phead phead-wrap"><div class="lat-bg" id="latbg"></div><div class="wrap">
+<p class="eyebrow" data-en="Our People" data-zh="我們的團隊">Our People</p>
+<h1 data-en="Artists, masters & musicians" data-zh="藝術家・師傅・樂師">Artists, masters &amp; musicians</h1>
+<p data-en="The performers, music leaders and supporters who bring Cantonese opera to the London stage." data-zh="把粵劇帶到倫敦舞台的演員、音樂領導與支持者。">The performers, music leaders and supporters who bring Cantonese opera to the London stage.</p>
+</div></header>
+<div class="wrap" id="people" style="padding-bottom:70px"></div>
+<div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
+
+<footer class="foot"><div class="wrap">
+<div class="grid2">
+<div>
+<p class="eyebrow" data-en="Get in touch" data-zh="聯絡我們">Get in touch</p>
+<div class="cinfo">
+<a href="mailto:yuetwanlondon@gmail.com">yuetwanlondon@gmail.com</a><br>
+<a href="tel:+447888344919">+44 7888 344919</a>
+<span class="lab" data-en="Based in London, United Kingdom" data-zh="英國 · 倫敦">Based in London, United Kingdom</span>
+</div>
+</div>
+<div>
+<p class="eyebrow" data-en="Yuet Wan London" data-zh="倫敦粵韻曲藝文化協會">Yuet Wan London</p>
+<p class="cjk" style="color:var(--brass-l);font-size:16px;margin:0 0 8px">傳情以藝，化人以文</p>
+<p style="color:rgba(244,236,221,.7);font-size:14px;max-width:42ch;margin:0" data-en="A non-profit association promoting the art of Cantonese opera and music in the United Kingdom." data-zh="非牟利團體，致力在英國推廣粵劇及粵樂藝術。">A non-profit association promoting the art of Cantonese opera and music in the United Kingdom.</p>
+</div>
+</div>
+<div class="bottom">
+<img src="assets/primary_paper.png" alt="Yuet Wan London">
+<div class="cr">© 2026 Yuet Wan London · 倫敦粵韻曲藝文化協會<br><span data-en="The sound of Lingnan, the stage of London" data-zh="粵韻飄香 · 揚聲倫敦">The sound of Lingnan, the stage of London</span></div>
+</div>
+</div></footer>
+<script src="assets/app.js"></script>
+<script>
+let LANG="en";
+function setLang(l){LANG=l;YW.applyStaticLang(l);if(window.render)render();}
+document.getElementById("langtog").onclick=function(){setLang(LANG==="en"?"zh":"en");};
+YW.setupNav();
+
+const GROUPS=[{key:"honorary",en:"Honorary",zh:"名譽"},{key:"performer",en:"Performing Artists",zh:"粵劇演員"},{key:"music-leader",en:"Music & Percussion Leaders",zh:"音樂・擊樂領導"},{key:"musician",en:"Musicians",zh:"樂師"}];
+const FALLBACK=[
+{id:"p1",group:"honorary",order:1,featured:"TRUE",honorific_en:"Mr.",honorific_zh:"先生",name_en:"Yau Yin Kwong",name_zh:"丘賢光",role_en:"Honorary Chairman",role_zh:"名譽主席"},
+{id:"p2",group:"performer",order:1,featured:"TRUE",name_en:"Wang Gedan",name_zh:"王戈丹",role_en:"Performing Artist · Dan",role_zh:"粵劇演員 · 花旦"},
+{id:"p3",group:"performer",order:2,featured:"TRUE",name_en:"Li Jianglin",name_zh:"李江崊",role_en:"Performing Artist · Wenwusheng",role_zh:"文武生"},
+{id:"p4",group:"music-leader",order:1,name_en:"Luo Shurong",name_zh:"駱樹榮",role_en:"Music Leader",role_zh:"音樂領導"},
+{id:"p5",group:"musician",order:1,name_en:"Chan Yuen Bing",name_zh:"陳婉冰",role_en:"Musician",role_zh:"樂師"},
+{id:"p6",group:"musician",order:2,name_en:"Mok Hoi Leung",name_zh:"莫海量",role_en:"Musician",role_zh:"樂師"}];
+let PEOPLE=[];
+function Lf(o,b){return LANG==="zh"?(o[b+"_zh"]||o[b+"_en"]||""):(o[b+"_en"]||o[b+"_zh"]||"");}
+function initials(p){return String(p.name_en||"").split(/\s+/).filter(Boolean).map(w=>w[0]).join("").slice(0,2).toUpperCase();}
+function photo(p){if(p.photo)return '<img class="cover" src="'+YW.esc(p.photo)+'" alt="">';const i=initials(p);return '<div class="place">'+YW.lat()+(i?'<span class="init">'+i+'</span>':'<span class="usr">'+YW.USER_ICON+'</span>')+'</div>';}
+function pFeat(p){
+ const creds=YW.lines(Lf(p,"credentials")),bio=YW.lines(Lf(p,"bio"));
+ const nm=LANG==="zh"?('<span class="cjk">'+YW.esc(p.name_zh||p.name_en)+'</span>'+(Lf(p,"honorific")?'<small>'+YW.esc(p.honorific_zh||Lf(p,"honorific"))+'</small>':'')):(YW.esc(p.name_en||p.name_zh)+(p.name_zh&&p.name_en?' <small class="cjk">'+YW.esc(p.name_zh)+'</small>':''));
+ return '<article class="pfeat"><div class="ph">'+photo(p)+'</div><div class="body"><div class="role">'+YW.esc(Lf(p,"role"))+'</div><div class="nm">'+nm+'</div>'+
+ (creds.length?'<ul class="creds">'+creds.map(c=>'<li>'+YW.esc(c)+'</li>').join("")+'</ul>':'')+
+ (bio.length?'<div class="bio">'+bio.map(t=>'<p>'+YW.esc(t)+'</p>').join("")+'</div>':'')+'</div></article>';
+}
+function pCard(p,idx){
+ return '<button class="pcard" data-i="'+idx+'"><div class="ph">'+photo(p)+'</div><div class="pb"><div class="role">'+YW.esc(Lf(p,"role"))+'</div><div class="nm">'+YW.esc(p.name_zh||p.name_en)+(p.name_en&&p.name_zh?'<small>'+YW.esc(p.name_en)+'</small>':'')+'</div></div></button>';
+}
+window.render=function(){
+ const host=document.getElementById("people");
+ host.innerHTML=GROUPS.map(g=>{
+  const ppl=PEOPLE.map((p,i)=>({p,i})).filter(x=>String(x.p.group||"").trim()===g.key);
+  if(!ppl.length)return "";
+  const feat=ppl.filter(x=>YW.isTrue(x.p.featured)),reg=ppl.filter(x=>!YW.isTrue(x.p.featured));
+  let h='<section class="grp"><div class="slabel"><h2>'+YW.esc(LANG==="zh"?g.zh:g.en)+'</h2><span class="ln"></span><span class="sub">'+YW.esc(LANG==="zh"?g.en:g.zh)+'</span></div>';
+  if(feat.length)h+='<div class="feats">'+feat.map(x=>pFeat(x.p)).join("")+'</div>';
+  if(reg.length)h+='<div class="memgrid"'+(feat.length?' style="margin-top:18px"':'')+'>'+reg.map(x=>pCard(x.p,x.i)).join("")+'</div>';
+  return h+'</section>';
+ }).join("");
+ host.querySelectorAll(".pcard").forEach(b=>b.onclick=()=>openModal(PEOPLE[+b.dataset.i]));
+};
+function openModal(p){
+ const creds=YW.lines(Lf(p,"credentials")),bio=YW.lines(Lf(p,"bio"));const i=initials(p);
+ const ph=p.photo?('<img src="'+YW.esc(p.photo)+'" alt="">'):('<div class="place">'+YW.lat()+'<span class="init">'+i+'</span></div>');
+ document.getElementById("modalBox").innerHTML='<button class="close" id="mclose"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>'+
+ '<div class="top"><div class="ph">'+ph+'</div><div><div class="role">'+YW.esc(Lf(p,"role"))+'</div><div class="nm"><span class="cjk">'+YW.esc(p.name_zh||p.name_en)+'</span></div>'+(p.name_en?'<div style="color:var(--ink-55);font-size:14px;margin-top:3px">'+YW.esc(p.name_en)+'</div>':'')+(creds.length?'<ul class="creds">'+creds.map(c=>'<li>'+YW.esc(c)+'</li>').join("")+'</ul>':'')+'</div></div>'+
+ (bio.length?'<div class="bio">'+bio.map(t=>'<p>'+YW.esc(t)+'</p>').join("")+'</div>':'<div style="height:20px"></div>');
+ document.getElementById("modal").classList.add("open");
+ document.getElementById("mclose").onclick=closeModal;
+}
+function closeModal(){document.getElementById("modal").classList.remove("open");}
+document.getElementById("modal").onclick=e=>{if(e.target.id==="modal")closeModal();};
+document.getElementById("latbg").innerHTML=YW.lat();
+(async function(){try{const j=await YW.fetchData();PEOPLE=(j.people&&j.people.length)?j.people:FALLBACK;}catch(e){PEOPLE=FALLBACK;}PEOPLE.sort((a,b)=>(+a.order||0)-(+b.order||0));render();})();
+
+</script></body></html>
