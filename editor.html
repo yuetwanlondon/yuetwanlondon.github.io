@@ -431,23 +431,23 @@ async function onFile(inp){
   if(!inp.files[0])return; const k=inp.dataset.k, multi=inp.dataset.multi==="1"; busy(true);
   try{
     const data=await fileB64(inp.files[0]);
-    const res=await YW.post({action:"upload",pass:AUTH.pass,filename:inp.files[0].name,mimeType:inp.files[0].type,data});
+    const res=await YW.post({action:"upload",pass:AUTH.pass,filename:inp.files[0].name,mimeType:inp.files[0].type,data,folder:EDIT.tab});
     if(!res||!res.ok||!res.url) throw new Error(res&&res.error||"upload failed");
     if(multi){ const ta=$("f_"+k); ta.value=(ta.value.trim()?ta.value.trim()+"\n":"")+res.url; }
     else{ $("f_"+k).value=res.url; const box=$("f_"+k).closest(".imgbox").querySelector(".pv"); box.innerHTML=`<img src="${res.url}">`; }
     toast("Image uploaded");
-    IMG_CACHE=null;
+    IMG_CACHE={};
   }catch(e){ alert("Upload failed: "+e.message); }
   inp.value=""; busy(false);
 }
 
 /* ---------- image library picker ---------- */
-let PICK={key:null,multi:false}, IMG_CACHE=null;
-async function loadImages(){ if(IMG_CACHE)return IMG_CACHE; const res=await YW.post({action:"images",pass:AUTH.pass}); if(res&&res.ok&&res.images){IMG_CACHE=res.images;return IMG_CACHE;} throw new Error(res&&res.error||"could not list images"); }
+let PICK={key:null,multi:false}, IMG_CACHE={};
+async function loadImages(folder){ if(IMG_CACHE[folder])return IMG_CACHE[folder]; const res=await YW.post({action:"images",pass:AUTH.pass,folder:folder}); if(res&&res.ok&&res.images){IMG_CACHE[folder]=res.images;return res.images;} throw new Error(res&&res.error||"could not list images"); }
 function openPicker(key,multi){
-  PICK={key,multi}; const g=$("pickGrid"); g.innerHTML='<div class="pickempty">Loading…</div>'; $("pickwrap").classList.add("open");
-  loadImages().then(imgs=>{
-    if(!imgs.length){ g.innerHTML='<div class="pickempty">No images uploaded yet. Use “Upload” to add one.</div>'; return; }
+  PICK={key,multi}; const folder=EDIT.tab; const g=$("pickGrid"); g.innerHTML='<div class="pickempty">Loading…</div>'; $("pickwrap").classList.add("open");
+  loadImages(folder).then(imgs=>{
+    if(!imgs.length){ g.innerHTML='<div class="pickempty">No images uploaded to this section yet. Use “Upload” to add one.</div>'; return; }
     g.innerHTML=imgs.map(im=>`<div class="pk" data-url="${E(im.url)}" title="${E(im.name)}"><img src="${E(im.url)}" loading="lazy" alt=""></div>`).join("");
     g.querySelectorAll(".pk").forEach(el=>el.onclick=()=>choosePick(el.dataset.url));
   }).catch(err=>{ g.innerHTML='<div class="pickempty">Could not load images.<br><small>'+E(String(err.message||err))+'</small></div>'; });

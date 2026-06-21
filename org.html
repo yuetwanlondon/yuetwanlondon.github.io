@@ -2,10 +2,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Our People · Yuet Wan London</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style id="yw-pre-css">
-#yw-pre{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background-color:#F4ECDD;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='70'%3E%3Cpath d='M20 0 L40 11 L40 35 L20 46 L0 35 L0 11Z M20 46 L40 57 L40 81 M20 46 L0 57 L0 81' fill='none' stroke='%2316130F' stroke-opacity='0.06' stroke-width='1.2'/%3E%3C/svg%3E");transition:opacity .55s ease}
+#yw-pre{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background-color:#F4ECDD;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='70'%3E%3Cpath d='M20 0 L40 11 L40 35 L20 46 L0 35 L0 11Z M20 46 L40 57 L40 81 M20 46 L0 57 L0 81' fill='none' stroke='%2316130F' stroke-opacity='0.06' stroke-width='1.2'/%3E%3C/svg%3E");transition:opacity .6s ease}
 #yw-pre.hide{opacity:0;pointer-events:none}
-#yw-pre .ring{width:132px;height:132px;border-radius:50%;background:#fff;box-shadow:0 16px 44px rgba(22,19,15,.16);display:grid;place-items:center;overflow:hidden;padding:16px}
-#yw-pre .ring img{width:100%;height:100%;object-fit:contain}
+#yw-pre .ring{width:min(240px,58vw);height:min(240px,58vw);border-radius:50%;background:#fff;box-shadow:0 20px 56px rgba(22,19,15,.18);overflow:hidden;display:flex;align-items:center;justify-content:center}
+#yw-pre .ring img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 </style>
 <link rel="stylesheet" href="assets/styles.css">
 <style>
@@ -35,9 +35,22 @@
 <div id="yw-pre"><div class="ring"><img id="yw-pre-gif" alt="Loading"></div></div>
 <script>
 (function(){var g=['img/pre-load-1.gif','img/pre-load-2.gif','img/pre-load-3.gif'];var el=document.getElementById('yw-pre-gif');if(el)el.src=g[Math.floor(Math.random()*g.length)];})();
-window.__pre=function(){var p=document.getElementById('yw-pre');if(!p||p.__h)return;p.__h=1;p.classList.add('hide');setTimeout(function(){p.style.display='none';},650);};
-window.addEventListener('load',function(){setTimeout(window.__pre,450);});
-setTimeout(window.__pre,5000);
+(function(){
+ var START=Date.now(), MIN=4000, HARD=14000, called=false, hidden=false;
+ function doHide(){ if(hidden)return; hidden=true; var p=document.getElementById('yw-pre'); if(!p)return; p.classList.add('hide'); setTimeout(function(){p.style.display='none';},700); }
+ function hideAfterMin(){ setTimeout(doHide, Math.max(0, MIN-(Date.now()-START))); }
+ // Called by each page once its data has rendered. Waits for the content images too,
+ // then keeps the loader up until at least MIN ms have passed.
+ window.__pre=function(){
+   if(called)return; called=true;
+   var imgs=document.querySelectorAll('img'); var n=imgs.length, done=0;
+   if(!n){ hideAfterMin(); return; }
+   function fin(){ done++; if(done>=n) hideAfterMin(); }
+   imgs.forEach(function(im){ if(im.complete) fin(); else { im.addEventListener('load',fin); im.addEventListener('error',fin); } });
+   setTimeout(hideAfterMin, 7000); // don't wait forever on slow images
+ };
+ setTimeout(doHide, HARD); // absolute safety net
+})();
 </script>
 <nav class="nav"><div class="wrap">
 <a class="brandlink" href="index.html"><img src="img/yuetwanlondon-icon.svg" alt="" style="width:38px"><span><b>Yuet Wan London</b><span class="cjk">倫敦粵韻曲藝文化協會</span></span></a>
