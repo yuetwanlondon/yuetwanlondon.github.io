@@ -13,8 +13,8 @@
 <meta name="twitter:image" content="https://yuetwanlondon.github.io/img/web-thumbnail.jpg">
 <title>Event · Yuet Wan London</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style id="yw-pre-css">
-html.pre-skip #yw-pre{display:none!important}
-#yw-pre{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background-color:#F4ECDD;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='70'%3E%3Cpath d='M20 0 L40 11 L40 35 L20 46 L0 35 L0 11Z M20 46 L40 57 L40 81 M20 46 L0 57 L0 81' fill='none' stroke='%2316130F' stroke-opacity='0.06' stroke-width='1.2'/%3E%3C/svg%3E");transition:opacity .5s ease}
+#yw-pre{display:none;position:fixed;inset:0;z-index:99999;align-items:center;justify-content:center;background-color:#F4ECDD;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='70'%3E%3Cpath d='M20 0 L40 11 L40 35 L20 46 L0 35 L0 11Z M20 46 L40 57 L40 81 M20 46 L0 57 L0 81' fill='none' stroke='%2316130F' stroke-opacity='0.06' stroke-width='1.2'/%3E%3C/svg%3E");transition:opacity .5s ease}
+html.loader-on #yw-pre{display:flex}
 #yw-pre.hide{opacity:0;pointer-events:none}
 #yw-pre .pre-inner{display:flex;flex-direction:column;align-items:center;gap:clamp(18px,5vh,30px);padding:24px}
 #yw-pre .pre-logo{width:min(170px,40vw);opacity:0;transition:opacity .5s ease}
@@ -22,7 +22,12 @@ html.pre-skip #yw-pre{display:none!important}
 #yw-pre .ring img{width:100%;height:100%;object-fit:cover;border-radius:50%;opacity:0;transition:opacity .5s ease}
 #yw-pre.in .pre-logo,#yw-pre.in .ring{opacity:1}
 </style>
-<script>try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.classList.add('reveal-on');}}catch(e){}</script>
+<script>try{
+ if(!matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.classList.add('reveal-on');}
+ var _ph=(location.pathname==='/'||location.pathname==='/index.html');
+ if(_ph && sessionStorage.getItem('yw_loader')==='1'){document.documentElement.classList.add('loader-on');}
+ sessionStorage.removeItem('yw_loader');
+}catch(e){}</script>
 <link rel="stylesheet" href="/assets/styles.css">
 <style>
 .epost{position:relative;min-height:clamp(380px,60vh,560px);background:var(--ink);overflow:hidden;display:flex;align-items:flex-end}
@@ -69,39 +74,39 @@ html.pre-skip #yw-pre{display:none!important}
 <div id="yw-pre"><div class="pre-inner"><img class="pre-logo" src="/img/yuetwanlondon-main.svg" alt="Yuet Wan London"><div class="ring"><img id="yw-pre-gif" alt=""></div></div></div>
 <script>
 (function(){
- var P=document.getElementById('yw-pre'), G=document.getElementById('yw-pre-gif');
+ var P=document.getElementById('yw-pre'); if(!P) return;
+ var G=document.getElementById('yw-pre-gif');
  var gifs=['/img/pre-load-1.gif','/img/pre-load-2.gif','/img/pre-load-3.gif'];
+ var on=document.documentElement.classList.contains('loader-on');
  var reduce=false; try{reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
- var MIN = reduce ? 0 : 2400;          // <-- minimum time the loader is shown (ms). Change this to taste.
- var HARD = reduce ? 2500 : 9000;      // absolute safety cap
+ var MIN = reduce ? 0 : 2400;          // <-- how long the home loader plays (ms). Change to taste.
+ var HARD = reduce ? 2500 : 9000;
  var START=Date.now(), called=false, hidden=false;
  function playGif(){ if(!G)return; G.style.opacity='0'; G.onload=function(){G.style.opacity='1';}; G.src=gifs[Math.floor(Math.random()*gifs.length)]; }
- function doHide(){ if(hidden)return; hidden=true; if(!P)return; P.classList.add('hide'); setTimeout(function(){P.style.display='none';},520); }
+ function doHide(){ if(hidden)return; hidden=true; P.classList.add('hide'); setTimeout(function(){P.style.display='none';},520); }
  function hideAfterMin(){ setTimeout(doHide, Math.max(0, MIN-(Date.now()-START))); }
- playGif();
- setTimeout(function(){ if(P)P.classList.add('in'); }, 40);
- // each page calls this once its content has rendered; we wait for images, then respect MIN
+ if(on){ playGif(); setTimeout(function(){P.classList.add('in');},40); setTimeout(doHide,HARD); }
+ // home page calls this once rendered; only matters when the loader is active
  window.__pre=function(){
-   if(called)return; called=true;
+   if(!on || called) return; called=true;
    var imgs=document.querySelectorAll('img'), n=imgs.length, done=0;
    if(!n){ hideAfterMin(); return; }
    function fin(){ done++; if(done>=n) hideAfterMin(); }
    imgs.forEach(function(im){ if(im.complete) fin(); else { im.addEventListener('load',fin); im.addEventListener('error',fin); } });
    setTimeout(hideAfterMin, MIN+3000);
  };
- setTimeout(doHide, HARD);
- // fade the loader back IN over the current page when navigating away (set by the page-transition handler)
+ // cover the CURRENT page instantly (opaque) when heading home, so the hand-off is seamless
  window.__preCover=function(){
-   if(!P||reduce) return;
-   P.style.display='flex'; P.classList.add('hide'); void P.offsetWidth;
-   P.classList.remove('hide'); P.classList.add('in'); playGif();
+   if(reduce) return;
+   P.style.transition='none'; P.style.display='flex'; P.classList.remove('hide'); P.style.opacity='1';
+   void P.offsetWidth; P.style.transition=''; P.classList.add('in'); playGif();
  };
- // if the page is restored from the back/forward cache, don't leave the loader stuck on screen
- window.addEventListener('pageshow', function(ev){ if(ev.persisted && P){ P.classList.add('hide'); P.style.display='none'; } });
+ // don't leave the loader stuck after a back/forward (bfcache) restore
+ window.addEventListener('pageshow', function(ev){ if(ev.persisted){ P.classList.add('hide'); P.style.display='none'; } });
 })();
 </script>
 <nav class="nav"><div class="wrap">
-<a class="brandlink" href="/"><img src="/img/yuetwanlondon-icon.svg" alt="" style="width:38px;filter:brightness(0) invert(1)"><span><b>Yuet Wan London</b><span class="cjk">倫敦粵韻曲藝文化協會</span></span></a>
+<a class="brandlink" href="/" data-loader-home><img src="/img/yuetwanlondon-icon.svg" alt="" style="width:38px;filter:brightness(0) invert(1)"><span><b>Yuet Wan London</b><span class="cjk">倫敦粵韻曲藝文化協會</span></span></a>
 <button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button>
 <div class="navlinks" id="navlinks">
 <a href="/" data-en="Home" data-zh="主頁">Home</a>
@@ -136,7 +141,7 @@ html.pre-skip #yw-pre{display:none!important}
 </div>
 </div>
 <div class="bottom">
-<img src="/img/yuetwanlondon-main.svg" alt="Yuet Wan London" style="width:150px;filter:brightness(0) invert(1)">
+<a href="/" data-loader-home aria-label="Home" style="display:inline-block;line-height:0"><img src="/img/yuetwanlondon-main.svg" alt="Yuet Wan London" style="width:150px;filter:brightness(0) invert(1)"></a>
 <div class="cr">© 2026 Yuet Wan London · 倫敦粵韻曲藝文化協會<br><span data-en="The sound of Lingnan, the stage of London" data-zh="粵韻飄香 · 揚聲倫敦">The sound of Lingnan, the stage of London</span></div>
 </div>
 </div></footer>

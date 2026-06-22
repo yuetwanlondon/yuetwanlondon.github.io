@@ -123,19 +123,18 @@ window.YW = (function(){
     try{ reduce=matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
 
     if(!reduce){
-      // on internal navigation, fade the loader back over the page, then go
+      // ONLY the header logo and the footer logo play the loader (they carry data-loader-home).
+      // The "Home" text button and every other link navigate normally and fast.
       document.addEventListener('click', function(e){
         if(e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey) return;
         var a=e.target.closest && e.target.closest('a'); if(!a) return;
-        var href=a.getAttribute('href');
-        if(!href||a.target==='_blank'||a.hasAttribute('download')) return;
-        if(href[0]==='#'||/^(mailto:|tel:|javascript:)/i.test(href)) return;
-        var url; try{ url=new URL(href, location.href); }catch(_){ return; }
-        if(url.origin!==location.origin) return;
-        if(url.href===location.href || (url.pathname===location.pathname && url.hash)) return; // same page / anchor
+        if(!a.hasAttribute('data-loader-home')) return;
+        var onHome=(location.pathname==='/'||location.pathname==='/index.html');
         e.preventDefault();
+        if(onHome){ try{window.scrollTo({top:0,behavior:'smooth'});}catch(_){window.scrollTo(0,0);} return; }
+        try{ sessionStorage.setItem('yw_loader','1'); }catch(_){}
         try{ if(window.__preCover) window.__preCover(); }catch(_){}
-        setTimeout(function(){ location.href=url.href; }, 420);
+        setTimeout(function(){ location.href='/'; }, 360);
       }, true);
     }
 
