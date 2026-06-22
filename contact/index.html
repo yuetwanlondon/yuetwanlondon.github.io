@@ -1,5 +1,7 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/png" href="/img/yuetwanlondon-favicon.png">
+<link rel="apple-touch-icon" href="/img/yuetwanlondon-favicon.png">
 <title>Contact · Yuet Wan London</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style id="yw-pre-css">
 html.pre-skip #yw-pre{display:none!important}
@@ -122,6 +124,7 @@ html.pre-skip #yw-pre{display:none!important}
 <a href="tel:+447888344919">+44 7888 344919</a>
 <span class="lab" data-en="Based in London, United Kingdom" data-zh="英國 · 倫敦">Based in London, United Kingdom</span>
 </div>
+<div class="social" id="socialLinks"></div>
 </div>
 <div>
 <p class="eyebrow" data-en="Yuet Wan London" data-zh="倫敦粵韻曲藝文化協會">Yuet Wan London</p>
@@ -141,6 +144,7 @@ function setLang(l){LANG=l;YW.saveLang(l);YW.applyStaticLang(l);if(window.render
 document.getElementById("langtog").onclick=function(){setLang(LANG==="en"?"zh":"en");};
 YW.applyStaticLang(LANG);
 YW.setupNav();
+YW.renderSocial();
 
 function submitContact(){
  const name=document.getElementById("f_name"),email=document.getElementById("f_email"),msg=document.getElementById("f_msg");
