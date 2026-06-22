@@ -116,6 +116,8 @@ body{background:var(--mist)}
     <div class="fld"><label>Password</label><input type="password" id="lpass" autocomplete="current-password"></div>
     <div class="err" id="lerr"></div>
     <button class="btn btn-fill" style="width:100%;margin-top:8px" id="lbtn">Sign in</button>
+    <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:10px" id="clearCacheBtn">Clear cache</button>
+    <p style="color:var(--ink-55);font-size:11.5px;text-align:center;margin:10px 0 0">Clears saved data on this device so the latest published content loads fresh.</p>
   </div>
 </div>
 
@@ -241,7 +243,7 @@ async function login(){
 async function boot(){
   busy(true);
   try{
-    const j=await YW.fetchData();
+    const j=await YW.fetchLive();
     ["events","people","gallery","hero","settings"].forEach(k=>DATA[k]=(j&&j[k])?j[k]:[]);
     if(!DATA.settings.length) DATA.settings=SETKEYS.map(s=>({key:s.key,value:"",note:s.note}));
     Object.keys(DATA).forEach(k=>DATA[k].sort((a,b)=>(+a.order||0)-(+b.order||0)));
@@ -483,6 +485,7 @@ async function saveAll(){
 
 /* ---------- wire ---------- */
 $("lbtn").onclick=login; $("lpass").addEventListener("keydown",e=>{if(e.key==="Enter")login();});
+$("clearCacheBtn").onclick=async function(){ const b=$("clearCacheBtn"); b.disabled=true; b.textContent="Clearing…"; await YW.clearCache(); toast("Cache cleared"); setTimeout(function(){location.reload(true);},700); };
 $("logout").onclick=()=>{sessionStorage.removeItem("yw_auth");location.reload();};
 $("langBtn").onclick=()=>{LANG=LANG==="en"?"zh":"en";renderAll();};
 $("saveBtn").onclick=saveAll;
