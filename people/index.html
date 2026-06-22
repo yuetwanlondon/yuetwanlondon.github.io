@@ -22,7 +22,7 @@ html.pre-skip #yw-pre{display:none!important}
 #yw-pre .ring img{width:100%;height:100%;object-fit:cover;border-radius:50%;opacity:0;transition:opacity .5s ease}
 #yw-pre.in .pre-logo,#yw-pre.in .ring{opacity:1}
 </style>
-<script>try{if(sessionStorage.getItem('yw_seen')){document.documentElement.className+=' pre-skip';}else{sessionStorage.setItem('yw_seen','1');}}catch(e){}</script>
+<script>try{if(sessionStorage.getItem('yw_seen')){document.documentElement.className+=' pre-skip';}else{sessionStorage.setItem('yw_seen','1');}if(!matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.classList.add('reveal-on');}}catch(e){}</script>
 <link rel="stylesheet" href="/assets/styles.css">
 <style>
 .phead{padding:calc(var(--nav-h) + 54px) 0 10px;background:var(--ink);color:var(--paper)}
@@ -129,6 +129,7 @@ document.getElementById("langtog").onclick=function(){setLang(LANG==="en"?"zh":"
 YW.applyStaticLang(LANG);
 YW.setupNav();
 YW.renderSocial();
+YW.initMotion();
 
 const GROUPS=[{key:"honorary",en:"Honorary",zh:"名譽"},{key:"performer",en:"Performing Artists",zh:"粵劇演員"},{key:"music-leader",en:"Music & Percussion Leaders",zh:"音樂・擊樂領導"},{key:"musician",en:"Musicians",zh:"樂師"}];
 const FALLBACK=[

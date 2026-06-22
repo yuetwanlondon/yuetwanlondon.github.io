@@ -22,7 +22,7 @@ html.pre-skip #yw-pre{display:none!important}
 #yw-pre .ring img{width:100%;height:100%;object-fit:cover;border-radius:50%;opacity:0;transition:opacity .5s ease}
 #yw-pre.in .pre-logo,#yw-pre.in .ring{opacity:1}
 </style>
-<script>try{if(sessionStorage.getItem('yw_seen')){document.documentElement.className+=' pre-skip';}else{sessionStorage.setItem('yw_seen','1');}}catch(e){}</script>
+<script>try{if(sessionStorage.getItem('yw_seen')){document.documentElement.className+=' pre-skip';}else{sessionStorage.setItem('yw_seen','1');}if(!matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.classList.add('reveal-on');}}catch(e){}</script>
 <link rel="stylesheet" href="/assets/styles.css">
 <style>
 .blogwrap{max-width:var(--maxw);margin:0 auto;padding:calc(var(--nav-h) + 64px) 24px 90px}
@@ -131,6 +131,7 @@ document.getElementById("langtog").onclick=function(){setLang(LANG==="en"?"zh":"
 YW.applyStaticLang(LANG);
 YW.setupNav();
 YW.renderSocial();
+YW.initMotion();
 
 const CATS={
  learn:{en:"Learn Cantonese Opera",zh:"認識粵劇",sub_en:"A brief history and introduction to the art of Cantonese opera.",sub_zh:"粵劇藝術的歷史源流與入門簡介。",kick_en:"Learn",kick_zh:"認識粵劇",all_en:"All articles",all_zh:"所有文章"},
