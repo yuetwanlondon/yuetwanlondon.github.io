@@ -445,14 +445,14 @@ function renderAbout(host){
     const fZH=ak.multi?`<textarea data-akey="${E(ak.key)}" data-l="zh">${E(row.zh||"")}</textarea>`:`<input data-akey="${E(ak.key)}" data-l="zh" value="${E(row.zh||"")}">`;
     return `<div class="abrow"><div class="k">${E(ak.label)}</div><div class="fields"><span class="lab">English</span>${fEN}<span class="lab">中文</span>${fZH}</div></div>`;
   }).join("")+`</div><button class="addbtn" id="abSave" style="border-style:solid">Save About page</button>`;
-  host.querySelector("#abSave").onclick=()=>{
+  host.querySelector("#abSave").onclick=async()=>{
     ABOUTKEYS.forEach(ak=>{
       let row=DATA.about.find(s=>s.key===ak.key);
       if(!row){row={key:ak.key,en:"",zh:""};DATA.about.push(row);}
       const en=host.querySelector(`[data-akey="${ak.key}"][data-l="en"]`), zh=host.querySelector(`[data-akey="${ak.key}"][data-l="zh"]`);
       row.en=en?en.value:""; row.zh=zh?zh.value:"";
     });
-    mark("about"); toast("About page updated — press Save changes");
+    mark("about"); await saveAll();
   };
 }
 
@@ -461,13 +461,13 @@ function renderSettings(host){
     const row=DATA.settings.find(s=>s.key===sk.key)||{key:sk.key,value:""};
     return `<div class="setrow"><div class="k">${E(sk.key)}<small>${E(sk.note)}</small></div><input type="text" data-key="${E(sk.key)}" value="${E(row.value)}"></div>`;
   }).join("")}</div><button class="addbtn" id="setSave" style="border-style:solid">Save settings</button>`;
-  host.querySelector("#setSave").onclick=()=>{
+  host.querySelector("#setSave").onclick=async()=>{
     host.querySelectorAll("input[data-key]").forEach(inp=>{
       let row=DATA.settings.find(s=>s.key===inp.dataset.key);
       if(!row){row={key:inp.dataset.key,value:"",note:""};DATA.settings.push(row);}
       row.value=inp.value;
     });
-    mark("settings"); toast("Settings updated — press Save changes");
+    mark("settings"); await saveAll();
   };
 }
 
