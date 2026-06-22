@@ -2,14 +2,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Yuet Wan London · 倫敦粵韻曲藝文化協會</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style id="yw-pre-css">
-#yw-pre{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background-color:#F4ECDD;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='70'%3E%3Cpath d='M20 0 L40 11 L40 35 L20 46 L0 35 L0 11Z M20 46 L40 57 L40 81 M20 46 L0 57 L0 81' fill='none' stroke='%2316130F' stroke-opacity='0.06' stroke-width='1.2'/%3E%3C/svg%3E");transition:opacity .6s ease}
+html.pre-skip #yw-pre{display:none!important}
+#yw-pre{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background-color:#F4ECDD;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='70'%3E%3Cpath d='M20 0 L40 11 L40 35 L20 46 L0 35 L0 11Z M20 46 L40 57 L40 81 M20 46 L0 57 L0 81' fill='none' stroke='%2316130F' stroke-opacity='0.06' stroke-width='1.2'/%3E%3C/svg%3E");transition:opacity .5s ease}
 #yw-pre.hide{opacity:0;pointer-events:none}
-#yw-pre .pre-logo{position:absolute;top:max(8vh,42px);left:50%;transform:translateX(-50%);width:min(190px,52vw);opacity:0;transition:opacity .8s ease}
-#yw-pre .ring{width:min(240px,58vw);height:min(240px,58vw);border-radius:50%;background:#fff;box-shadow:0 20px 56px rgba(22,19,15,.18);overflow:hidden;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .7s ease}
-#yw-pre .ring img{width:100%;height:100%;object-fit:cover;border-radius:50%;opacity:0;transition:opacity .8s ease}
+#yw-pre .pre-inner{display:flex;flex-direction:column;align-items:center;gap:clamp(18px,5vh,30px);padding:24px}
+#yw-pre .pre-logo{width:min(170px,40vw);opacity:0;transition:opacity .5s ease}
+#yw-pre .ring{width:min(210px,50vw);height:min(210px,50vw);border-radius:50%;background:#fff;box-shadow:0 20px 56px rgba(22,19,15,.18);overflow:hidden;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .5s ease}
+#yw-pre .ring img{width:100%;height:100%;object-fit:cover;border-radius:50%;opacity:0;transition:opacity .5s ease}
 #yw-pre.in .pre-logo,#yw-pre.in .ring{opacity:1}
 </style>
-<link rel="stylesheet" href="assets/styles.css">
+<script>try{if(sessionStorage.getItem('yw_seen')){document.documentElement.className+=' pre-skip';}else{sessionStorage.setItem('yw_seen','1');}}catch(e){}</script>
+<link rel="stylesheet" href="/assets/styles.css">
 <style>
 .hero .inner .btns{margin-top:24px;display:flex;gap:12px;flex-wrap:wrap}
 .sec{padding:clamp(56px,8vh,84px) 0}
@@ -29,49 +32,56 @@
 .news h2{font-family:var(--disp);font-weight:800;font-size:clamp(24px,3vw,32px);margin:4px 0 10px}
 .news p{color:rgba(244,236,221,.8);margin:0 0 22px}
 .news form{display:flex;gap:10px;max-width:440px;margin:0 auto}
-.news input{flex:1;border:1px solid var(--line-d);background:rgba(244,236,221,.08);color:var(--paper);border-radius:44px;padding:0 20px;height:52px;font-size:15px;font-family:var(--serif)}
+.news input{flex:1;border:1px solid var(--line-d);background:rgba(244,236,221,.08);color:var(--paper);border-radius:44px;padding:0 20px;height:52px;box-sizing:border-box;font-size:15px;font-family:var(--serif)}
 .news input::placeholder{color:rgba(244,236,221,.5)}
 .news input:focus{outline:none;border-color:var(--brass-l)}
 .news .btn{height:52px}
 .news .ok{color:var(--brass-l);font-weight:600;margin-top:14px;display:none}
 .news .fine{color:rgba(244,236,221,.5);font-size:12.5px;margin-top:14px}
-@media(max-width:560px){.news form{flex-direction:column}.news input,.news .btn{width:100%}}
+@media(max-width:560px){.news form{flex-direction:column}.news input,.news .btn{width:100%;flex:0 0 auto;height:52px}}
 </style></head><body>
 
-<div id="yw-pre"><img class="pre-logo" src="img/yuetwanlondon-main.svg" alt="Yuet Wan London"><div class="ring"><img id="yw-pre-gif" alt="Loading"></div></div>
+<div id="yw-pre"><div class="pre-inner"><img class="pre-logo" src="/img/yuetwanlondon-main.svg" alt="Yuet Wan London"><div class="ring"><img id="yw-pre-gif" alt=""></div></div></div>
 <script>
 (function(){
- var g=['img/pre-load-1.gif','img/pre-load-2.gif','img/pre-load-3.gif'];
+ if(document.documentElement.classList.contains('pre-skip')) return; // already shown this session
+ var g=['/img/pre-load-1.gif','/img/pre-load-2.gif','/img/pre-load-3.gif'];
  var el=document.getElementById('yw-pre-gif');
  if(el){ el.onload=function(){ el.style.opacity=1; }; el.src=g[Math.floor(Math.random()*g.length)]; }
- setTimeout(function(){ var p=document.getElementById('yw-pre'); if(p)p.classList.add('in'); }, 60);
+ setTimeout(function(){ var p=document.getElementById('yw-pre'); if(p)p.classList.add('in'); }, 40);
 })();
 (function(){
- var START=Date.now(), MIN=4000, HARD=14000, called=false, hidden=false;
- function doHide(){ if(hidden)return; hidden=true; var p=document.getElementById('yw-pre'); if(!p)return; p.classList.add('hide'); setTimeout(function(){p.style.display='none';},700); }
+ var skip=document.documentElement.classList.contains('pre-skip');
+ var START=Date.now(), MIN=skip?0:700, HARD=9000, called=false, hidden=false;
+ function doHide(){ if(hidden)return; hidden=true; var p=document.getElementById('yw-pre'); if(!p)return; p.classList.add('hide'); setTimeout(function(){p.style.display='none';},520); }
  function hideAfterMin(){ setTimeout(doHide, Math.max(0, MIN-(Date.now()-START))); }
+ // Each page calls this once its content has rendered; we then wait for that
+ // content's images and hide as soon as they're in (min 0.7s so it never flickers).
  window.__pre=function(){
    if(called)return; called=true;
+   if(skip){ doHide(); return; }
    var imgs=document.querySelectorAll('img'); var n=imgs.length, done=0;
    if(!n){ hideAfterMin(); return; }
    function fin(){ done++; if(done>=n) hideAfterMin(); }
    imgs.forEach(function(im){ if(im.complete) fin(); else { im.addEventListener('load',fin); im.addEventListener('error',fin); } });
-   setTimeout(hideAfterMin, 7000);
+   setTimeout(hideAfterMin, 4500);
  };
  setTimeout(doHide, HARD);
 })();
 </script>
 <nav class="nav"><div class="wrap">
-<a class="brandlink" href="index.html"><img src="img/yuetwanlondon-icon.svg" alt="" style="width:38px;filter:brightness(0) invert(1)"><span><b>Yuet Wan London</b><span class="cjk">倫敦粵韻曲藝文化協會</span></span></a>
+<a class="brandlink" href="/"><img src="/img/yuetwanlondon-icon.svg" alt="" style="width:38px;filter:brightness(0) invert(1)"><span><b>Yuet Wan London</b><span class="cjk">倫敦粵韻曲藝文化協會</span></span></a>
 <button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button>
 <div class="navlinks" id="navlinks">
-<a href="index.html" class="active" data-en="Home" data-zh="主頁">Home</a>
-<a href="index.html#whatson" data-en="What's On" data-zh="近期活動">What's On</a>
-<a href="org.html" data-en="People" data-zh="團隊">People</a>
-<a href="about.html" data-en="About" data-zh="關於我們">About</a>
-<a href="contact.html" data-en="Contact" data-zh="聯絡">Contact</a>
+<a href="/" class="active" data-en="Home" data-zh="主頁">Home</a>
+<a href="/#whatson" data-en="What's On" data-zh="近期活動">What's On</a>
+<a href="/people/" data-en="People" data-zh="團隊">People</a>
+<a href="/blog/" data-en="Learn" data-zh="認識粵劇">Learn</a>
+<a href="/news/" data-en="News" data-zh="最新消息">News</a>
+<a href="/about/" data-en="About" data-zh="關於我們">About</a>
+<a href="/contact/" data-en="Contact" data-zh="聯絡">Contact</a>
 <button class="langtog" id="langtog">中文</button>
-<a class="cta" href="contact.html" data-en="Get involved" data-zh="參與我們">Get involved</a>
+<a class="cta" href="/contact/" data-en="Get involved" data-zh="參與我們">Get involved</a>
 </div></div></nav>
 
 <section class="hero" id="hero"><div id="heroSlides"></div></section>
@@ -97,15 +107,15 @@
 <div class="scard"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.5-9.5-9A5 5 0 0 1 12 5a5 5 0 0 1 9.5 7c-2.5 4.5-9.5 9-9.5 9z"/></svg></div>
 <h3 data-en="Become a member" data-zh="成為會員">Become a member</h3>
 <p data-en="Join our community of artists and supporters and take part in classes, rehearsals and performances." data-zh="加入我們的藝術家與支持者社群，參與課程、排練與演出。">Join our community of artists and supporters and take part in classes, rehearsals and performances.</p>
-<a href="contact.html" data-en="Join us →" data-zh="加入我們 →">Join us →</a></div>
+<a href="/contact/" data-en="Join us →" data-zh="加入我們 →">Join us →</a></div>
 <div class="scard"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M5 9h9.5a3.5 3.5 0 0 0 0-7H8M19 15H9.5a3.5 3.5 0 0 0 0 7H16"/></svg></div>
 <h3 data-en="Make a donation" data-zh="捐款支持">Make a donation</h3>
 <p data-en="Every contribution helps us stage productions, run workshops and bring Cantonese opera to new audiences." data-zh="每一份捐助都幫助我們舉辦演出、開辦工作坊，並把粵劇帶給更多觀眾。">Every contribution helps us stage productions, run workshops and bring Cantonese opera to new audiences.</p>
-<a href="contact.html" data-en="Donate →" data-zh="捐款 →">Donate →</a></div>
+<a href="/contact/" data-en="Donate →" data-zh="捐款 →">Donate →</a></div>
 <div class="scard"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 21a6 6 0 0 1 12 0M16 4a3 3 0 0 1 0 6M18 21a5.5 5.5 0 0 0-3.5-5"/></svg></div>
 <h3 data-en="Volunteer with us" data-zh="成為義工">Volunteer with us</h3>
 <p data-en="From front-of-house to costumes and stage craft, there are many ways to lend your time and skills." data-zh="由前台接待到戲服與舞台製作，您可以多種方式貢獻時間與才能。">From front-of-house to costumes and stage craft, there are many ways to lend your time and skills.</p>
-<a href="contact.html" data-en="Get in touch →" data-zh="聯絡我們 →">Get in touch →</a></div>
+<a href="/contact/" data-en="Get in touch →" data-zh="聯絡我們 →">Get in touch →</a></div>
 </div>
 </div></section>
 
@@ -142,11 +152,11 @@
 </div>
 </div>
 <div class="bottom">
-<img src="img/yuetwanlondon-main.svg" alt="Yuet Wan London" style="width:150px;filter:brightness(0) invert(1)">
+<img src="/img/yuetwanlondon-main.svg" alt="Yuet Wan London" style="width:150px;filter:brightness(0) invert(1)">
 <div class="cr">© 2026 Yuet Wan London · 倫敦粵韻曲藝文化協會<br><span data-en="The sound of Lingnan, the stage of London" data-zh="粵韻飄香 · 揚聲倫敦">The sound of Lingnan, the stage of London</span></div>
 </div>
 </div></footer>
-<script src="assets/app.js"></script>
+<script src="/assets/app.js"></script>
 <script>
 let LANG=YW.loadLang();
 function setLang(l){LANG=l;YW.saveLang(l);YW.applyStaticLang(l);if(window.render)render();}
@@ -163,7 +173,7 @@ function gridClass(n){return n<=1?"cols-1":n===2?"cols-2":n===3?"cols-3":"cols-4
 function eCard(ev){
  const cat=ev.category||"Performance",past=YW.isPast(ev);
  const img=ev.image?('<img src="'+YW.esc(ev.image)+'" alt="">'):('<div class="ph">'+YW.lat()+(YW.ICON[cat]||YW.ICON.Performance)+'</div>');
- return '<a class="ed-link" href="event.html?id='+encodeURIComponent(ev.id||"")+'" style="text-decoration:none;color:inherit">'+
+ return '<a class="ed-link" href="/event/?id='+encodeURIComponent(ev.id||"")+'" style="text-decoration:none;color:inherit">'+
  '<article class="ecard"><div class="img">'+img+'<span class="cat">'+(LANG==="zh"?(YW.CAT_ZH[cat]||cat):cat)+'</span></div>'+
  '<div class="bd"><div class="date">'+YW.esc(YW.fmtDate(ev,LANG))+'</div>'+
  '<h3><span class="cjk">'+YW.esc(Lf(ev,"title"))+'</span></h3>'+
