@@ -117,5 +117,42 @@ window.YW = (function(){
     }).catch(function(){});
   }
 
-  return {API,DATA_URL,MON,CAT_ZH,TINT,ICON,USER_ICON,SOCIAL,esc,isTrue,lines,lat,fmtDate,isPast,fetchData,fetchLive,post,clearCache,renderSocial,settingsMap,applyStaticLang,setupNav,loadLang,saveLang};
+  /* ---------- page transitions + scroll reveal ---------- */
+  function initMotion(){
+    var docEl=document.documentElement, reduce=false;
+    try{ reduce=matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+
+    if(!reduce){
+      // fade the page out on internal navigation (pairs with the CSS fade-in)
+      document.addEventListener('click', function(e){
+        if(e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey) return;
+        var a=e.target.closest && e.target.closest('a'); if(!a) return;
+        var href=a.getAttribute('href');
+        if(!href||a.target==='_blank'||a.hasAttribute('download')) return;
+        if(href[0]==='#'||/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        var url; try{ url=new URL(href, location.href); }catch(_){ return; }
+        if(url.origin!==location.origin) return;
+        if(url.href===location.href || (url.pathname===location.pathname && url.hash)) return; // same page / anchor
+        e.preventDefault();
+        docEl.classList.add('leaving');
+        setTimeout(function(){ location.href=url.href; }, 160);
+      }, true);
+      // if the user comes back via the back button (bfcache), clear the fade-out state
+      window.addEventListener('pageshow', function(ev){ if(ev.persisted) docEl.classList.remove('leaving'); });
+    }
+
+    if(reduce || !docEl.classList.contains('reveal-on')) return;
+    var SEL='.sec,.news,.bloghead,.bgrid,.art,.elayout', io;
+    try{
+      io=new IntersectionObserver(function(es){ es.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } }); }, {rootMargin:'0px 0px -6% 0px', threshold:0.04});
+    }catch(e){
+      document.querySelectorAll(SEL).forEach(function(el){ el.classList.add('in'); }); return;
+    }
+    function scan(){ document.querySelectorAll(SEL).forEach(function(el){ if(el.__rv) return; el.__rv=1; io.observe(el); }); }
+    scan();
+    var pend=false;
+    try{ new MutationObserver(function(){ if(pend)return; pend=true; requestAnimationFrame(function(){ pend=false; scan(); }); }).observe(document.body,{childList:true,subtree:true}); }catch(e){}
+  }
+
+  return {API,DATA_URL,MON,CAT_ZH,TINT,ICON,USER_ICON,SOCIAL,esc,isTrue,lines,lat,fmtDate,isPast,fetchData,fetchLive,post,clearCache,renderSocial,initMotion,settingsMap,applyStaticLang,setupNav,loadLang,saveLang};
 })();
