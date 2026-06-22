@@ -139,6 +139,10 @@ a{color:inherit;text-decoration:none}
 .foot .bottom{border-top:1px solid var(--line-d);margin-top:46px;padding-top:24px;display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;align-items:center}
 .foot .bottom img{width:120px;opacity:.9}
 .foot .cr{font-family:var(--grot);font-size:11.5px;color:rgba(244,236,221,.45);text-align:right;line-height:1.8}
+.foot .social{display:flex;gap:11px;margin-top:18px;flex-wrap:wrap}
+.foot .social a{width:40px;height:40px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;transition:transform .15s,opacity .15s}
+.foot .social a:hover{transform:translateY(-2px);opacity:.92}
+.foot .social svg{width:19px;height:19px;fill:currentColor}
 
 /* ---------- lightbox ---------- */
 .lb{position:fixed;inset:0;z-index:100;background:rgba(8,7,5,.93);display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
