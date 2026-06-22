@@ -123,7 +123,7 @@ window.YW = (function(){
     try{ reduce=matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
 
     if(!reduce){
-      // fade the page out on internal navigation (pairs with the CSS fade-in)
+      // on internal navigation, fade the loader back over the page, then go
       document.addEventListener('click', function(e){
         if(e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey) return;
         var a=e.target.closest && e.target.closest('a'); if(!a) return;
@@ -134,11 +134,9 @@ window.YW = (function(){
         if(url.origin!==location.origin) return;
         if(url.href===location.href || (url.pathname===location.pathname && url.hash)) return; // same page / anchor
         e.preventDefault();
-        docEl.classList.add('leaving');
-        setTimeout(function(){ location.href=url.href; }, 160);
+        try{ if(window.__preCover) window.__preCover(); }catch(_){}
+        setTimeout(function(){ location.href=url.href; }, 420);
       }, true);
-      // if the user comes back via the back button (bfcache), clear the fade-out state
-      window.addEventListener('pageshow', function(ev){ if(ev.persisted) docEl.classList.remove('leaving'); });
     }
 
     if(reduce || !docEl.classList.contains('reveal-on')) return;
