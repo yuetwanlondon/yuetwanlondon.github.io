@@ -5,6 +5,8 @@ name: Publish data snapshot
 
 on:
   workflow_dispatch:                 # manual "Run workflow" button
+  repository_dispatch:               # fired by the editor's "Publish now" button
+    types: [rebuild]
   schedule:
     - cron: '*/10 * * * *'           # auto-refresh roughly every 10 minutes
 
