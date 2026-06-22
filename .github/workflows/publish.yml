@@ -1,25 +1,29 @@
 name: Publish data snapshot
 
-# Bakes the Google Sheet into a static data.json so the public site loads instantly
-# (Jamstack). The editor still writes to the Sheet live; this just refreshes the snapshot.
+# Refreshes data.json from the Google Sheet AND deploys the site to Pages.
+# Runs alongside the auto-created "static.yml" (which deploys on your own pushes).
 
 on:
   workflow_dispatch:                 # manual "Run workflow" button
-  repository_dispatch:               # optional: trigger from outside (event type: rebuild)
-    types: [rebuild]
   schedule:
     - cron: '*/10 * * * *'           # auto-refresh roughly every 10 minutes
 
 permissions:
-  contents: write
+  contents: write                    # to commit the refreshed data.json
+  pages: write                       # to deploy to Pages
+  id-token: write                    # required by deploy-pages
 
+# Share the same lock as static.yml so the two never deploy at the same time.
 concurrency:
-  group: publish-data
+  group: "pages"
   cancel-in-progress: false
 
 jobs:
-  snapshot:
+  build-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -28,28 +32,31 @@ jobs:
           APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbyUoOwvu32QbKPaLIueyJFFSqft0b7qoASYEImHE3Mj-kRBxphaLbm1yyuXigFfiDKDrw/exec"
         run: |
           set -e
-          curl -fsSL "$APPS_SCRIPT_URL" -o data.new.json
-          # Make sure we got the real payload, not a Google error/login page,
-          # so we never publish a broken snapshot.
+          curl -fsSL "$APPS_SCRIPT_URL" -o data.json
+          # Make sure we got the real payload, not a Google error/login page.
           python3 - <<'PY'
           import json
-          d = json.load(open("data.new.json"))
-          assert d.get("ok") is True, "payload missing ok:true (check the web app deployment)"
-          print("events:", len(d.get("events", [])),
-                "people:", len(d.get("people", [])),
-                "gallery:", len(d.get("gallery", [])),
-                "hero:", len(d.get("hero", [])))
+          d = json.load(open("data.json"))
+          assert d.get("ok") is True, "payload missing ok:true — check the web app deployment"
+          print("events:", len(d.get("events", [])), "people:", len(d.get("people", [])),
+                "gallery:", len(d.get("gallery", [])), "hero:", len(d.get("hero", [])))
           PY
-          mv data.new.json data.json
 
-      - name: Commit snapshot if it changed
+      - name: Commit data.json if it changed
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data.json
           if git diff --staged --quiet; then
-            echo "No data change — nothing to publish."
+            echo "No data change."
           else
             git commit -m "chore: refresh data snapshot"
             git push
           fi
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: "."
+      - id: deployment
+        uses: actions/deploy-pages@v4
