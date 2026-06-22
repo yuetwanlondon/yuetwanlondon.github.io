@@ -19,6 +19,8 @@ body{background:var(--mist)}
 .ebar .save{background:var(--jade);border-color:var(--jade)}
 .ebar .save:disabled{opacity:.45;cursor:default}
 .ebar .save.dirty{box-shadow:0 0 0 3px rgba(46,126,114,.3)}
+.ebar .pub{background:var(--brass);border-color:var(--brass);color:var(--ink);font-weight:700}
+.ebar .pub:disabled{opacity:.5;cursor:default}
 .canvas{padding-top:50px}
 .sec-wrap{padding:46px 0 0}
 .sec-wrap.first{padding-top:30px}
@@ -128,6 +130,7 @@ body{background:var(--mist)}
     <button id="langBtn">中文 preview</button>
     <a href="index.html" target="_blank" rel="noopener">View site ↗</a>
     <button class="save" id="saveBtn" disabled>Saved</button>
+    <button class="pub" id="publishBtn" title="Make your saved changes live on the website">Publish</button>
     <button id="logout">Sign out</button>
   </div>
   <div class="canvas"><div class="wrap" id="canvas"></div></div>
@@ -479,8 +482,19 @@ async function saveAll(){
       if(!res||!res.ok){ok=false;} }catch(e){ok=false;}
   }
   busy(false);
-  if(ok){ DIRTY.clear(); const b=$("saveBtn"); b.classList.remove("dirty"); b.textContent="Saved"; b.disabled=true; toast("Saved to website ✓"); }
+  if(ok){ DIRTY.clear(); const b=$("saveBtn"); b.classList.remove("dirty"); b.textContent="Saved"; b.disabled=true; toast("Saved ✓  Click Publish to make it live."); }
   else toast("Some changes didn't save — try again.");
+}
+
+/* ---------- publish (rebuild the live site) ---------- */
+async function publishNow(){
+  const b=$("publishBtn"); const old=b.textContent; b.disabled=true; b.textContent="Publishing…";
+  try{
+    const res=await YW.post({action:"publish",pass:AUTH.pass});
+    if(res&&res.ok){ toast("Publishing — your site updates in about a minute."); }
+    else{ toast("Publish failed: "+((res&&res.error)||"unknown")); }
+  }catch(e){ toast("Publish failed — check your connection."); }
+  b.disabled=false; b.textContent=old;
 }
 
 /* ---------- wire ---------- */
@@ -489,6 +503,7 @@ $("clearCacheBtn").onclick=async function(){ const b=$("clearCacheBtn"); b.disab
 $("logout").onclick=()=>{sessionStorage.removeItem("yw_auth");location.reload();};
 $("langBtn").onclick=()=>{LANG=LANG==="en"?"zh":"en";renderAll();};
 $("saveBtn").onclick=saveAll;
+$("publishBtn").onclick=publishNow;
 $("dClose").onclick=closeDrawer; $("dCancel").onclick=closeDrawer; $("dApply").onclick=applyDrawer;
 $("dscrim").onclick=closeDrawer;
 $("pickClose").onclick=()=>$("pickwrap").classList.remove("open");
