@@ -40,6 +40,7 @@ body{background:var(--mist)}
 .pempty{color:var(--ink-55);font-size:14px;padding:6px 2px}
 .schip{width:54px;height:54px;border-radius:50%;flex:none;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:700}
 .schip svg{width:24px;height:24px;fill:currentColor}
+.schip img{width:28px;height:28px;object-fit:contain}
 .addbtn:hover{background:#fbeae6}
 
 /* editable affordance */
@@ -402,7 +403,7 @@ function renderSocialEditor(host){
   host.innerHTML=`<div class="postlist">`+list.map((s,i)=>{
     const key=String(s.platform||"").toLowerCase();
     const p=(YW.SOCIAL&&YW.SOCIAL[key])||null;
-    const chip=p?`<span class="schip" style="background:${p.bg}">${p.svg}</span>`:`<span class="schip" style="background:#999">?</span>`;
+    const chip=p?`<span class="schip" style="background:${p.bg}">${p.img?`<img src="${p.img}" alt="">`:p.svg}</span>`:`<span class="schip" style="background:#999">?</span>`;
     return `<div class="ed post" data-tab="social" data-i="${i}">${tools("social",i)}
       ${chip}
       <div class="pmeta"><h4>${E(p?p.name:(s.platform||"(choose platform)"))}</h4><p>${E(s.url||"")}</p></div>
