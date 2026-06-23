@@ -11,7 +11,7 @@
 <meta name="twitter:title" content="Event · Yuet Wan London">
 <meta name="twitter:description" content="Promoting the art of Cantonese opera and music in the United Kingdom.">
 <meta name="twitter:image" content="https://yuetwanlondon.github.io/img/web-thumbnail.jpg">
-<title>Event · Yuet Wan London</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<title>Event · Yuet Wan London</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,500;1,600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style id="yw-pre-css">
 #yw-pre{display:none;position:fixed;inset:0;z-index:99999;align-items:center;justify-content:center;background-color:#F4ECDD;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='70'%3E%3Cpath d='M20 0 L40 11 L40 35 L20 46 L0 35 L0 11Z M20 46 L40 57 L40 81 M20 46 L0 57 L0 81' fill='none' stroke='%2316130F' stroke-opacity='0.06' stroke-width='1.2'/%3E%3C/svg%3E");transition:opacity .5s ease}
 html.loader-on #yw-pre{display:flex}
@@ -159,29 +159,29 @@ function Lf(o,b){return LANG==="zh"?(o[b+"_zh"]||o[b+"_en"]||""):(o[b+"_en"]||o[
 const t={book:{en:"Book tickets",zh:"購票"},enquire:{en:"Enquire by email",zh:"電郵查詢"},took:{en:"This event has taken place",zh:"活動已結束"},back:{en:"Back to home",zh:"返回首頁"},about:{en:"About this event",zh:"關於這次活動"},artists:{en:"Artists",zh:"演出者"},speaker:{en:"Speaker",zh:"主講"},prog:{en:"Programme",zh:"節目"},take:{en:"What you'll take away",zh:"您將學到"},bring:{en:"What to bring",zh:"需要帶備"},gallery:{en:"Gallery",zh:"花絮"},details:{en:"Details",zh:"詳情"},date:{en:"Date",zh:"日期"},time:{en:"Time",zh:"時間"},dur:{en:"Duration",zh:"時長"},venue:{en:"Venue",zh:"地點"},level:{en:"Level",zh:"程度"},cap:{en:"Capacity",zh:"名額"},lang:{en:"Language",zh:"語言"},tix:{en:"Tickets",zh:"票價"},nf:{en:"Event not found",zh:"找不到此活動"}}; 
 function L(k){return t[k][LANG];}
 let EV=null;
-function row(label,val){return val?'<div class="row"><dt>'+label+'</dt><dd>'+YW.esc(val)+'</dd></div>':"";}
+function row(label,val){return val?'<div class="row"><dt>'+label+'</dt><dd>'+val+'</dd></div>':"";}
 window.render=function(){
  const root=document.getElementById("evRoot");
  if(!EV){root.innerHTML='<div class="wrap" style="padding:calc(var(--nav-h) + 80px) 0 100px;text-align:center"><h1 style="font-family:var(--disp)">'+L("nf")+'</h1><p><a class="eback" href="/">← '+L("back")+'</a></p></div>';return;}
  const ev=EV,cat=ev.category||"Performance",past=YW.isPast(ev);
  const img=ev.image?('<img class="cover" src="'+YW.esc(ev.image)+'" alt="">'):('<div class="ph">'+YW.lat()+'</div>');
- const body=YW.lines(Lf(ev,"body")),prog=YW.lines(Lf(ev,"programme")),take=YW.lines(Lf(ev,"learn")),bring=YW.lines(Lf(ev,"bring")),arts=YW.lines(Lf(ev,"artists")),gal=YW.lines(ev.gallery);
+ const body=YW.richLines(Lf(ev,"body")),prog=YW.richLines(Lf(ev,"programme")),take=YW.richLines(Lf(ev,"learn")),bring=YW.richLines(Lf(ev,"bring")),arts=YW.richLines(Lf(ev,"artists")),gal=YW.lines(ev.gallery);
  let main="";
  if(Lf(ev,"desc")&&!body.length)main+='<div class="esec"><h2>'+L("about")+'</h2><p>'+YW.esc(Lf(ev,"desc"))+'</p></div>';
- if(body.length)main+='<div class="esec"><h2>'+L("about")+'</h2>'+body.map(p=>'<p>'+YW.esc(p)+'</p>').join("")+'</div>';
- if(arts.length)main+='<div class="esec"><h2>'+L("artists")+'</h2><div class="echips">'+arts.map(a=>'<span>'+YW.esc(a)+'</span>').join("")+'</div></div>';
- if(Lf(ev,"speaker"))main+='<div class="esec"><h2>'+L("speaker")+'</h2><p>'+YW.esc(Lf(ev,"speaker"))+'</p></div>';
- if(prog.length)main+='<div class="esec"><h2>'+L("prog")+'</h2><ol class="prog">'+prog.map(p=>'<li>'+YW.esc(p)+'</li>').join("")+'</ol></div>';
- if(take.length)main+='<div class="esec"><h2>'+L("take")+'</h2><ul class="take">'+take.map(p=>'<li>'+YW.esc(p)+'</li>').join("")+'</ul></div>';
- if(bring.length)main+='<div class="esec"><h2>'+L("bring")+'</h2><ul class="take">'+bring.map(p=>'<li>'+YW.esc(p)+'</li>').join("")+'</ul></div>';
+ if(body.length)main+='<div class="esec"><h2>'+L("about")+'</h2>'+body.map(p=>'<p>'+p+'</p>').join("")+'</div>';
+ if(arts.length)main+='<div class="esec"><h2>'+L("artists")+'</h2><div class="echips">'+arts.map(a=>'<span>'+a+'</span>').join("")+'</div></div>';
+ if(Lf(ev,"speaker"))main+='<div class="esec"><h2>'+L("speaker")+'</h2><p>'+YW.rich(Lf(ev,"speaker"))+'</p></div>';
+ if(prog.length)main+='<div class="esec"><h2>'+L("prog")+'</h2><ol class="prog">'+prog.map(p=>'<li>'+p+'</li>').join("")+'</ol></div>';
+ if(take.length)main+='<div class="esec"><h2>'+L("take")+'</h2><ul class="take">'+take.map(p=>'<li>'+p+'</li>').join("")+'</ul></div>';
+ if(bring.length)main+='<div class="esec"><h2>'+L("bring")+'</h2><ul class="take">'+bring.map(p=>'<li>'+p+'</li>').join("")+'</ul></div>';
  if(gal.length)main+='<div class="esec"><h2>'+L("gallery")+'</h2><div class="egal">'+gal.map(g=>'<div class="t" data-img="'+YW.esc(g)+'"><img src="'+YW.esc(g)+'" alt=""></div>').join("")+'</div></div>';
  let act="";
  if(!past&&ev.link)act='<a class="btn btn-fill" href="'+YW.esc(ev.link)+'" target="_blank" rel="noopener">'+L("book")+'</a>';
  else if(!past)act='<a class="btn btn-fill" href="mailto:yuetwanlondon@gmail.com?subject='+encodeURIComponent(Lf(ev,"title"))+'">'+L("enquire")+'</a>';
  else act='<div class="btn btn-ghost" style="pointer-events:none">'+L("took")+'</div>';
  const side='<aside class="ecard-side"><div class="hd">'+L("details")+'</div><dl>'+
-  row(L("date"),YW.fmtDate(ev,LANG))+row(L("time"),Lf(ev,"time"))+row(L("dur"),Lf(ev,"duration"))+row(L("venue"),Lf(ev,"venue"))+
-  row(L("level"),Lf(ev,"level"))+row(L("cap"),ev.capacity)+row(L("lang"),Lf(ev,"language"))+row(L("tix"),Lf(ev,"price"))+
+  row(L("date"),YW.esc(YW.fmtDate(ev,LANG)))+row(L("time"),YW.rich(Lf(ev,"time")))+row(L("dur"),YW.rich(Lf(ev,"duration")))+row(L("venue"),YW.esc(Lf(ev,"venue")))+
+  row(L("level"),YW.rich(Lf(ev,"level")))+row(L("cap"),YW.esc(ev.capacity))+row(L("lang"),YW.rich(Lf(ev,"language")))+row(L("tix"),YW.rich(Lf(ev,"price")))+
   '</dl><div class="act">'+act+'</div></aside>';
  root.innerHTML='<header class="epost">'+img+'<div class="scrim"></div><div class="inner"><div class="wrap">'+
   '<span class="cat">'+(LANG==="zh"?(YW.CAT_ZH[cat]||cat):cat)+'</span>'+

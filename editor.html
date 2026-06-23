@@ -8,7 +8,7 @@
 <title>Yuet Wan London — Editor</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,500;1,600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/styles.css">
 <style>
 /* ===================================================================
@@ -233,6 +233,20 @@ button,a,input,.ed-tools button{-webkit-tap-highlight-color:transparent}
   .ebar .lg span:not(.dot){display:none}      /* very narrow: keep just the mark */
   .ebar .save,.ebar .pub{padding:9px 12px}
 }
+
+/* ---- rich-text field + formatting toolbar ---- */
+.rich{width:100%;min-height:46px;border:1px solid var(--line);border-radius:11px;padding:12px 13px;font-size:15px;font-family:var(--grot);line-height:1.55;box-sizing:border-box;background:#fff;overflow-wrap:anywhere}
+.rich:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px rgba(184,137,60,.16)}
+.rich:empty:before{content:attr(data-ph);color:var(--ink-55);pointer-events:none}
+.rich.cjk-in{font-family:var(--cjk)}
+.rtbar{position:sticky;top:0;z-index:8;display:flex;flex-wrap:wrap;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px;margin-bottom:16px}
+.rtbar button{height:32px;min-width:32px;padding:0 8px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.rtbar button:hover{border-color:var(--brass)}
+.rtbar button svg{width:16px;height:16px;fill:none;stroke:currentColor}
+.rtbar .sw{width:26px;min-width:26px;height:26px;padding:0;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
+.rtbar .sw:hover{box-shadow:0 0 0 2px var(--brass)}
+.rtbar .rtsep{width:1px;height:22px;background:var(--line);margin:0 3px}
+.rtbar .lbl{font-family:var(--grot);font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-55);margin:0 2px}
 :focus-visible{outline:2px solid var(--brass);outline-offset:2px}
 </style>
 </head>
@@ -301,7 +315,7 @@ const POST_FIELDS=[
   {k:"title",t:"bi",label:"Title"},
   {k:"summary",t:"bitext",label:"Summary — shown on the card"},
   {k:"cover",t:"img",label:"Cover image"},
-  {k:"body",t:"bitext",label:"Article body — one paragraph per line"},
+  {k:"body",t:"bitext",rich:true,label:"Article body — one paragraph per line"},
   {k:"video",t:"text",label:"Video link (YouTube / Vimeo) — optional"},
   {k:"images",t:"imgs",label:"More images — one per line"},
 ];
@@ -316,19 +330,19 @@ const SCHEMA = {
       {k:"date_label",t:"text",label:"Date label — overrides the shown date"},
       {k:"title",t:"bi",label:"Title"},
       {k:"venue",t:"bi",label:"Venue"},
-      {k:"time",t:"bi",label:"Time"},
-      {k:"duration",t:"bi",label:"Duration"},
-      {k:"price",t:"bi",label:"Price / tickets"},
-      {k:"language",t:"bi",label:"Language"},
-      {k:"level",t:"bi",label:"Level (workshops)"},
+      {k:"time",t:"bi",rich:true,label:"Time"},
+      {k:"duration",t:"bi",rich:true,label:"Duration"},
+      {k:"price",t:"bi",rich:true,label:"Price / tickets"},
+      {k:"language",t:"bi",rich:true,label:"Language"},
+      {k:"level",t:"bi",rich:true,label:"Level (workshops)"},
       {k:"capacity",t:"text",label:"Capacity (workshops)"},
-      {k:"artists",t:"bitext",label:"Artists"},
-      {k:"speaker",t:"bitext",label:"Speaker (talks)"},
+      {k:"artists",t:"bitext",rich:true,label:"Artists"},
+      {k:"speaker",t:"bitext",rich:true,label:"Speaker (talks)"},
       {k:"desc",t:"bitext",label:"Short description (on cards)"},
       {k:"body",t:"bitext",label:"Full description — one paragraph per line"},
-      {k:"programme",t:"bitext",label:"Programme — one item per line"},
-      {k:"learn",t:"bitext",label:"What you'll take away — one per line"},
-      {k:"bring",t:"bitext",label:"What to bring — one per line"},
+      {k:"programme",t:"bitext",rich:true,label:"Programme — one item per line"},
+      {k:"learn",t:"bitext",rich:true,label:"What you'll take away — one per line"},
+      {k:"bring",t:"bitext",rich:true,label:"What to bring — one per line"},
       {k:"image",t:"img",label:"Main image / poster"},
       {k:"gallery",t:"imgs",label:"Event gallery — one image per line"},
       {k:"link",t:"text",label:"Ticket link (blank = email enquiry)"},
@@ -645,15 +659,20 @@ function addNew(tab,status){
 function openDrawer(tab,i){
   EDIT={tab,i}; const r=DATA[tab][i];
   $("dTitle").textContent="Edit "+tab.replace(/s$/,"");
-  $("dBody").innerHTML=SCHEMA[tab].fields.map(f=>fieldHTML(f,r)).join("");
+  const _hasRich=SCHEMA[tab].fields.some(f=>f.rich);
+  $("dBody").innerHTML=(_hasRich?richBarHTML():"")+SCHEMA[tab].fields.map(f=>fieldHTML(f,r)).join("");
   $("dBody").scrollTop=0;
   $("dBody").querySelectorAll("input[type=file]").forEach(inp=>inp.onchange=()=>onFile(inp));
   $("dBody").querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>openPicker(b.dataset.pick, b.dataset.pmulti==="1"));
+  if(_hasRich) wireRichBar();
   $("dscrim").classList.add("open"); $("drawer").classList.add("open");
 }
 function closeDrawer(){ $("dscrim").classList.remove("open"); $("drawer").classList.remove("open"); }
 function fieldHTML(f,r){
   const id="f_"+f.k;
+  if((f.t==="bi"||f.t==="bitext")&&f.rich){
+    return `<div class="fld"><label>${E(f.label)}</label><div class="bi"><div><div class="t">English</div>${richField(id+"_en",toEditable(r[f.k+"_en"]),false)}</div><div><div class="t">中文</div>${richField(id+"_zh",toEditable(r[f.k+"_zh"]),true)}</div></div></div>`;
+  }
   if(f.t==="bi"||f.t==="bitext"){
     const tag=f.t==="bitext"?"textarea":"input";
     const mk=(s,v,cjk)=> tag==="textarea"?`<textarea id="${id}_${s}" class="${cjk?'cjk-in':''}">${E(v)}</textarea>`:`<input type="text" id="${id}_${s}" class="${cjk?'cjk-in':''}" value="${E(v)}">`;
@@ -665,6 +684,69 @@ function fieldHTML(f,r){
   if(f.t==="img"){ const v=E(r[f.k]); return `<div class="fld"><label>${E(f.label)}</label><div class="imgbox"><div class="pv">${v?`<img id="pv_${f.k}" src="${v}">`:`<span>no image</span>`}</div><div class="ic"><input type="text" id="${id}" value="${v}" placeholder="Image URL (or upload / choose)"><div style="display:flex;gap:6px;flex-wrap:wrap"><span class="btn btn-ghost btn-sm filebtn">Upload<input type="file" accept="image/*" data-k="${f.k}" data-multi="0"></span><button type="button" class="btn btn-ghost btn-sm" data-pick="${f.k}" data-pmulti="0">Choose existing</button></div></div></div></div>`; }
   if(f.t==="imgs") return `<div class="fld"><label>${E(f.label)}</label><textarea id="${id}" placeholder="One image URL per line">${E(r[f.k])}</textarea><div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"><span class="btn btn-ghost btn-sm filebtn">Upload &amp; add<input type="file" accept="image/*" data-k="${f.k}" data-multi="1"></span><button type="button" class="btn btn-ghost btn-sm" data-pick="${f.k}" data-pmulti="1">Choose existing</button></div></div>`;
   return `<div class="fld"><label>${E(f.label)}</label><input type="text" id="${id}" value="${E(r[f.k])}"></div>`;
+}
+
+
+/* ---------- rich-text editor: bold / light / colour / highlight / line breaks ---------- */
+const RT_PH={en:"Type here\u2026",zh:"\u8f38\u5165\u6587\u5b57\u2026"};
+function toEditable(v){ var x=String(v==null?"":v); return x.indexOf("<")<0 ? E(x).replace(/\n/g,"<br>") : YW.rich(x); }
+function readRich(id){ var el=$(id); return el?YW.rich(el.innerHTML):""; }
+function richField(id,html,cjk){ return '<div class="rich'+(cjk?' cjk-in':'')+'" id="'+id+'" contenteditable="true" data-ph="'+(cjk?RT_PH.zh:RT_PH.en)+'">'+html+'</div>'; }
+const IC_BOLD='<svg viewBox="0 0 24 24" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7.5a3.5 3.5 0 0 1 0 7H7z"/></svg>';
+const IC_LIGHT='<svg viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><path d="M16 8 2 22M17.5 15H9"/></svg>';
+const IC_HL='<svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M8 17l8.5-8.5 2.6 2.6L10.6 19.6 7 20l1-3z"/></svg>';
+const IC_CLEAR='<svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h13v3"/><path d="M10.5 4 7 20"/><path d="M5 20h5"/><path d="m15 15 5 5M20 15l-5 5"/></svg>';
+function richBarHTML(){
+  const sw=(c,t)=>'<button type="button" class="sw" data-color="'+c+'" style="background:'+c+'" title="'+t+'" aria-label="'+t+'"></button>';
+  return '<div class="rtbar" id="rtbar">'
+    +'<button type="button" data-cmd="bold" title="Bold" aria-label="Bold">'+IC_BOLD+'</button>'
+    +'<button type="button" data-cmd="light" title="Light" aria-label="Light">'+IC_LIGHT+'</button>'
+    +'<span class="rtsep"></span><span class="lbl">Colour</span>'
+    +sw("#16130F","Ink")+sw("#6d655c","Grey")+sw("#C8402E","Red")+sw("#B8893C","Gold")+sw("#2E7E72","Green")
+    +'<span class="rtsep"></span>'
+    +'<button type="button" data-hl="rgba(184,137,60,.28)" title="Highlight" aria-label="Highlight">'+IC_HL+'</button>'
+    +'<button type="button" data-cmd="clear" title="Clear formatting" aria-label="Clear formatting">'+IC_CLEAR+'</button>'
+    +'</div>';
+}
+let RICH_ACTIVE=null;
+function wireRichBar(){
+  RICH_ACTIVE=null;
+  $("dBody").querySelectorAll(".rich").forEach(ed=>{
+    ed.addEventListener("focusin",()=>{RICH_ACTIVE=ed;});
+    ed.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); document.execCommand("insertLineBreak"); }});
+  });
+  const bar=$("rtbar"); if(!bar) return;
+  bar.addEventListener("mousedown",e=>{
+    const b=e.target.closest("button"); if(!b) return;
+    e.preventDefault();                       // keep the editor's text selection
+    if(!RICH_ACTIVE) return;
+    if(b.dataset.cmd==="bold") richWrap("strong",null);
+    else if(b.dataset.cmd==="light") richWrap("span",{fontWeight:"300"});
+    else if(b.dataset.cmd==="clear") richClear();
+    else if(b.dataset.color) richWrap("span",{color:b.dataset.color});
+    else if(b.dataset.hl) richWrap("span",{backgroundColor:b.dataset.hl});
+  });
+}
+function richSel(){
+  const ed=RICH_ACTIVE; if(!ed) return null;
+  const sel=window.getSelection(); if(!sel.rangeCount) return null;
+  const range=sel.getRangeAt(0);
+  if(range.collapsed || !ed.contains(range.commonAncestorContainer)) return null;
+  return {sel,range};
+}
+function richWrap(tag,css){
+  const c=richSel(); if(!c) return;
+  const el=document.createElement(tag);
+  if(css) Object.keys(css).forEach(k=>{ el.style[k]=css[k]; });
+  try{ el.appendChild(c.range.extractContents()); c.range.insertNode(el); }catch(e){ return; }
+  c.sel.removeAllRanges(); const r=document.createRange(); r.selectNodeContents(el); c.sel.addRange(r);
+}
+function richClear(){
+  const c=richSel(); if(!c) return;
+  const box=document.createElement("div"); box.appendChild(c.range.extractContents());
+  box.querySelectorAll("*").forEach(el=>{ if(el.tagName==="BR") return; while(el.firstChild) el.parentNode.insertBefore(el.firstChild,el); el.parentNode.removeChild(el); });
+  const frag=document.createDocumentFragment(); while(box.firstChild) frag.appendChild(box.firstChild);
+  c.range.insertNode(frag);
 }
 
 /* ---------- client-side image compression (shrinks before upload to save Drive space) ---------- */
@@ -737,7 +819,8 @@ function choosePick(url){
 function applyDrawer(){
   const r=DATA[EDIT.tab][EDIT.i];
   SCHEMA[EDIT.tab].fields.forEach(f=>{
-    if(f.t==="bi"||f.t==="bitext"){ r[f.k+"_en"]=($("f_"+f.k+"_en")||{}).value||""; r[f.k+"_zh"]=($("f_"+f.k+"_zh")||{}).value||""; }
+    if((f.t==="bi"||f.t==="bitext")&&f.rich){ r[f.k+"_en"]=readRich("f_"+f.k+"_en"); r[f.k+"_zh"]=readRich("f_"+f.k+"_zh"); }
+    else if(f.t==="bi"||f.t==="bitext"){ r[f.k+"_en"]=($("f_"+f.k+"_en")||{}).value||""; r[f.k+"_zh"]=($("f_"+f.k+"_zh")||{}).value||""; }
     else if(f.t==="bool"){ r[f.k]=$("f_"+f.k).checked?"TRUE":"FALSE"; }
     else { r[f.k]=($("f_"+f.k)||{}).value||""; }
   });
