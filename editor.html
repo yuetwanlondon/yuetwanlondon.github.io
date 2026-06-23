@@ -312,7 +312,7 @@ const POST_FIELDS=[
   {k:"id",t:"text",label:"ID (unique, no spaces)"},
   {k:"status",t:"select",label:"Status",opts:["published","draft"]},
   {k:"date",t:"text",label:"Date (YYYY-MM-DD)"},
-  {k:"title",t:"bi",label:"Title"},
+  {k:"title",t:"bi",rich:true,label:"Title"},
   {k:"summary",t:"bitext",label:"Summary — shown on the card"},
   {k:"cover",t:"img",label:"Cover image"},
   {k:"body",t:"bitext",rich:true,label:"Article body — one paragraph per line"},
@@ -329,7 +329,7 @@ const SCHEMA = {
       {k:"date_end",t:"text",label:"End date (optional)"},
       {k:"date_label",t:"text",label:"Date label — overrides the shown date"},
       {k:"title",t:"bi",label:"Title"},
-      {k:"venue",t:"bi",label:"Venue"},
+      {k:"venue",t:"bi",rich:true,label:"Venue"},
       {k:"time",t:"bi",rich:true,label:"Time"},
       {k:"duration",t:"bi",rich:true,label:"Duration"},
       {k:"price",t:"bi",rich:true,label:"Price / tickets"},
@@ -338,7 +338,7 @@ const SCHEMA = {
       {k:"capacity",t:"text",label:"Capacity (workshops)"},
       {k:"artists",t:"bitext",rich:true,label:"Artists"},
       {k:"speaker",t:"bitext",rich:true,label:"Speaker (talks)"},
-      {k:"desc",t:"bitext",label:"Short description (on cards)"},
+      {k:"desc",t:"bitext",rich:true,label:"Short description (on cards)"},
       {k:"body",t:"bitext",label:"Full description — one paragraph per line"},
       {k:"programme",t:"bitext",rich:true,label:"Programme — one item per line"},
       {k:"learn",t:"bitext",rich:true,label:"What you'll take away — one per line"},
@@ -470,9 +470,9 @@ function eCard(ev,i){
       <div class="img">${img}<span class="cat">${LANG==="zh"?(YW.CAT_ZH[cat]||cat):cat}</span></div>
       <div class="bd">
         <div class="date">${E(YW.fmtDate(ev,LANG))}</div>
-        <h3><span class="cjk">${E(Lf(ev,"title"))}</span></h3>
-        ${Lf(ev,"venue")?`<div class="venue">${E(Lf(ev,"venue"))}</div>`:""}
-        ${Lf(ev,"desc")?`<div class="desc">${E(Lf(ev,"desc"))}</div>`:""}
+        <h3><span class="cjk">${YW.rich(Lf(ev,"title"))}</span></h3>
+        ${Lf(ev,"venue")?`<div class="venue">${YW.rich(Lf(ev,"venue"))}</div>`:""}
+        ${Lf(ev,"desc")?`<div class="desc">${YW.rich(Lf(ev,"desc"))}</div>`:""}
         <div class="go">${past?(LANG==="zh"?"查看詳情 →":"View details →"):(LANG==="zh"?"了解更多 →":"Learn more →")}</div>
       </div>
     </article></div>`;

@@ -218,9 +218,9 @@ function eCard(ev){
  return '<a class="ed-link" href="/event/?id='+encodeURIComponent(ev.id||"")+'" style="text-decoration:none;color:inherit">'+
  '<article class="ecard"><div class="img">'+img+'<span class="cat">'+(LANG==="zh"?(YW.CAT_ZH[cat]||cat):cat)+'</span></div>'+
  '<div class="bd"><div class="date">'+YW.esc(YW.fmtDate(ev,LANG))+'</div>'+
- '<h3><span class="cjk">'+YW.esc(Lf(ev,"title"))+'</span></h3>'+
- (Lf(ev,"venue")?'<div class="venue">'+YW.esc(Lf(ev,"venue"))+'</div>':'')+
- (Lf(ev,"desc")?'<div class="desc">'+YW.esc(Lf(ev,"desc"))+'</div>':'')+
+ '<h3><span class="cjk">'+YW.rich(Lf(ev,"title"))+'</span></h3>'+
+ (Lf(ev,"venue")?'<div class="venue">'+YW.rich(Lf(ev,"venue"))+'</div>':'')+
+ (Lf(ev,"desc")?'<div class="desc">'+YW.rich(Lf(ev,"desc"))+'</div>':'')+
  '<div class="go">'+(past?(LANG==="zh"?"查看詳情 →":"View details →"):(LANG==="zh"?"了解更多 →":"Learn more →"))+'</div>'+
  '</div></article></a>';
 }

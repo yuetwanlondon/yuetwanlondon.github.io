@@ -167,7 +167,7 @@ window.render=function(){
  const img=ev.image?('<img class="cover" src="'+YW.esc(ev.image)+'" alt="">'):('<div class="ph">'+YW.lat()+'</div>');
  const body=YW.richLines(Lf(ev,"body")),prog=YW.richLines(Lf(ev,"programme")),take=YW.richLines(Lf(ev,"learn")),bring=YW.richLines(Lf(ev,"bring")),arts=YW.richLines(Lf(ev,"artists")),gal=YW.lines(ev.gallery);
  let main="";
- if(Lf(ev,"desc")&&!body.length)main+='<div class="esec"><h2>'+L("about")+'</h2><p>'+YW.esc(Lf(ev,"desc"))+'</p></div>';
+ if(Lf(ev,"desc")&&!body.length)main+='<div class="esec"><h2>'+L("about")+'</h2><p>'+YW.rich(Lf(ev,"desc"))+'</p></div>';
  if(body.length)main+='<div class="esec"><h2>'+L("about")+'</h2>'+body.map(p=>'<p>'+p+'</p>').join("")+'</div>';
  if(arts.length)main+='<div class="esec"><h2>'+L("artists")+'</h2><div class="echips">'+arts.map(a=>'<span>'+a+'</span>').join("")+'</div></div>';
  if(Lf(ev,"speaker"))main+='<div class="esec"><h2>'+L("speaker")+'</h2><p>'+YW.rich(Lf(ev,"speaker"))+'</p></div>';
@@ -177,17 +177,17 @@ window.render=function(){
  if(gal.length)main+='<div class="esec"><h2>'+L("gallery")+'</h2><div class="egal">'+gal.map(g=>'<div class="t" data-img="'+YW.esc(g)+'"><img src="'+YW.esc(g)+'" alt=""></div>').join("")+'</div></div>';
  let act="";
  if(!past&&ev.link)act='<a class="btn btn-fill" href="'+YW.esc(ev.link)+'" target="_blank" rel="noopener">'+L("book")+'</a>';
- else if(!past)act='<a class="btn btn-fill" href="mailto:yuetwanlondon@gmail.com?subject='+encodeURIComponent(Lf(ev,"title"))+'">'+L("enquire")+'</a>';
+ else if(!past)act='<a class="btn btn-fill" href="mailto:yuetwanlondon@gmail.com?subject='+encodeURIComponent(YW.plain(Lf(ev,"title")))+'">'+L("enquire")+'</a>';
  else act='<div class="btn btn-ghost" style="pointer-events:none">'+L("took")+'</div>';
  const side='<aside class="ecard-side"><div class="hd">'+L("details")+'</div><dl>'+
-  row(L("date"),YW.esc(YW.fmtDate(ev,LANG)))+row(L("time"),YW.rich(Lf(ev,"time")))+row(L("dur"),YW.rich(Lf(ev,"duration")))+row(L("venue"),YW.esc(Lf(ev,"venue")))+
+  row(L("date"),YW.esc(YW.fmtDate(ev,LANG)))+row(L("time"),YW.rich(Lf(ev,"time")))+row(L("dur"),YW.rich(Lf(ev,"duration")))+row(L("venue"),YW.rich(Lf(ev,"venue")))+
   row(L("level"),YW.rich(Lf(ev,"level")))+row(L("cap"),YW.esc(ev.capacity))+row(L("lang"),YW.rich(Lf(ev,"language")))+row(L("tix"),YW.rich(Lf(ev,"price")))+
   '</dl><div class="act">'+act+'</div></aside>';
  root.innerHTML='<header class="epost">'+img+'<div class="scrim"></div><div class="inner"><div class="wrap">'+
   '<span class="cat">'+(LANG==="zh"?(YW.CAT_ZH[cat]||cat):cat)+'</span>'+
   '<div class="date">'+YW.esc(YW.fmtDate(ev,LANG))+'</div>'+
-  '<h1><span class="cjk">'+YW.esc(Lf(ev,"title"))+'</span></h1>'+
-  (Lf(ev,"venue")?'<div class="venue">'+YW.esc(Lf(ev,"venue"))+'</div>':'')+
+  '<h1><span class="cjk">'+YW.rich(Lf(ev,"title"))+'</span></h1>'+
+  (Lf(ev,"venue")?'<div class="venue">'+YW.rich(Lf(ev,"venue"))+'</div>':'')+
   '</div></div></header>'+
   '<div class="wrap"><a class="eback" href="/">← '+L("back")+'</a><div class="elayout"><div>'+(main||'<p style="color:var(--ink-55)">'+(LANG==="zh"?"詳情即將公布。":"More details coming soon.")+'</p>')+'</div>'+side+'</div></div>';
  root.querySelectorAll(".egal .t").forEach(t=>t.onclick=()=>{document.getElementById("lbimg").src=t.getAttribute("data-img");document.getElementById("lb").classList.add("open");});

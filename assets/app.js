@@ -69,6 +69,11 @@ window.YW = (function(){
     })(box);
     return box.innerHTML;
   }
+  /* strip rich text to a plain string (for <title>, meta, mailto subjects, etc.) */
+  function plain(html){
+    var d=document.createElement("div"); d.innerHTML=rich(String(html==null?"":html));
+    return (d.textContent||"").replace(/\s+/g," ").trim();
+  }
   /* split sanitised rich text into items on <br> (new data) OR \n (older plain data) */
   function richLines(html){
     var clean=rich(html), parts=clean.split(/<br\s*\/?>|\n/i), out=[], tmp=document.createElement("div");
@@ -211,5 +216,5 @@ window.YW = (function(){
     try{ new MutationObserver(function(){ if(pend)return; pend=true; requestAnimationFrame(function(){ pend=false; scan(); }); }).observe(document.body,{childList:true,subtree:true}); }catch(e){}
   }
 
-  return {API,DATA_URL,MON,CAT_ZH,TINT,ICON,USER_ICON,SOCIAL,esc,isTrue,lines,lat,fmtDate,isPast,rich,richLines,fetchData,fetchLive,post,clearCache,renderSocial,initMotion,settingsMap,applyStaticLang,setupNav,loadLang,saveLang};
+  return {API,DATA_URL,MON,CAT_ZH,TINT,ICON,USER_ICON,SOCIAL,esc,isTrue,lines,lat,fmtDate,isPast,rich,richLines,plain,fetchData,fetchLive,post,clearCache,renderSocial,initMotion,settingsMap,applyStaticLang,setupNav,loadLang,saveLang};
 })();
