@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16130F">
+<title>Image Maker — Yuet Wan London</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#16130F; --ink-80:#3a3530; --ink-55:#6d655c;
+  --paper:#F4ECDD; --mist:#F6F3EE; --white:#fff;
+  --vermilion:#C8402E; --vermilion-d:#A8331F; --brass:#B8893C; --brass-l:#D8B570; --jade:#2E7E72;
+  --line:rgba(22,19,15,.14); --line-d:rgba(244,236,221,.16);
+  --disp:"Plus Jakarta Sans",system-ui,sans-serif;
+  --cjk:"Noto Sans TC",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;-webkit-text-size-adjust:100%}
+body{background:var(--mist);color:var(--ink);font-family:var(--disp);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+button,input{font-family:inherit;-webkit-tap-highlight-color:transparent}
+img{display:block;max-width:100%}
+
+/* ---- app bar ---- */
+.bar{position:sticky;top:0;z-index:20;background:var(--ink);color:var(--paper);
+  display:flex;align-items:center;gap:11px;
+  padding:env(safe-area-inset-top) 16px 0;height:calc(56px + env(safe-area-inset-top));
+  border-bottom:1px solid var(--line-d)}
+.bar .mk{width:30px;height:30px;border-radius:9px;background:#211C16;display:grid;place-items:center;flex:none}
+.bar .mk i{width:8px;height:8px;border-radius:50%;background:var(--vermilion);display:block}
+.bar h1{font-size:15.5px;font-weight:800;margin:0;letter-spacing:.01em;line-height:1.05}
+.bar h1 small{display:block;font-family:var(--cjk);font-weight:500;font-size:10.5px;color:var(--brass-l);letter-spacing:.1em;margin-top:1px}
+
+.wrap{max-width:760px;margin:0 auto;padding:18px 16px calc(40px + env(safe-area-inset-bottom))}
+.step{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--vermilion-d);margin:24px 2px 12px}
+.step:first-of-type{margin-top:6px}
+
+/* ---- preset chips ---- */
+.presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.chip{display:flex;align-items:center;gap:12px;background:var(--white);border:1.5px solid var(--line);border-radius:14px;padding:12px 13px;cursor:pointer;text-align:left;transition:border-color .15s,box-shadow .15s}
+.chip:hover{border-color:var(--brass)}
+.chip.on{border-color:var(--vermilion);box-shadow:0 0 0 3px rgba(200,64,46,.14)}
+.chip .swatch{flex:none;width:38px;height:38px;border-radius:8px;background:var(--mist);border:1px solid var(--line);display:grid;place-items:center}
+.chip .swatch span{display:block;background:var(--brass-l);border-radius:2px}
+.chip .meta b{display:block;font-size:14.5px;font-weight:700;line-height:1.1}
+.chip .meta small{display:block;font-size:11.5px;color:var(--ink-55);margin-top:2px;font-variant-numeric:tabular-nums}
+
+/* ---- crop stage ---- */
+.stagewrap{display:flex;justify-content:center}
+.stage{position:relative;background:var(--ink);border-radius:16px;overflow:hidden;touch-action:none;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);max-width:100%}
+.stage canvas{display:block;width:100%;height:100%}
+.stage .guides{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .2s}
+.stage.has .guides{opacity:.5}
+.stage .guides::before,.stage .guides::after{content:"";position:absolute;background:rgba(244,236,221,.5)}
+.stage .guides::before{left:33.33%;right:33.33%;top:0;bottom:0;border-left:1px solid rgba(244,236,221,.45);border-right:1px solid rgba(244,236,221,.45);background:none}
+.stage .guides::after{top:33.33%;bottom:33.33%;left:0;right:0;border-top:1px solid rgba(244,236,221,.45);border-bottom:1px solid rgba(244,236,221,.45);background:none}
+.empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:rgba(244,236,221,.85);cursor:pointer;padding:20px;text-align:center}
+.empty svg{width:40px;height:40px;color:rgba(244,236,221,.6)}
+.empty b{font-size:15px;font-weight:700}
+.empty small{font-size:12.5px;color:rgba(244,236,221,.6)}
+.stage.has .empty{display:none}
+
+.hintline{text-align:center;color:var(--ink-55);font-size:12.5px;margin:11px 0 0}
+
+/* ---- zoom row ---- */
+.controls{margin-top:14px;display:flex;flex-direction:column;gap:12px}
+.zoomrow{display:flex;align-items:center;gap:12px;background:var(--white);border:1px solid var(--line);border-radius:14px;padding:10px 14px}
+.zoomrow .zb{width:38px;height:38px;flex:none;border-radius:10px;border:1px solid var(--line);background:var(--white);color:var(--ink);font-size:20px;font-weight:600;cursor:pointer;display:grid;place-items:center}
+.zoomrow .zb:hover{border-color:var(--brass)}
+.zoomrow input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:3px;background:var(--line);outline:none}
+.zoomrow input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--vermilion);border:3px solid var(--white);box-shadow:0 2px 6px rgba(0,0,0,.2);cursor:pointer}
+.zoomrow input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--vermilion);border:3px solid var(--white);cursor:pointer}
+.zoomrow input:disabled{opacity:.5}
+.softwarn{display:none;background:#FBF1E4;border:1px solid var(--brass-l);color:#7a5a1f;border-radius:11px;padding:10px 13px;font-size:12.5px}
+.softwarn.show{display:block}
+
+.actions{display:flex;gap:10px;margin-top:16px}
+.btn{flex:1;height:52px;border-radius:14px;border:1px solid transparent;font-size:15px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:9px}
+.btn svg{width:18px;height:18px}
+.btn-fill{background:var(--vermilion);color:var(--paper)}.btn-fill:hover{background:var(--vermilion-d)}
+.btn-fill:disabled{opacity:.45;cursor:default}
+.btn-ghost{background:var(--white);color:var(--ink);border-color:var(--line)}.btn-ghost:hover{border-color:var(--brass)}
+
+/* ---- result sheet ---- */
+.scrim{position:fixed;inset:0;background:rgba(22,19,15,.55);z-index:40;opacity:0;pointer-events:none;transition:.2s}
+.scrim.open{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;background:var(--white);border-radius:22px 22px 0 0;
+  padding:22px 20px calc(22px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .26s cubic-bezier(.22,.61,.36,1);
+  max-height:92svh;overflow:auto;box-shadow:0 -18px 50px rgba(0,0,0,.3)}
+.sheet.open{transform:none}
+.sheet .grab{width:40px;height:4px;border-radius:3px;background:var(--line);margin:0 auto 16px}
+.sheet h2{font-size:18px;font-weight:800;margin:0 0 3px}
+.sheet .sub{color:var(--ink-55);font-size:13px;margin:0 0 16px}
+.result{border-radius:14px;overflow:hidden;border:1px solid var(--line);background:var(--mist);margin-bottom:14px}
+.result img{width:100%;height:auto;display:block}
+.fileinfo{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;color:var(--ink-55);margin-bottom:14px}
+.fileinfo b{color:var(--ink);font-weight:700;word-break:break-all}
+.savehint{background:var(--mist);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:12.5px;color:var(--ink-80);margin-bottom:16px}
+.savehint b{font-weight:700}
+
+/* ---- lock ---- */
+.lock{position:fixed;inset:0;z-index:60;background:var(--mist);display:grid;place-items:center;padding:24px;
+  padding-top:max(24px,env(safe-area-inset-top));padding-bottom:max(24px,env(safe-area-inset-bottom))}
+.lock .card{background:var(--white);border:1px solid var(--line);border-radius:22px;padding:34px 30px;width:100%;max-width:360px;box-shadow:0 24px 70px rgba(22,19,15,.1)}
+.lock .mk{width:48px;height:48px;border-radius:14px;background:var(--ink);display:grid;place-items:center;margin:0 auto 18px}
+.lock .mk i{width:11px;height:11px;border-radius:50%;background:var(--vermilion);display:block}
+.lock h1{font-size:20px;font-weight:800;text-align:center;margin:0 0 4px}
+.lock p{color:var(--ink-55);font-size:13.5px;text-align:center;margin:0 0 22px}
+.lock label{display:block;font-size:11.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-55);margin-bottom:7px}
+.lock input{width:100%;border:1px solid var(--line);border-radius:12px;padding:14px;font-size:16px;text-align:center;letter-spacing:.3em}
+.lock input:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px rgba(184,137,60,.18)}
+.lock .err{color:var(--vermilion-d);font-size:13px;min-height:18px;margin:8px 0 0;text-align:center}
+.lock .btn{width:100%;margin-top:6px}
+.hidden{display:none!important}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+</style>
+</head>
+<body>
+
+<!-- password gate -->
+<div class="lock" id="lock">
+  <div class="card">
+    <div class="mk"><i></i></div>
+    <h1>Image Maker</h1>
+    <p>Enter the password to continue.</p>
+    <label for="pw">Password</label>
+    <input type="password" id="pw" inputmode="numeric" autocomplete="off">
+    <div class="err" id="perr"></div>
+    <button class="btn btn-fill" id="unlock">Enter</button>
+  </div>
+</div>
+
+<!-- app -->
+<div id="app" class="hidden">
+  <div class="bar">
+    <div class="mk"><i></i></div>
+    <h1>Image Maker<small>圖片製作</small></h1>
+  </div>
+
+  <div class="wrap">
+    <div class="step">1 · Choose a size</div>
+    <div class="presets" id="presets"></div>
+
+    <div class="step">2 · Your photo</div>
+    <div class="stagewrap">
+      <div class="stage" id="stage">
+        <canvas id="cv"></canvas>
+        <div class="guides"></div>
+        <div class="empty" id="empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="9" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg>
+          <b>Add a photo</b>
+          <small>Tap to choose from your phone</small>
+        </div>
+      </div>
+    </div>
+    <p class="hintline" id="hintline">Drag to reposition · pinch or use the slider to zoom</p>
+
+    <div class="controls">
+      <div class="zoomrow">
+        <button class="zb" id="zout" aria-label="Zoom out">&minus;</button>
+        <input type="range" id="zoom" min="1" max="5" step="0.01" value="1" disabled aria-label="Zoom">
+        <button class="zb" id="zin" aria-label="Zoom in">+</button>
+      </div>
+      <div class="softwarn" id="softwarn">This photo is smaller than the recommended size, so the banner may look a little soft. A larger photo will look sharper.</div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-ghost" id="replace">Replace photo</button>
+      <button class="btn btn-fill" id="make" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+        Make image
+      </button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="file" accept="image/*" class="hidden">
+
+<!-- result sheet -->
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet">
+  <div class="grab"></div>
+  <h2>Your image is ready</h2>
+  <p class="sub">Save it to your phone, then upload it in the editor.</p>
+  <div class="result"><img id="resultImg" alt="Your cropped image"></div>
+  <div class="fileinfo"><b id="resultName">image.jpg</b><span id="resultSize"></span></div>
+  <div class="savehint"><b>On iPhone:</b> press and hold the picture above, then choose <b>Add to Photos</b>. <b>On Android / computer:</b> use the Download button.</div>
+  <div class="actions" style="margin-top:0">
+    <button class="btn btn-ghost" id="again">Make another</button>
+    <a class="btn btn-fill" id="dl" download href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+      Download
+    </a>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+/* ---------- preset sizes (from the site's recommended specs) ---------- */
+const PRESETS=[
+  {key:"hero",   name:"Hero banner", w:2400, h:1350},
+  {key:"event",  name:"Event image", w:1600, h:1000},
+  {key:"blog",   name:"Blog cover",  w:1600, h:900},
+  {key:"news",   name:"News cover",  w:1600, h:900},
+  {key:"gallery",name:"Gallery",     w:1600, h:1600},
+];
+
+/* ---------- cropper state ---------- */
+const ST={img:null,iw:0,ih:0,name:"hero",W:2400,H:1350,aspect:2400/1350,
+  sw0:0,sh0:0,zoom:1,sx:0,sy:0,fw:0,fh:0,dpr:1,maxZoom:5};
+
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+function mid(a,b){return {x:(a.x+b.x)/2,y:(a.y+b.y)/2};}
+function fmtBytes(n){return n>=1048576?(n/1048576).toFixed(1)+" MB":Math.max(1,Math.round(n/1024))+" KB";}
+
+function fitFrame(){
+  const wrapW=$("stage").parentElement.clientWidth;
+  const availW=Math.min(wrapW,720);
+  const availH=Math.min(window.innerHeight*0.52,560);
+  let fw,fh;
+  if(availW/ST.aspect<=availH){ fw=availW; fh=availW/ST.aspect; }
+  else { fh=availH; fw=availH*ST.aspect; }
+  ST.fw=Math.round(fw); ST.fh=Math.round(fh);
+  const stage=$("stage"); stage.style.width=ST.fw+"px"; stage.style.height=ST.fh+"px";
+  const cv=$("cv"); ST.dpr=Math.min(window.devicePixelRatio||1,2);
+  cv.width=Math.round(ST.fw*ST.dpr); cv.height=Math.round(ST.fh*ST.dpr);
+}
+
+function recompute(){
+  if(!ST.img) return;
+  if(ST.iw/ST.ih > ST.aspect){ ST.sh0=ST.ih; ST.sw0=ST.ih*ST.aspect; }
+  else { ST.sw0=ST.iw; ST.sh0=ST.iw/ST.aspect; }
+}
+
+function srcRect(){
+  const sw=ST.sw0/ST.zoom, sh=ST.sh0/ST.zoom;
+  ST.sx=Math.max(0,Math.min(ST.sx, ST.iw-sw));
+  ST.sy=Math.max(0,Math.min(ST.sy, ST.ih-sh));
+  return {sx:ST.sx,sy:ST.sy,sw,sh};
+}
+
+function draw(){
+  const cv=$("cv"), ctx=cv.getContext("2d");
+  ctx.setTransform(ST.dpr,0,0,ST.dpr,0,0);
+  ctx.clearRect(0,0,ST.fw,ST.fh);
+  if(!ST.img) return;
+  const {sx,sy,sw,sh}=srcRect();
+  ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality="high";
+  ctx.drawImage(ST.img, sx,sy,sw,sh, 0,0, ST.fw,ST.fh);
+}
+
+function centerView(){
+  ST.zoom=1; recompute();
+  const {sw,sh}=srcRect();
+  ST.sx=(ST.iw-sw)/2; ST.sy=(ST.ih-sh)/2;
+  $("zoom").value=1;
+}
+
+function setZoom(z,fx,fy){
+  z=Math.max(1,Math.min(z,ST.maxZoom));
+  const {sx,sy,sw,sh}=srcRect();
+  const px=fx==null?ST.fw/2:fx, py=fy==null?ST.fh/2:fy;
+  const imgX=sx+(px/ST.fw)*sw, imgY=sy+(py/ST.fh)*sh;
+  ST.zoom=z;
+  const nsw=ST.sw0/z, nsh=ST.sh0/z;
+  ST.sx=imgX-(px/ST.fw)*nsw; ST.sy=imgY-(py/ST.fh)*nsh;
+  srcRect(); draw();
+  $("zoom").value=z;
+}
+
+function updateSoftWarn(){
+  const small = ST.img && (ST.sw0 < ST.W*0.95 || ST.sh0 < ST.H*0.95);
+  $("softwarn").classList.toggle("show", !!small);
+}
+
+/* ---------- presets UI ---------- */
+function renderPresets(){
+  $("presets").innerHTML=PRESETS.map(p=>{
+    // tiny aspect swatch
+    const r=p.w/p.h; let sw,sh; if(r>=1){sw=24;sh=Math.round(24/r);} else {sh=24;sw=Math.round(24*r);}
+    return `<button class="chip" data-key="${p.key}">
+      <span class="swatch"><span style="width:${sw}px;height:${sh}px"></span></span>
+      <span class="meta"><b>${p.name}</b><small>${p.w} × ${p.h}</small></span>
+    </button>`;
+  }).join("");
+  $("presets").querySelectorAll(".chip").forEach(c=>c.onclick=()=>setPreset(c.dataset.key));
+}
+function setPreset(key){
+  const p=PRESETS.find(x=>x.key===key)||PRESETS[0];
+  ST.name=p.key; ST.W=p.w; ST.H=p.h; ST.aspect=p.w/p.h;
+  $("presets").querySelectorAll(".chip").forEach(c=>c.classList.toggle("on",c.dataset.key===key));
+  fitFrame();
+  if(ST.img){ centerView(); }
+  draw(); updateSoftWarn();
+}
+
+/* ---------- load image ---------- */
+function loadFile(file){
+  if(!file) return;
+  const url=URL.createObjectURL(file);
+  const im=new Image();
+  im.onload=()=>{
+    ST.img=im; ST.iw=im.naturalWidth; ST.ih=im.naturalHeight;
+    $("stage").classList.add("has");
+    fitFrame(); centerView(); draw(); updateSoftWarn();
+    $("make").disabled=false; $("zoom").disabled=false;
+  };
+  im.onerror=()=>alert("Sorry, that image couldn't be opened. Try a JPG or PNG.");
+  im.src=url;
+}
+
+/* ---------- export ---------- */
+function makeImage(){
+  if(!ST.img) return;
+  const {sx,sy,sw,sh}=srcRect();
+  const c=document.createElement("canvas"); c.width=ST.W; c.height=ST.H;
+  const ctx=c.getContext("2d");
+  ctx.fillStyle="#ffffff"; ctx.fillRect(0,0,ST.W,ST.H);
+  ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality="high";
+  ctx.drawImage(ST.img, sx,sy,sw,sh, 0,0, ST.W,ST.H);
+  c.toBlob(b=>{
+    if(!b){ alert("Could not create the image. Please try again."); return; }
+    const url=URL.createObjectURL(b);
+    const name=ST.name+"-"+ST.W+"x"+ST.H+".jpg";
+    $("resultImg").src=url;
+    $("dl").href=url; $("dl").setAttribute("download",name);
+    $("resultName").textContent=name;
+    $("resultSize").textContent=fmtBytes(b.size);
+    openSheet();
+  },"image/jpeg",0.9);
+}
+
+/* ---------- result sheet ---------- */
+function openSheet(){ $("scrim").classList.add("open"); $("sheet").classList.add("open"); }
+function closeSheet(){ $("scrim").classList.remove("open"); $("sheet").classList.remove("open"); }
+
+/* ---------- gestures ---------- */
+const ptrs=new Map(); let mode=null, dragStart=null, pinchStart=null;
+function stagePoint(e){ const r=$("stage").getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+const stage=$("stage");
+stage.addEventListener("pointerdown",e=>{
+  if(!ST.img) return;
+  stage.setPointerCapture(e.pointerId);
+  ptrs.set(e.pointerId, stagePoint(e));
+  if(ptrs.size===1){ const p=[...ptrs.values()][0]; mode="drag"; dragStart={x:p.x,y:p.y,sx:ST.sx,sy:ST.sy}; }
+  else if(ptrs.size===2){ const a=[...ptrs.values()]; mode="pinch"; pinchStart={dist:dist(a[0],a[1]),zoom:ST.zoom}; }
+});
+stage.addEventListener("pointermove",e=>{
+  if(!ptrs.has(e.pointerId)) return;
+  ptrs.set(e.pointerId, stagePoint(e));
+  if(mode==="drag" && ptrs.size===1){
+    const p=[...ptrs.values()][0]; const {sw,sh}=srcRect();
+    ST.sx=dragStart.sx-(p.x-dragStart.x)*(sw/ST.fw);
+    ST.sy=dragStart.sy-(p.y-dragStart.y)*(sh/ST.fh);
+    srcRect(); draw();
+  } else if(mode==="pinch" && ptrs.size>=2){
+    const a=[...ptrs.values()].slice(0,2);
+    const d=dist(a[0],a[1]), m=mid(a[0],a[1]);
+    setZoom(pinchStart.zoom*(d/(pinchStart.dist||1)), m.x, m.y);
+  }
+});
+function endPtr(e){
+  if(ptrs.has(e.pointerId)) ptrs.delete(e.pointerId);
+  if(ptrs.size===0) mode=null;
+  else if(ptrs.size===1){ const p=[...ptrs.values()][0]; mode="drag"; dragStart={x:p.x,y:p.y,sx:ST.sx,sy:ST.sy}; }
+}
+stage.addEventListener("pointerup",endPtr);
+stage.addEventListener("pointercancel",endPtr);
+stage.addEventListener("wheel",e=>{ if(!ST.img) return; e.preventDefault(); const p=stagePoint(e); setZoom(ST.zoom*(e.deltaY<0?1.1:1/1.1), p.x, p.y); },{passive:false});
+
+/* ---------- wire ---------- */
+$("empty").onclick=()=>$("file").click();
+$("replace").onclick=()=>$("file").click();
+$("file").addEventListener("change",e=>{ loadFile(e.target.files[0]); e.target.value=""; });
+$("zoom").addEventListener("input",e=>setZoom(parseFloat(e.target.value)));
+$("zin").onclick=()=>setZoom(ST.zoom*1.2);
+$("zout").onclick=()=>setZoom(ST.zoom/1.2);
+$("make").onclick=makeImage;
+$("again").onclick=closeSheet;
+$("scrim").onclick=closeSheet;
+$("dl").addEventListener("click",()=>{ /* let the browser handle download; close shortly after */ setTimeout(closeSheet,400); });
+window.addEventListener("resize",()=>{ if($("app").classList.contains("hidden")) return; fitFrame(); draw(); });
+
+/* ---------- password gate (light client-side gate, not real security) ---------- */
+function openApp(){
+  $("lock").classList.add("hidden");
+  $("app").classList.remove("hidden");
+  renderPresets();
+  setPreset("hero");
+}
+function tryUnlock(){
+  if($("pw").value.trim()==="888"){ try{sessionStorage.setItem("im_ok","1");}catch(e){} openApp(); }
+  else { $("perr").textContent="That password isn't right."; $("pw").value=""; $("pw").focus(); }
+}
+$("unlock").onclick=tryUnlock;
+$("pw").addEventListener("keydown",e=>{ if(e.key==="Enter") tryUnlock(); });
+(function(){ try{ if(sessionStorage.getItem("im_ok")==="1"){ openApp(); return; } }catch(e){} $("pw").focus(); })();
+</script>
+</body>
+</html>
