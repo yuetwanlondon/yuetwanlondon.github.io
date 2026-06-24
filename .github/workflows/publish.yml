@@ -1,20 +1,27 @@
 name: Publish data snapshot
-# Refreshes data.json from the Google Sheet AND deploys the site to Pages.
-# Runs alongside the auto-created "static.yml" (which deploys on your own pushes).
+# THE SINGLE deployer for this site. Refreshes data.json from the Google Sheet
+# and deploys to GitHub Pages.
+#
+# IMPORTANT: this only works correctly if it is the ONLY workflow that deploys
+# to Pages. Disable the auto-generated "static.yml" (Actions tab > that workflow
+# > ... > Disable workflow) so the two can never race each other.
 on:
+  push:
+    branches: [main]                 # <-- your code pushes deploy through here. Change to "master" if that's your default branch.
   workflow_dispatch:                 # manual "Run workflow" button
-  repository_dispatch:               # fired by the editor's "Publish now" button
+  repository_dispatch:               # the editor's "Publish now" button
     types: [rebuild]
   schedule:
-    - cron: '*/10 * * * *'           # auto-refresh roughly every 10 minutes
+    - cron: '*/30 * * * *'           # safety auto-refresh every 30 min (the editor's Publish button is instant)
 permissions:
   contents: write                    # to commit the refreshed data.json
   pages: write                       # to deploy to Pages
   id-token: write                    # required by deploy-pages
-# Share the same lock as static.yml so the two never deploy at the same time.
+# Only one Pages deploy at a time; a newer run cancels a stuck/older one so the
+# queue can never jam on an "in progress deployment".
 concurrency:
   group: "pages"
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -25,11 +32,9 @@ jobs:
       - uses: actions/checkout@v4
 
       # ----------------------------------------------------------------------
-      # IMPORTANT: this must be the *currently active* Web app /exec URL.
+      # This must be the *currently active* Web app /exec URL.
       # Apps Script > Deploy > Manage deployments > (Web app) > copy "Web app URL".
-      # If you ever used "New deployment" instead of editing the existing one,
-      # Google made a NEW url and you must paste it below.
-      # Required settings on that deployment:  Execute as = Me ,  Who has access = Anyone
+      # Required on that deployment:  Execute as = Me ,  Who has access = Anyone
       # ----------------------------------------------------------------------
       - name: Fetch latest data from the Google Sheet (non-fatal)
         env:
@@ -72,7 +77,7 @@ jobs:
             if [ -f data.json ]; then
               echo "::warning::Could not refresh data — keeping the existing data.json and deploying anyway."
             else
-              echo "::warning::Could not refresh data and no existing data.json is present; deploying without it."
+              echo "::warning::Could not refresh data and no existing data.json present; deploying without it."
             fi
           fi
           # Never fail the job on a data hiccup — the site should still deploy.
