@@ -27,7 +27,7 @@ window.YW = (function(){
     var src=String(html);
     if(src.indexOf("<")<0 && src.indexOf("&")<0) return esc(src);
     var box=document.createElement("div"); box.innerHTML=src;
-    var ALLOW={STRONG:"STRONG",B:"STRONG",EM:"EM",I:"EM",SPAN:"SPAN",BR:"BR",A:"A"};
+    var ALLOW={STRONG:"STRONG",B:"STRONG",EM:"EM",I:"EM",SPAN:"SPAN",BR:"BR",A:"A",TABLE:"TABLE",THEAD:"THEAD",TBODY:"TBODY",TR:"TR",TH:"TH",TD:"TD",CAPTION:"CAPTION"};
     function cstyle(st){
       var out=[];
       String(st||"").split(";").forEach(function(d){

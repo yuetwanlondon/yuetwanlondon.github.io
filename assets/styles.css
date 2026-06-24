@@ -174,3 +174,10 @@ html.reveal-on :is(.sec,.bloghead,.bgrid,.art,.elayout).in{opacity:1;transform:n
   .foot .grid2{grid-template-columns:1fr}
 }
 :focus-visible{outline:2px solid var(--brass);outline-offset:3px}
+
+/* ---- article tables (from imported Docs) ---- */
+.tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:1.1em 0;border:1px solid var(--line);border-radius:10px}
+.tablewrap table{border-collapse:collapse;width:100%;font-size:.95em}
+.tablewrap th,.tablewrap td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+.tablewrap th{background:var(--mist);font-weight:700}
+.tablewrap tr:nth-child(even) td{background:rgba(0,0,0,.015)}

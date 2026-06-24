@@ -190,7 +190,7 @@ function renderArticle(root, p, meta){
   if(!p){ root.innerHTML='<div class="blogwrap"><div class="art"><a class="eback" href="'+BASE+'">← '+(LANG==="zh"?"返回":"Back")+'</a><h1>'+(LANG==="zh"?"找不到文章":"Article not found")+'</h1></div></div>'; document.title=(LANG==="zh"?meta.zh:meta.en)+" · Yuet Wan London"; return; }
   document.title=YW.plain(L(p,"title"))+" · Yuet Wan London";
   const cover = p.cover ? '<img class="cover" src="'+YW.esc(p.cover)+'" alt="">' : '';
-  const body = YW.richLines(L(p,"body")).map(function(t){return '<p>'+t+'</p>';}).join("");
+  const body = YW.richLines(L(p,"body")).map(function(t){return /^<table/i.test(t)?'<div class="tablewrap">'+t+'</div>':'<p>'+t+'</p>';}).join("");
   const imgs = YW.lines(p.images).filter(Boolean);
   const gal = imgs.length ? '<div class="agal">'+imgs.map(function(u){return '<img src="'+YW.esc(u)+'" alt="" loading="lazy">';}).join("")+'</div>' : '';
   root.innerHTML='<div class="blogwrap"><article class="art">'+

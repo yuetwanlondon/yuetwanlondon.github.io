@@ -168,7 +168,7 @@ window.render=function(){
  const body=YW.richLines(Lf(ev,"body")),prog=YW.richLines(Lf(ev,"programme")),take=YW.richLines(Lf(ev,"learn")),bring=YW.richLines(Lf(ev,"bring")),arts=YW.richLines(Lf(ev,"artists")),gal=YW.lines(ev.gallery);
  let main="";
  if(Lf(ev,"desc")&&!body.length)main+='<div class="esec"><h2>'+L("about")+'</h2><p>'+YW.rich(Lf(ev,"desc"))+'</p></div>';
- if(body.length)main+='<div class="esec"><h2>'+L("about")+'</h2>'+body.map(p=>'<p>'+p+'</p>').join("")+'</div>';
+ if(body.length)main+='<div class="esec"><h2>'+L("about")+'</h2>'+body.map(p=>/^<table/i.test(p)?'<div class="tablewrap">'+p+'</div>':'<p>'+p+'</p>').join("")+'</div>';
  if(arts.length)main+='<div class="esec"><h2>'+L("artists")+'</h2><div class="echips">'+arts.map(a=>'<span>'+a+'</span>').join("")+'</div></div>';
  if(Lf(ev,"speaker"))main+='<div class="esec"><h2>'+L("speaker")+'</h2><p>'+YW.rich(Lf(ev,"speaker"))+'</p></div>';
  if(prog.length)main+='<div class="esec"><h2>'+L("prog")+'</h2><ol class="prog">'+prog.map(p=>'<li>'+p+'</li>').join("")+'</ol></div>';
