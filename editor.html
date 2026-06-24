@@ -177,6 +177,14 @@ button,a,input,.ed-tools button{-webkit-tap-highlight-color:transparent}
 .hidden{display:none!important}
 .hint{color:var(--ink-55);font-size:13px;margin:-14px 0 4px}
 
+/* ---- google-doc picker ---- */
+.doclist{padding:14px 16px;overflow:auto;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch}
+.docrow{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;cursor:pointer;font-family:var(--grot)}
+.docrow:hover{border-color:var(--vermilion);box-shadow:0 6px 18px rgba(0,0,0,.08)}
+.docrow .dn{display:flex;align-items:center;gap:10px;min-width:0;font-size:15px;font-weight:600;color:var(--ink)}
+.docrow .dn>svg{width:18px;height:18px;color:var(--brass);flex:none}
+.docrow .dn>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.docrow .dd{font-size:12px;color:var(--ink-55);flex:none}
 /* ---- image picker ---- */
 .pickwrap{position:fixed;inset:0;z-index:80;background:rgba(22,19,15,.5);display:none;align-items:center;justify-content:center;padding:24px}
 .pickwrap.open{display:flex}
@@ -306,6 +314,11 @@ button,a,input,.ed-tools button{-webkit-tap-highlight-color:transparent}
 <div class="pickwrap" id="pickwrap"><div class="pickbox">
   <div class="pickhd"><b>Choose an uploaded image</b><button class="iconbtn" id="pickClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div class="pickgrid" id="pickGrid"></div>
+</div></div>
+
+<div class="pickwrap" id="docpickwrap"><div class="pickbox">
+  <div class="pickhd"><b id="docpickTitle">Choose a Google Doc</b><button class="iconbtn" id="docpickClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="doclist" id="docList"></div>
 </div></div>
 
 <script src="/assets/app.js"></script>
@@ -810,12 +823,27 @@ async function galleryBulk(fileList){
 }
 
 /* ---------- import a Google Doc (EN + 中文 tabs) as a Learn/News post ---------- */
-async function importFromDoc(section){
-  const url=prompt("Paste the Google Doc link.\n\nThe Doc should have two tabs titled EN and 中文, each starting with Title: / Summary: / Date: / Status: lines, then the article.");
-  if(!url) return;
+const ICON_DOC='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8M8 9h2"/></svg>';
+let DOCPICK_SECTION=null;
+function fmtDocDate(ms){ try{ return new Date(ms).toLocaleDateString(); }catch(e){ return ""; } }
+function importFromDoc(section){ openDocPicker(section); }
+function openDocPicker(section){
+  DOCPICK_SECTION=section;
+  const list=$("docList"); list.innerHTML='<div class="pickempty">Loading…</div>';
+  $("docpickTitle").textContent="Choose a Doc from the "+(section==="news"?"\u201cnews\u201d":"\u201cblogs\u201d")+" folder";
+  $("docpickwrap").classList.add("open");
+  YW.post({action:"listDocs",pass:AUTH.pass,section:section}).then(res=>{
+    if(!res||!res.ok) throw new Error(res&&res.error||"couldn't list Docs");
+    const docs=res.docs||[];
+    if(!docs.length){ list.innerHTML='<div class="pickempty">No Google Docs in that folder yet. Add one and refresh.</div>'; return; }
+    list.innerHTML=docs.map(d=>'<button type="button" class="docrow" data-id="'+E(d.id)+'"><span class="dn">'+ICON_DOC+'<span>'+E(d.name)+'</span></span><span class="dd">'+E(fmtDocDate(d.modified))+'</span></button>').join("");
+    list.querySelectorAll(".docrow").forEach(b=>b.onclick=()=>{ $("docpickwrap").classList.remove("open"); importDocById(DOCPICK_SECTION, b.dataset.id); });
+  }).catch(err=>{ list.innerHTML='<div class="pickempty">Could not load Docs.<br><small>'+E(String(err.message||err))+'</small></div>'; });
+}
+async function importDocById(section, docId){
   busy(true);
   try{
-    const res=await YW.post({action:"import",pass:AUTH.pass,url:url,section:section});
+    const res=await YW.post({action:"import",pass:AUTH.pass,url:docId,section:section});
     if(!res||!res.ok||!res.post) throw new Error(res&&res.error||"import failed");
     const post=res.post;
     post.order=DATA[section].reduce((m,r)=>Math.max(m,+r.order||0),0)+1;
@@ -974,8 +1002,10 @@ $("publishBtn").onclick=publishNow;
 $("dClose").onclick=closeDrawer; $("dCancel").onclick=closeDrawer; $("dApply").onclick=applyDrawer;
 $("dscrim").onclick=closeDrawer;
 $("pickClose").onclick=()=>$("pickwrap").classList.remove("open");
+$("docpickClose").onclick=()=>$("docpickwrap").classList.remove("open");
+$("docpickwrap").onclick=e=>{if(e.target.id==="docpickwrap")$("docpickwrap").classList.remove("open");};
 $("pickwrap").onclick=e=>{if(e.target.id==="pickwrap")$("pickwrap").classList.remove("open");};
-document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ closeMenu(); closeDrawer(); $("pickwrap").classList.remove("open"); } });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ closeMenu(); closeDrawer(); $("pickwrap").classList.remove("open"); $("docpickwrap").classList.remove("open"); } });
 window.addEventListener("beforeunload",e=>{ if(DIRTY.size){ e.preventDefault(); e.returnValue=""; } });
 (function(){ const a=sessionStorage.getItem("yw_auth"); if(a){ AUTH=JSON.parse(a); boot(); } })();
 </script>
