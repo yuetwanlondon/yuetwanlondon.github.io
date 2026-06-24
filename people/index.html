@@ -13,14 +13,13 @@
 <meta name="twitter:image" content="https://yuetwanlondon.github.io/img/web-thumbnail.jpg">
 <title>Our People · Yuet Wan London</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style id="yw-pre-css">
-#yw-pre{display:none;position:fixed;inset:0;z-index:99999;align-items:center;justify-content:center;background-color:#F4ECDD;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='70'%3E%3Cpath d='M20 0 L40 11 L40 35 L20 46 L0 35 L0 11Z M20 46 L40 57 L40 81 M20 46 L0 57 L0 81' fill='none' stroke='%2316130F' stroke-opacity='0.06' stroke-width='1.2'/%3E%3C/svg%3E");transition:opacity .5s ease}
+#yw-pre{display:none;position:fixed;inset:0;z-index:99999;align-items:center;justify-content:center;background-color:#F4ECDD;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='70'%3E%3Cpath d='M20 0 L40 11 L40 35 L20 46 L0 35 L0 11Z M20 46 L40 57 L40 81 M20 46 L0 57 L0 81' fill='none' stroke='%2316130F' stroke-opacity='0.06' stroke-width='1.2'/%3E%3C/svg%3E");transition:opacity .55s ease}
 html.loader-on #yw-pre{display:flex}
 #yw-pre.hide{opacity:0;pointer-events:none}
 #yw-pre .pre-inner{display:flex;flex-direction:column;align-items:center;gap:clamp(18px,5vh,30px);padding:24px}
-#yw-pre .pre-logo{width:min(170px,40vw);opacity:0;transition:opacity .5s ease}
-#yw-pre .ring{width:min(210px,50vw);height:min(210px,50vw);border-radius:50%;background:#fff;box-shadow:0 20px 56px rgba(22,19,15,.18);overflow:hidden;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .5s ease}
-#yw-pre .ring img{width:100%;height:100%;object-fit:cover;border-radius:50%;opacity:0;transition:opacity .5s ease}
-#yw-pre.in .pre-logo,#yw-pre.in .ring{opacity:1}
+#yw-pre .pre-logo{width:min(170px,40vw)}
+#yw-pre .ring{width:min(210px,50vw);height:min(210px,50vw);border-radius:50%;background:#fff;box-shadow:0 20px 56px rgba(22,19,15,.18);overflow:hidden;display:flex;align-items:center;justify-content:center}
+#yw-pre .ring img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 </style>
 <script>try{
  if(!matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.classList.add('reveal-on');}
@@ -53,35 +52,33 @@ html.loader-on #yw-pre{display:flex}
 .modal .box .close{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;display:grid;place-items:center}
 </style></head><body>
 
-<div id="yw-pre"><div class="pre-inner"><img class="pre-logo" src="/img/yuetwanlondon-main.svg" alt="Yuet Wan London"><div class="ring"><img id="yw-pre-gif" alt=""></div></div></div>
+<div id="yw-pre"><div class="pre-inner"><img class="pre-logo" src="/img/yuetwanlondon-main.svg" alt="Yuet Wan London"><div class="ring"><img id="yw-pre-gif" src="/img/pre-load-1.gif" alt=""></div></div></div>
 <script>
 (function(){
  var P=document.getElementById('yw-pre'); if(!P) return;
- var G=document.getElementById('yw-pre-gif');
- var gifs=['/img/pre-load-1.gif','/img/pre-load-2.gif','/img/pre-load-3.gif'];
  var on=document.documentElement.classList.contains('loader-on');
  var reduce=false; try{reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
  var MIN = reduce ? 0 : 2400;          // <-- how long the home loader plays (ms). Change to taste.
- var HARD = reduce ? 2500 : 9000;
+ var HARD = reduce ? 2500 : 9000;      // safety cap so it can never get stuck
  var START=Date.now(), called=false, hidden=false;
- function playGif(){ if(!G)return; G.style.opacity='0'; G.onload=function(){G.style.opacity='1';}; G.src=gifs[Math.floor(Math.random()*gifs.length)]; }
- function doHide(){ if(hidden)return; hidden=true; P.classList.add('hide'); setTimeout(function(){P.style.display='none';},520); }
+ function doHide(){ if(hidden)return; hidden=true; P.classList.add('hide'); setTimeout(function(){P.style.display='none';},620); }
  function hideAfterMin(){ setTimeout(doHide, Math.max(0, MIN-(Date.now()-START))); }
- if(on){ playGif(); setTimeout(function(){P.classList.add('in');},40); setTimeout(doHide,HARD); }
- // home page calls this once rendered; only matters when the loader is active
+ if(on){ setTimeout(doHide,HARD); }
+ // the home page calls this once it has rendered; only matters when the loader is active
  window.__pre=function(){
    if(!on || called) return; called=true;
-   var imgs=document.querySelectorAll('img'), n=imgs.length, done=0;
+   // wait only for the above-the-fold (non-lazy) images, never the loader's own gif
+   var imgs=[].slice.call(document.querySelectorAll('img')).filter(function(im){ return im.id!=='yw-pre-gif' && im.getAttribute('loading')!=='lazy'; });
+   var n=imgs.length, done=0;
    if(!n){ hideAfterMin(); return; }
    function fin(){ done++; if(done>=n) hideAfterMin(); }
    imgs.forEach(function(im){ if(im.complete) fin(); else { im.addEventListener('load',fin); im.addEventListener('error',fin); } });
-   setTimeout(hideAfterMin, MIN+3000);
+   setTimeout(hideAfterMin, MIN+2000);
  };
- // cover the CURRENT page instantly (opaque) when heading home, so the hand-off is seamless
+ // cover the CURRENT page instantly when heading home, so the hand-off is seamless (no fade-in, no flash)
  window.__preCover=function(){
    if(reduce) return;
-   P.style.transition='none'; P.style.display='flex'; P.classList.remove('hide'); P.style.opacity='1';
-   void P.offsetWidth; P.style.transition=''; P.classList.add('in'); playGif();
+   P.style.transition='none'; P.classList.remove('hide'); P.style.opacity='1'; P.style.display='flex';
  };
  // don't leave the loader stuck after a back/forward (bfcache) restore
  window.addEventListener('pageshow', function(ev){ if(ev.persisted){ P.classList.add('hide'); P.style.display='none'; } });
@@ -154,7 +151,7 @@ function pFeat(p,idx){
  const nm=LANG==="zh"?('<span class="cjk">'+YW.esc(p.name_zh||p.name_en)+'</span>'+(Lf(p,"honorific")?'<small>'+YW.esc(p.honorific_zh||Lf(p,"honorific"))+'</small>':'')):(YW.esc(p.name_en||p.name_zh)+(p.name_zh&&p.name_en?' <small class="cjk">'+YW.esc(p.name_zh)+'</small>':''));
  return '<article class="pfeat" data-i="'+idx+'"><div class="ph">'+badge(p)+photo(p)+'</div><div class="body"><div class="role">'+YW.rich(Lf(p,"role"))+'</div><div class="nm">'+nm+'</div>'+
  (creds.length?'<ul class="creds">'+creds.map(c=>'<li>'+c+'</li>').join("")+'</ul>':'')+
- (bio.length?'<div class="bio">'+bio.map(t=>'<p>'+t+'</p>').join("")+'</div>':'')+'<div class="more">'+(LANG==="zh"?"查看詳情 →":"View details →")+'</div></div></article>';
+ (bio.length?'<div class="bio"><p>'+bio[0]+'</p></div>':'')+'<div class="more">'+(LANG==="zh"?"查看詳情 →":"View details →")+'</div></div></article>';
 }
 function pCard(p,idx){
  return '<button class="pcard" data-i="'+idx+'"><div class="ph">'+badge(p)+photo(p)+'</div><div class="pb"><div class="role">'+YW.rich(Lf(p,"role"))+'</div><div class="nm">'+YW.esc(p.name_zh||p.name_en)+(p.name_en&&p.name_zh?'<small>'+YW.esc(p.name_en)+'</small>':'')+'</div></div></button>';
