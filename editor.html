@@ -91,9 +91,10 @@ button,a,input,.ed-tools button{-webkit-tap-highlight-color:transparent}
 .nl-chk input[type=checkbox]{width:17px;height:17px;flex:0 0 auto;accent-color:#B8893C}
 .nl-num{width:56px;margin-left:auto;border:1px solid var(--line,#d9cdb8);border-radius:7px;padding:6px 8px;font-size:15px;background:#fff}
 .nl-actions{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap}
-.nl-btn{border:1px solid #B8893C;background:#fff;color:#6d563a;border-radius:40px;padding:10px 20px;font-size:14px;cursor:pointer;font-family:inherit}
-.nl-btn.primary{background:#9a2f28;border-color:#9a2f28;color:#fff}
-.nl-btn:hover{filter:brightness(.97)}
+.nl-btn-ui{border:1px solid #B8893C;background:#fff;color:#6d563a;border-radius:40px;padding:11px 22px;font-size:14px;cursor:pointer;font-family:inherit}
+.nl-btn-ui.primary{background:#9a2f28;border-color:#9a2f28;color:#fff}
+.nl-btn-ui:hover{filter:brightness(.97)}
+select.nl-in{appearance:auto}
 .nl-gate{margin-top:13px;background:rgba(154,47,40,.08);border:1px solid rgba(154,47,40,.25);color:#7a2a23;border-radius:9px;padding:10px 13px;font-size:13px;line-height:1.5}
 .nl-prev{position:sticky;top:16px}
 .nl-prevhead{font-size:12px;font-weight:600;letter-spacing:.02em;color:#6d655c;text-transform:uppercase;margin-bottom:8px}
@@ -691,8 +692,9 @@ function showPane(name){
   if(btn){ try{ btn.scrollIntoView({inline:"center",block:"nearest"}); }catch(e){} }
   try{ window.scrollTo(0,0); }catch(e){}
 }
-/* ---------- newsletter composer (compose + live preview; send wired later) ---------- */
-var CAMPAIGN={subj_en:"",subj_zh:"",intro_en:"",intro_zh:"",incEvents:true,evN:2,incArticles:true,artN:3};
+/* ---------- newsletter composer + email (v2: logo banner, table layout, lang modes) ---------- */
+var CAMPAIGN={subj_en:"",subj_zh:"",intro_en:"",intro_zh:"",incEvents:true,evN:2,incArticles:true,artN:3,langMode:"both"};
+var NL_LOGO="https://yuetwanlondon.com/img/yuetwanlondon-favicon.png";
 
 function nlUpcomingEvents(n){
   var list=(DATA.events||[]).filter(function(e){ return String(e.status||"").toLowerCase()!=="past" && !YW.isPast(e); });
@@ -708,20 +710,34 @@ function nlLatestArticles(n){
 }
 function nlEsc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
+// Bulletproof-ish email button (works in Gmail/Apple Mail/Outlook)
+function nlBtn(url,label){
+  return '<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:2px"><tr>'
+    +'<td bgcolor="#9a2f28" style="border-radius:40px">'
+    +'<a href="'+url+'" style="display:inline-block;padding:14px 32px;font-size:15px;line-height:1;color:#ffffff;text-decoration:none;font-weight:700;font-family:Georgia,serif">'+label+'</a>'
+    +'</td></tr></table>';
+}
+
 function nlEventCard(e,lang){
-  var t=nlEsc(lang==="zh"?(e.title_zh||e.title_en):(e.title_en||e.title_zh));
-  var v=nlEsc(lang==="zh"?(e.venue_zh||e.venue_en):(e.venue_en||e.venue_zh));
-  var d=nlEsc(e.date_label||e.date_start||"");
+  var L = (lang==="zh")
+    ? {date:"日期",time:"時間",venue:"場地",price:"票價",cta:"查看及購票 →"}
+    : {date:"Date",time:"Time",venue:"Venue",price:"Price",cta:"View &amp; book →"};
+  var t = nlEsc(lang==="zh"?(e.title_zh||e.title_en):(e.title_en||e.title_zh));
+  var dt= nlEsc(e.date_label||e.date_start||"");
+  var tm= nlEsc(lang==="zh"?(e.time_zh||e.time_en):(e.time_en||e.time_zh));
+  var vn= nlEsc(lang==="zh"?(e.venue_zh||e.venue_en):(e.venue_en||e.venue_zh));
+  var pr= nlEsc(lang==="zh"?(e.price_zh||e.price_en):(e.price_en||e.price_zh));
   var url="https://yuetwanlondon.com/event/?id="+encodeURIComponent(e.id||"");
-  var cta=lang==="zh"?"查看詳情 →":"View details →";
-  var meta=[d,v].filter(Boolean).join(" · ");
-  var img=e.image?'<img src="'+nlEsc(e.image)+'" width="600" style="width:100%;max-width:600px;display:block;border:0">':"";
-  return '<div style="border:1px solid #e2d4ba;border-radius:12px;overflow:hidden;margin:14px 0;background:#ffffff">'
-    +img+'<div style="padding:14px 16px">'
-    +'<div style="font-size:16px;font-weight:700;color:#2b2118;line-height:1.3">'+t+'</div>'
-    +(meta?'<div style="font-size:13px;color:#8a7d68;margin:5px 0 10px">'+meta+'</div>':'<div style="height:8px"></div>')
-    +'<a href="'+url+'" style="font-size:13px;color:#9a2f28;text-decoration:none;font-weight:600">'+cta+'</a>'
-    +'</div></div>';
+  var img=e.image?'<tr><td style="padding:0"><img src="'+nlEsc(e.image)+'" width="600" style="width:100%;max-width:600px;display:block;border:0" alt=""></td></tr>':"";
+  function row(lbl,val){ return val?'<tr><td style="padding:2px 0;font-size:13px;color:#5b4f3f;line-height:1.5"><span style="color:#b8893c;font-weight:700">'+lbl+':</span> '+val+'</td></tr>':""; }
+  var details=row(L.date,dt)+row(L.time,tm)+row(L.venue,vn)+row(L.price,pr);
+  return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2d4ba;border-radius:12px;background:#ffffff;margin:16px 0;overflow:hidden">'
+    +img
+    +'<tr><td style="padding:17px 19px">'
+      +'<div style="font-size:18px;font-weight:700;color:#2b2118;line-height:1.3;margin-bottom:9px">'+t+'</div>'
+      +(details?'<table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:15px">'+details+'</table>':'<div style="height:6px"></div>')
+      +nlBtn(url,L.cta)
+    +'</td></tr></table>';
 }
 function nlArticleCard(o,lang){
   var p=o.p;
@@ -729,54 +745,55 @@ function nlArticleCard(o,lang){
   var t=nlEsc(lang==="zh"?(p.title_zh||p.title_en):(p.title_en||p.title_zh));
   var s=nlEsc(lang==="zh"?(p.summary_zh||p.summary_en):(p.summary_en||p.summary_zh));
   var cta=lang==="zh"?"閱讀更多 →":"Read more →";
-  var img=p.cover?'<img src="'+nlEsc(p.cover)+'" width="600" style="width:100%;max-width:600px;display:block;border:0">':"";
-  return '<div style="border:1px solid #e2d4ba;border-radius:12px;overflow:hidden;margin:14px 0;background:#ffffff">'
-    +img+'<div style="padding:14px 16px">'
-    +'<div style="font-size:16px;font-weight:700;color:#2b2118;line-height:1.3">'+t+'</div>'
-    +(s?'<div style="font-size:13.5px;color:#5b4f3f;margin:6px 0 10px;line-height:1.5">'+s+'</div>':'<div style="height:8px"></div>')
-    +'<a href="'+base+'" style="font-size:13px;color:#9a2f28;text-decoration:none;font-weight:600">'+cta+'</a>'
-    +'</div></div>';
+  var img=p.cover?'<tr><td style="padding:0"><img src="'+nlEsc(p.cover)+'" width="600" style="width:100%;max-width:600px;display:block;border:0" alt=""></td></tr>':"";
+  return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2d4ba;border-radius:12px;background:#ffffff;margin:16px 0;overflow:hidden">'
+    +img
+    +'<tr><td style="padding:17px 19px">'
+      +'<div style="font-size:18px;font-weight:700;color:#2b2118;line-height:1.3">'+t+'</div>'
+      +(s?'<div style="font-size:14px;color:#5b4f3f;margin:7px 0 14px;line-height:1.55">'+s+'</div>':'<div style="height:10px"></div>')
+      +nlBtn(base,cta)
+    +'</td></tr></table>';
 }
 
-// Assemble the bilingual email. Leave name/unsub as {{placeholders}} unless supplied (preview fills them).
+// Build the email. o.langMode: "both" | "en" | "zh". Leaves {{name}}/{{unsub}} unless supplied.
 function buildCampaignEmail(o){
   o=o||{};
+  var mode=o.langMode||"both";
   var name=(o.name!=null)?o.name:"{{name}}";
   var unsub=(o.unsub!=null)?o.unsub:"{{unsub}}";
   var evs=o.incEvents?nlUpcomingEvents(o.evN||0):[];
   var arts=o.incArticles?nlLatestArticles(o.artN||0):[];
-  var secEn="",secZh="";
-  if(evs.length){
-    secEn+='<div style="font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#b8893c;margin:24px 0 2px">Upcoming Events</div>'+evs.map(function(e){return nlEventCard(e,"en");}).join("");
-    secZh+='<div style="font-size:13px;letter-spacing:.06em;color:#b8893c;margin:24px 0 2px">即將舉行</div>'+evs.map(function(e){return nlEventCard(e,"zh");}).join("");
+  function secHead(t){ return '<div style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#b8893c;font-weight:700;margin:28px 0 2px;font-family:Georgia,serif">'+t+'</div>'; }
+  function block(lang){
+    var greet = (lang==="zh") ? (name+" 您好，") : ("Dear "+name+",");
+    var intro = (lang==="zh") ? (o.intro_zh||"") : (o.intro_en||"");
+    var h='<p style="font-size:15px;margin:0 0 14px;color:#2b2118">'+nlEsc(greet)+'</p>'
+        +'<div style="font-size:15px;line-height:1.75;color:#3a2e22">'+intro+'</div>';
+    if(evs.length) h+=secHead(lang==="zh"?"即將舉行":"Upcoming Events")+evs.map(function(e){return nlEventCard(e,lang);}).join("");
+    if(arts.length) h+=secHead(lang==="zh"?"最新文章":"Latest Articles")+arts.map(function(a){return nlArticleCard(a,lang);}).join("");
+    return h;
   }
-  if(arts.length){
-    secEn+='<div style="font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#b8893c;margin:24px 0 2px">Latest Articles</div>'+arts.map(function(a){return nlArticleCard(a,"en");}).join("");
-    secZh+='<div style="font-size:13px;letter-spacing:.06em;color:#b8893c;margin:24px 0 2px">最新文章</div>'+arts.map(function(a){return nlArticleCard(a,"zh");}).join("");
-  }
-  var greetEn="Dear "+name+",";
-  var greetZh=name+" 您好，";
-  return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
-    +'<body style="margin:0;padding:0;background:#f1e8d6;font-family:Georgia,serif;color:#2b2118">'
-    +'<div style="max-width:600px;margin:0 auto;background:#fffaf0">'
-    +'<div style="background:#16130f;padding:20px 24px;text-align:center">'
-      +'<div style="font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:#c9a45e">Yuet Wan London</div>'
-      +'<div style="font-size:14px;color:#e7dcc6;margin-top:3px">倫敦粵韻曲藝文化協會</div>'
-    +'</div>'
-    +'<div style="padding:28px 24px">'
-      +'<p style="font-size:15px;margin:0 0 12px">'+nlEsc(greetEn)+'</p>'
-      +'<div style="font-size:15px;line-height:1.65;color:#3a2e22">'+(o.intro_en||"")+'</div>'
-      +secEn
-      +'<div style="border-top:1px solid #e2d4ba;margin:30px 0 22px"></div>'
-      +'<p style="font-size:15px;margin:0 0 12px">'+nlEsc(greetZh)+'</p>'
-      +'<div style="font-size:15px;line-height:1.85;color:#3a2e22">'+(o.intro_zh||"")+'</div>'
-      +secZh
-    +'</div>'
-    +'<div style="background:#16130f;padding:22px 24px;text-align:center;color:#b3a892;font-size:12px;line-height:1.7">'
-      +'Yuet Wan London · 倫敦粵韻曲藝文化協會<br>London, United Kingdom · yuetwanlondon@gmail.com<br>'
-      +'<a href="'+unsub+'" style="color:#c9a45e;text-decoration:underline">Unsubscribe · 取消訂閱</a>'
-    +'</div>'
-    +'</div></body></html>';
+  var inner;
+  if(mode==="en") inner=block("en");
+  else if(mode==="zh") inner=block("zh");
+  else inner=block("en")+'<div style="border-top:1px solid #e2d4ba;margin:32px 0 26px"></div>'+block("zh");
+  var fUns=(mode==="zh")?"取消訂閱":(mode==="en")?"Unsubscribe":"Unsubscribe · 取消訂閱";
+  var wordmark2=(mode==="en")?"":'<div style="font-size:14px;color:#e7dcc6;margin-top:3px">倫敦粵韻曲藝文化協會</div>';
+  return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"></head>'
+    +'<body style="margin:0;padding:0;background:#f1e8d6;font-family:Georgia,serif;color:#2b2118;-webkit-text-size-adjust:100%">'
+    +'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1e8d6"><tr><td align="center" style="padding:0">'
+    +'<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;margin:0 auto;background:#fffaf0">'
+      +'<tr><td align="center" style="background:#16130f;padding:26px 24px 22px">'
+        +'<img src="'+NL_LOGO+'" width="60" height="60" alt="Yuet Wan London" style="display:block;margin:0 auto 11px;border:0;border-radius:50%">'
+        +'<div style="font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:#c9a45e">Yuet Wan London</div>'
+        +wordmark2
+      +'</td></tr>'
+      +'<tr><td style="padding:30px 26px 14px">'+inner+'</td></tr>'
+      +'<tr><td align="center" style="background:#16130f;padding:24px;color:#b3a892;font-size:12px;line-height:1.7">'
+        +'Yuet Wan London · 倫敦粵韻曲藝文化協會<br>London, United Kingdom · yuetwanlondon@gmail.com<br>'
+        +'<a href="'+unsub+'" style="color:#c9a45e;text-decoration:underline">'+fUns+'</a>'
+      +'</td></tr>'
+    +'</table></td></tr></table></body></html>';
 }
 
 function nlReadState(){
@@ -784,6 +801,7 @@ function nlReadState(){
   if($("nl_subj_zh")) CAMPAIGN.subj_zh=$("nl_subj_zh").value||"";
   if($("nl_intro_en")) CAMPAIGN.intro_en=readRich("nl_intro_en");
   if($("nl_intro_zh")) CAMPAIGN.intro_zh=readRich("nl_intro_zh");
+  if($("nl_langmode")) CAMPAIGN.langMode=$("nl_langmode").value;
   if($("nl_inc_events")) CAMPAIGN.incEvents=$("nl_inc_events").checked;
   if($("nl_inc_articles")) CAMPAIGN.incArticles=$("nl_inc_articles").checked;
   if($("nl_ev_n")) CAMPAIGN.evN=+$("nl_ev_n").value||0;
@@ -792,7 +810,7 @@ function nlReadState(){
 function updatePreview(){
   nlReadState();
   var html=buildCampaignEmail({
-    intro_en:CAMPAIGN.intro_en, intro_zh:CAMPAIGN.intro_zh,
+    intro_en:CAMPAIGN.intro_en, intro_zh:CAMPAIGN.intro_zh, langMode:CAMPAIGN.langMode,
     incEvents:CAMPAIGN.incEvents, evN:CAMPAIGN.evN,
     incArticles:CAMPAIGN.incArticles, artN:CAMPAIGN.artN,
     name:"[Name]", unsub:"#"
@@ -800,19 +818,16 @@ function updatePreview(){
   var f=$("nl_preview"); if(f) f.srcdoc=html;
   var sl=$("nl_subjline"); if(sl) sl.textContent=(CAMPAIGN.subj_en||"(no subject)")+"  ·  "+(CAMPAIGN.subj_zh||"（未設定主題）");
 }
-function nlSendNotice(){
-  var g=$("nl_gate");
-  if(g){ g.style.display="block"; g.textContent="Sending isn't connected yet. Once your Workspace / Gmail sending account is set up, this button will deliver the newsletter to all active subscribers — each with their own unsubscribe link added automatically."; }
-}
 function nlBuildPayload(){
   nlReadState();
   var html=buildCampaignEmail({
-    intro_en:CAMPAIGN.intro_en, intro_zh:CAMPAIGN.intro_zh,
+    intro_en:CAMPAIGN.intro_en, intro_zh:CAMPAIGN.intro_zh, langMode:CAMPAIGN.langMode,
     incEvents:CAMPAIGN.incEvents, evN:CAMPAIGN.evN,
     incArticles:CAMPAIGN.incArticles, artN:CAMPAIGN.artN
   });
   var subject=(CAMPAIGN.subj_en||"").trim();
-  if(CAMPAIGN.subj_zh && CAMPAIGN.subj_zh.trim()) subject += (subject?" \u00b7 ":"") + CAMPAIGN.subj_zh.trim();
+  if(CAMPAIGN.langMode==="zh") subject=(CAMPAIGN.subj_zh||"").trim()||subject;
+  else if(CAMPAIGN.langMode==="both" && CAMPAIGN.subj_zh && CAMPAIGN.subj_zh.trim()) subject+=(subject?" · ":"")+CAMPAIGN.subj_zh.trim();
   if(!subject) subject="Yuet Wan London";
   return {subject:subject, html:html};
 }
@@ -820,33 +835,36 @@ async function nlSendTest(){
   var to=prompt("Send a test copy to which email address?","");
   if(!to||!to.trim()) return;
   var p=nlBuildPayload();
-  var g=$("nl_gate"); if(g){g.style.display="block";g.textContent="Sending test\u2026";}
+  var g=$("nl_gate"); if(g){g.style.display="block";g.textContent="Sending test…";}
   try{
     var res=await YW.post({action:"sendCampaign",pass:AUTH.pass,mode:"test",test_to:to.trim(),subject:p.subject,html:p.html});
-    if(g) g.textContent=(res&&res.ok)?("Test sent to "+to.trim()+" \u2014 check the inbox (and the spam / promotions tab)."):("Could not send: "+((res&&res.error)||"unknown")+". Have you run authorizeSending and granted the email permission?");
+    if(g) g.textContent=(res&&res.ok)?("Test sent to "+to.trim()+" — check the inbox (and the spam / promotions tab)."):("Could not send: "+((res&&res.error)||"unknown")+". Has the email permission been granted (run authorizeSending)?");
   }catch(e){ if(g) g.textContent="Could not send (network error)."; }
 }
 async function nlSendAll(){
   if(!confirm("Send this newsletter to ALL active subscribers now?\n\nReal emails will be sent. Make sure you've sent yourself a test first.")) return;
   var p=nlBuildPayload();
-  var g=$("nl_gate"); if(g){g.style.display="block";g.textContent="Sending to subscribers\u2026 keep this tab open until it finishes.";}
+  var g=$("nl_gate"); if(g){g.style.display="block";g.textContent="Sending to subscribers… keep this tab open until it finishes.";}
   try{
     var res=await YW.post({action:"sendCampaign",pass:AUTH.pass,mode:"all",subject:p.subject,html:p.html});
     if(res&&res.ok){
-      var msg="Done \u2014 sent "+res.sent+" email(s).";
+      var msg="Done — sent "+res.sent+" email(s).";
       if(res.failed) msg+=" "+res.failed+" failed.";
-      if(res.pending) msg+=" "+res.pending+" not sent yet (daily limit reached \u2014 run \u201cSend to all\u201d again tomorrow to finish the rest).";
-      if(res.sent===0 && !res.pending) msg+=" (No active subscribers were due \u2014 they may already have received it today.)";
+      if(res.pending) msg+=" "+res.pending+" not sent yet (daily limit reached — run “Send to all” again tomorrow to finish).";
+      if(res.sent===0 && !res.pending) msg+=" (No subscribers were due — they may already have received it today.)";
       if(g) g.textContent=msg;
-    } else { if(g) g.textContent="Could not send: "+((res&&res.error)||"unknown")+". Have you run authorizeSending and granted the email permission?"; }
+    } else { if(g) g.textContent="Could not send: "+((res&&res.error)||"unknown")+". Has the email permission been granted (run authorizeSending)?"; }
   }catch(e){ if(g) g.textContent="Could not send (network error)."; }
 }
+function nlLangOpt(v,label){ return '<option value="'+v+'"'+(CAMPAIGN.langMode===v?" selected":"")+'>'+label+'</option>'; }
 function renderNewsletter(host){
   if(!host) return;
   host.innerHTML =
     '<div class="nl-wrap">'
     + '<div class="nl-form">'
-      + '<div class="nl-banner">Compose your newsletter and watch the live preview update on the right. Sending to subscribers is the next step — it switches on once your email sending account is connected.</div>'
+      + '<div class="nl-banner">Compose your newsletter and watch the live preview update on the right. Send a test to yourself first, then send to all active subscribers.</div>'
+      + '<label class="nl-lbl">Email language · 電郵語言</label>'
+      + '<select id="nl_langmode" class="nl-in">'+nlLangOpt("both","Bilingual — English + 中文")+nlLangOpt("en","English only")+nlLangOpt("zh","中文 only")+'</select>'
       + '<label class="nl-lbl">Subject line · 主題</label>'
       + '<input id="nl_subj_en" class="nl-in" placeholder="Subject (English)" value="'+E(CAMPAIGN.subj_en)+'">'
       + '<input id="nl_subj_zh" class="nl-in" placeholder="主題（中文）" value="'+E(CAMPAIGN.subj_zh)+'">'
@@ -860,8 +878,8 @@ function renderNewsletter(host){
       + '<label class="nl-chk"><input type="checkbox" id="nl_inc_events"'+(CAMPAIGN.incEvents?" checked":"")+'> <span>Upcoming events · 即將舉行</span><input type="number" id="nl_ev_n" min="0" max="6" value="'+(+CAMPAIGN.evN||0)+'" class="nl-num"></label>'
       + '<label class="nl-chk"><input type="checkbox" id="nl_inc_articles"'+(CAMPAIGN.incArticles?" checked":"")+'> <span>Latest articles · 最新文章</span><input type="number" id="nl_art_n" min="0" max="6" value="'+(+CAMPAIGN.artN||0)+'" class="nl-num"></label>'
       + '<div class="nl-actions">'
-        + '<button class="nl-btn" id="nl_test" type="button">Send test to myself</button>'
-        + '<button class="nl-btn primary" id="nl_send" type="button">Send to all active</button>'
+        + '<button class="nl-btn-ui" id="nl_test" type="button">Send test to myself</button>'
+        + '<button class="nl-btn-ui primary" id="nl_send" type="button">Send to all active</button>'
       + '</div>'
       + '<div class="nl-gate" id="nl_gate" style="display:none"></div>'
     + '</div>'
@@ -872,7 +890,7 @@ function renderNewsletter(host){
     + '</div>';
   wireRichBar(host);
   ["nl_subj_en","nl_subj_zh"].forEach(function(id){ var el=$(id); if(el) el.addEventListener("input",updatePreview); });
-  ["nl_inc_events","nl_inc_articles","nl_ev_n","nl_art_n"].forEach(function(id){ var el=$(id); if(el){ el.addEventListener("change",updatePreview); el.addEventListener("input",updatePreview); } });
+  ["nl_langmode","nl_inc_events","nl_inc_articles","nl_ev_n","nl_art_n"].forEach(function(id){ var el=$(id); if(el){ el.addEventListener("change",updatePreview); el.addEventListener("input",updatePreview); } });
   ["nl_intro_en","nl_intro_zh"].forEach(function(id){ var el=$(id); if(el) el.addEventListener("input",updatePreview); });
   var bar=host.querySelector(".rtbar"); if(bar) bar.addEventListener("pointerup",function(){ setTimeout(updatePreview,30); });
   var t=$("nl_test"), s=$("nl_send");
