@@ -907,11 +907,26 @@ async function importDocById(section, docId){
     const post=res.post;
     if(!post.summary_en && post.body_en) post.summary_en=deriveSummary(post.body_en,180,90);
     if(!post.summary_zh && post.body_zh) post.summary_zh=deriveSummary(post.body_zh,180,80);
-    post.order=DATA[section].reduce((m,r)=>Math.max(m,+r.order||0),0)+1;
-    DATA[section].push(post);
-    mark(section); renderAll(); busy(false);
-    toast("Imported — review it below, then Save & Publish.");
-    openDrawer(section, DATA[section].length-1);
+    post.doc_id=String(docId||"");
+    // If this exact Doc was imported before, UPDATE that post instead of adding a duplicate.
+    var idx = post.doc_id ? DATA[section].findIndex(function(r){return String(r.doc_id||"")===post.doc_id;}) : -1;
+    if(idx>=0){
+      var prev=DATA[section][idx];
+      prev.title_en=post.title_en;     prev.title_zh=post.title_zh;
+      prev.summary_en=post.summary_en; prev.summary_zh=post.summary_zh;
+      prev.body_en=post.body_en;       prev.body_zh=post.body_zh;
+      prev.doc_id=post.doc_id;
+      // status, date, cover, video, images and category are kept as set in the editor.
+      mark(section); renderAll(); busy(false);
+      toast("Updated this post from the Doc — review, then Save & Publish.");
+      openDrawer(section, idx);
+    } else {
+      post.order=DATA[section].reduce((m,r)=>Math.max(m,+r.order||0),0)+1;
+      DATA[section].push(post);
+      mark(section); renderAll(); busy(false);
+      toast("Imported — review it below, then Save & Publish.");
+      openDrawer(section, DATA[section].length-1);
+    }
   }catch(e){ busy(false); alert("Import failed: "+e.message); }
 }
 
