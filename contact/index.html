@@ -121,6 +121,7 @@ html.loader-on #yw-pre{display:flex}
 <div class="fld"><label data-en="Your name" data-zh="您的姓名">Your name</label><input type="text" id="f_name" data-gf="name" required></div>
 <div class="fld"><label data-en="Email address" data-zh="電郵地址">Email address</label><input type="email" id="f_email" data-gf="email" required></div>
 <div class="fld"><label data-en="Message" data-zh="您的訊息">Message</label><textarea id="f_msg" data-gf="message"></textarea></div>
+<input type="text" id="c_hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="nf-hp">
 <button class="btn btn-fill" id="csend" data-en="Send message" data-zh="送出訊息">Send message</button>
 </div>
 <div class="csent" id="csent"><div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
@@ -167,14 +168,17 @@ YW.setupNav();
 YW.renderSocial();
 YW.initMotion();
 
+window.__cfStart=window.__cfStart||Date.now();
 function submitContact(){
  const name=document.getElementById("f_name"),email=document.getElementById("f_email"),msg=document.getElementById("f_msg");
  var bad=false;
  [name,email].forEach(function(x){ if(!x.value.trim()){x.style.borderColor="var(--vermilion)";bad=true;} });
  if(email.value && email.value.indexOf("@")<1){email.style.borderColor="var(--vermilion)";bad=true;}
  if(bad) return;
+ var hp=document.getElementById("c_hp");
+ if((hp&&hp.value)||(Date.now()-(window.__cfStart||0)<1500)){ document.querySelector(".cform-in").style.display="none"; document.getElementById("csent").classList.add("show"); return; }
  const btn=document.getElementById("csend"); btn.disabled=true;
- YW.post({action:"contact",name:name.value,email:email.value,message:msg.value}).then(function(res){
+ YW.post({action:"contact",name:name.value,email:email.value,message:msg.value,hp:""}).then(function(res){
    if(res&&res.ok){ document.querySelector(".cform-in").style.display="none"; document.getElementById("csent").classList.add("show"); }
    else { btn.disabled=false; alert("Could not send — the server replied: "+(res&&res.error||"no response")+". If it says 'unknown action', the Apps Script needs to be re-deployed as a New version."); }
  }).catch(function(){ btn.disabled=false; alert("Sorry — could not reach the server. Please email yuetwanlondon@gmail.com directly."); });

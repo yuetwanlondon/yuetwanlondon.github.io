@@ -55,9 +55,10 @@ html.loader-on #yw-pre{display:flex}
 .news .eyebrow{color:var(--brass-l)}
 .news h2{font-family:var(--disp);font-weight:800;font-size:clamp(24px,3vw,32px);margin:4px 0 10px}
 .news p{color:rgba(244,236,221,.8);margin:0 0 22px}
-.news form{display:flex;flex-direction:column;gap:10px;max-width:440px;margin:0 auto}
-.news .news-inputs{display:flex;gap:10px}
-.news .news-inputs input{flex:1;min-width:0}
+.news form{display:flex;flex-direction:column;gap:10px;max-width:460px;margin:0 auto}
+.news .news-row{display:flex;gap:10px}
+.news .news-row input{flex:1;min-width:0}
+.news .news-row .btn{flex:0 0 auto}
 .news input[type=email],.news input[type=text]{border:1px solid var(--line-d);background:rgba(244,236,221,.08);color:var(--paper);border-radius:44px;padding:0 20px;height:52px;box-sizing:border-box;font-size:16px;font-family:var(--serif);width:100%}
 .news input[type=email]::placeholder,.news input[type=text]::placeholder{color:rgba(244,236,221,.5)}
 .news input[type=email]:focus,.news input[type=text]:focus{outline:none;border-color:var(--brass-l)}
@@ -68,7 +69,7 @@ html.loader-on #yw-pre{display:flex}
 .news .consent.err span{color:#e8836b}
 .news .ok{color:var(--brass-l);font-weight:600;margin-top:14px;display:none}
 .news .fine{color:rgba(244,236,221,.5);font-size:12.5px;margin-top:14px}
-@media(max-width:560px){.news .news-inputs{flex-direction:column}}
+@media(max-width:560px){.news .news-row{flex-direction:column}.news .news-row .btn{width:100%}}
 .slabel .seeall{font-family:var(--grot);font-size:14px;font-weight:600;color:var(--vermilion-d);text-decoration:none;white-space:nowrap}
 .slabel .seeall:hover{color:var(--vermilion)}
 .hnews-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
@@ -179,11 +180,12 @@ html.loader-on #yw-pre{display:flex}
 <h2 data-en="Join our mailing list" data-zh="訂閱我們的通訊">Join our mailing list</h2>
 <p data-en="Be the first to hear about new performances, workshops and ticket releases." data-zh="第一時間獲悉最新演出、工作坊及購票資訊。">Be the first to hear about new performances, workshops and ticket releases.</p>
 <form id="newsForm" onsubmit="return false">
-<div class="news-inputs">
 <input type="text" id="newsName" data-en-ph="Your name (optional)" data-zh-ph="您的稱呼（可選）" placeholder="Your name (optional)">
+<div class="news-row">
 <input type="email" id="newsEmail" data-en-ph="Your email address" data-zh-ph="您的電郵地址" placeholder="Your email address" required>
-</div>
 <button class="btn btn-fill" id="newsBtn" data-en="Subscribe" data-zh="訂閱">Subscribe</button>
+</div>
+<input type="text" id="newsHp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="nf-hp">
 </form>
 <label class="consent" id="newsConsent">
 <input type="checkbox" id="newsAgree">
@@ -314,18 +316,20 @@ window.render=function(){renderHero();renderEvents(document.getElementById("upco
 document.getElementById("lbx").onclick=()=>document.getElementById("lb").classList.remove("open");
 document.getElementById("lb").onclick=e=>{if(e.target.id==="lb")document.getElementById("lb").classList.remove("open");};
 document.getElementById("newslat").innerHTML=YW.lat();
+window.__nfStart=window.__nfStart||Date.now();
 document.getElementById("newsBtn").onclick=async function(){
  const em=document.getElementById("newsEmail");
  const nm=document.getElementById("newsName");
  const ag=document.getElementById("newsAgree");
  const cs=document.getElementById("newsConsent");
+ const hp=document.getElementById("newsHp");
  if(!em.value.trim()||em.value.indexOf("@")<1){em.style.borderColor="var(--vermilion)";return;}
  if(!ag.checked){cs.classList.add("err");return;}
+ function done(){ document.getElementById("newsForm").style.display="none"; cs.style.display="none"; document.getElementById("newsOk").style.display="block"; }
+ if((hp&&hp.value)||(Date.now()-window.__nfStart<1500)){ done(); return; }   // honeypot or instant submit -> ignore
  const lang=(YW.loadLang&&YW.loadLang()==="zh")?"zh":"en";
- try{await YW.post({action:"subscribe",email:em.value.trim(),name:nm.value.trim(),lang:lang,consent:true});}catch(e){}
- document.getElementById("newsForm").style.display="none";
- cs.style.display="none";
- document.getElementById("newsOk").style.display="block";
+ try{await YW.post({action:"subscribe",email:em.value.trim(),name:nm.value.trim(),lang:lang,consent:true,hp:""});}catch(e){}
+ done();
 };
 document.getElementById("newsAgree").addEventListener("change",function(){document.getElementById("newsConsent").classList.remove("err");});
 (async function(){try{const j=await YW.fetchData();DATA.hero=j.hero||[];DATA.events=(j.events||[]);DATA.gallery=j.gallery||[];DATA.news=(j.news||[]);}catch(e){}render();if(window.__pre)window.__pre();})();
