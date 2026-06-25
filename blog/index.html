@@ -45,6 +45,10 @@ html.loader-on #yw-pre{display:flex}
 .bcard h3{font-family:var(--disp);font-weight:700;font-size:20px;margin:0 0 9px;line-height:1.2}
 .bcard p{color:var(--ink-55);font-size:14.5px;line-height:1.55;margin:0 0 16px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .bcard .more{font-family:var(--grot);font-weight:600;font-size:13.5px;color:var(--vermilion-d);margin-top:auto}
+.bfilter{display:flex;flex-wrap:wrap;gap:9px;margin:0 0 32px}
+.bchip{font-family:var(--grot);font-size:13.5px;font-weight:600;padding:8px 16px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink-55);cursor:pointer;transition:background .15s ease,color .15s ease,border-color .15s ease}
+.bchip:hover{border-color:var(--brass)}
+.bchip.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 .bempty{color:var(--ink-55);font-size:16px}
 @media(max-width:980px){.bgrid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:640px){.bgrid{grid-template-columns:1fr}}
@@ -182,7 +186,9 @@ function vEmbed(url){
   if(m)return '<div class="vid"><iframe src="https://player.vimeo.com/video/'+m[1]+'" title="video" allow="autoplay;fullscreen;picture-in-picture" allowfullscreen></iframe></div>';
   return '';
 }
-let POSTS=[];
+let POSTS=[], CURCAT="";
+function catKeyOf(p){ var e=String(p.category_en||"").trim().toLowerCase(); var z=String(p.category_zh||"").trim().toLowerCase(); return e||z; }
+function catList(){ var seen={}, out=[]; POSTS.forEach(function(p){ var k=catKeyOf(p); if(!k||seen[k])return; seen[k]=1; out.push({key:k,en:String(p.category_en||"").trim(),zh:String(p.category_zh||"").trim()}); }); return out; }
 async function render(){
   const root=document.getElementById("blogRoot");
   try{ const j=await YW.fetchData(); POSTS=(j[CAT]||[]).filter(isPub); }catch(e){ POSTS=[]; }
@@ -194,15 +200,25 @@ async function render(){
 }
 function card(p){
   const cov = p.cover ? '<div class="cov"><img src="'+YW.esc(p.cover)+'" alt="" loading="lazy"></div>' : '<div class="cov"><span class="ph">'+YW.lat()+'</span></div>';
+  const c = L(p,"category");
   return '<a class="bcard" href="'+BASE+'?id='+encodeURIComponent(p.id||"")+'">'+cov+
-    '<div class="bc"><div class="bd">'+YW.esc(fmt(p.date))+'</div><h3>'+YW.rich(L(p,"title"))+'</h3>'+
+    '<div class="bc"><div class="bd">'+(c?YW.esc(c)+' · ':'')+YW.esc(fmt(p.date))+'</div><h3>'+YW.rich(L(p,"title"))+'</h3>'+
     '<p>'+YW.rich(L(p,"summary"))+'</p><span class="more">'+(LANG==="zh"?"閱讀 →":"Read →")+'</span></div></a>';
 }
 function renderList(root, meta){
   const head='<div class="bloghead"><div class="kick">'+YW.esc(LANG==="zh"?meta.kick_zh:meta.kick_en)+'</div><h1>'+YW.esc(LANG==="zh"?meta.zh:meta.en)+'</h1><p>'+YW.esc(LANG==="zh"?meta.sub_zh:meta.sub_en)+'</p></div>';
-  const body = POSTS.length ? '<div class="bgrid">'+POSTS.map(card).join("")+'</div>'
-              : '<p class="bempty">'+(LANG==="zh"?"暫時未有文章，敬請期待。":"No posts yet — check back soon.")+'</p>';
-  root.innerHTML='<div class="blogwrap">'+head+body+'</div>';
+  const cats=catList();
+  if(CURCAT && !cats.some(function(c){return c.key===CURCAT;})) CURCAT="";
+  let fbar="";
+  if(cats.length){
+    const chip=function(key,label,on){return '<button type="button" class="bchip'+(on?' on':'')+'" data-cat="'+YW.esc(key)+'">'+YW.esc(label)+'</button>';};
+    fbar='<div class="bfilter">'+chip("",(LANG==="zh"?"全部":"All"),CURCAT==="")+cats.map(function(c){return chip(c.key,(LANG==="zh"?(c.zh||c.en):(c.en||c.zh)),CURCAT===c.key);}).join("")+'</div>';
+  }
+  const shown = CURCAT ? POSTS.filter(function(p){return catKeyOf(p)===CURCAT;}) : POSTS;
+  const body = shown.length ? '<div class="bgrid">'+shown.map(card).join("")+'</div>'
+              : '<p class="bempty">'+(LANG==="zh"?"此分類暫時未有文章。":"No posts in this category yet.")+'</p>';
+  root.innerHTML='<div class="blogwrap">'+head+fbar+body+'</div>';
+  root.querySelectorAll(".bchip").forEach(function(b){ b.onclick=function(){ CURCAT=this.getAttribute("data-cat")||""; renderList(root, meta); }; });
 }
 function renderArticle(root, p, meta){
   if(!p){ root.innerHTML='<div class="blogwrap"><div class="art"><a class="eback" href="'+BASE+'">← '+(LANG==="zh"?"返回":"Back")+'</a><h1>'+(LANG==="zh"?"找不到文章":"Article not found")+'</h1></div></div>'; document.title=(LANG==="zh"?meta.zh:meta.en)+" · Yuet Wan London"; return; }
