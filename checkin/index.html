@@ -35,9 +35,11 @@ h1{font-size:20px;margin:0 0 4px}
 .manual{display:flex;gap:8px;margin-top:14px}.manual .in{flex:1}.manual .btn{width:auto;white-space:nowrap}
 .hint{color:#9a9186;font-size:12px;margin-top:8px;text-align:center}
 .review{border-radius:16px;padding:20px;border:2px solid var(--line);background:#fff;margin-bottom:14px;text-align:center}
-.review .pay{font-size:26px;font-weight:800;margin:0 0 2px}
-.review.g{border-color:var(--green)}.review.g .pay{color:var(--green)}
-.review.a{border-color:var(--amber)}.review.a .pay{color:var(--amber)}
+.review .pay{font-size:23px;font-weight:800;letter-spacing:.05em;color:#fff;padding:13px 12px;border-radius:12px;margin:0 0 5px}
+.review .paynote{font-size:13.5px;font-weight:600;margin:0 0 2px}
+.review.g{border-color:var(--green)}.review.g .pay{background:var(--green)}.review.g .paynote{color:var(--green)}
+.review.a{border-color:var(--amber)}.review.a .pay{background:var(--amber)}.review.a .paynote{color:var(--amber)}
+.review.r{border-color:var(--red)}.review.r .pay{background:var(--red)}.review.r .paynote{color:var(--red)}
 .review .who{font-size:22px;font-weight:700;margin:10px 0 2px}
 .review .det{font-size:15px;color:#4a423a}
 .review .seatline{font-size:17px;font-weight:700;background:#f3ece0;border-radius:10px;padding:9px;margin:12px 0}
@@ -57,7 +59,7 @@ h1{font-size:20px;margin:0 0 4px}
 .rsub{color:#6d655c;font-size:13px;margin-top:1px}
 .rbadges{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
 .rb{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:2px 8px;border-radius:20px;white-space:nowrap}
-.rb.paid{background:#e5f3e6;color:#2f7a3a}.rb.un{background:#f0e6e0;color:#8a5a2f}.rb.in{background:#16130f;color:#e7dcc6}
+.rb.paid{background:#e5f3e6;color:#2f7a3a}.rb.day{background:#fbf1da;color:#8a6410}.rb.un{background:#f0e6e0;color:#8a5a2f}.rb.in{background:#16130f;color:#e7dcc6}
 .racts{display:flex;gap:7px;margin-top:11px}
 .racts .btn{flex:1;padding:9px;font-size:13px;width:auto}
 </style>
@@ -148,10 +150,11 @@ function renderList(){
   $("listStat").innerHTML="<b>"+inCount+"</b> of "+ROSTER.length+" checked in";
   if(!list.length){ $("rosterList").innerHTML='<div class="camnote">No guests match.</div>'; return; }
   $("rosterList").innerHTML=list.map(function(t){
-    var paid=String(t.pay_status||"").toLowerCase()==="paid";
+    var ps=String(t.pay_status||"").toLowerCase(), paid=ps==="paid";
+    var payb = paid ? '<span class="rb paid">Paid</span>' : (ps==="pay_on_day" ? '<span class="rb day">Pay on day</span>' : '<span class="rb un">Unpaid</span>');
     return '<div class="rrow'+(t.checked_in?" done":"")+'" data-id="'+esc(t.id)+'">'
       +'<div class="rtop"><div><div class="rname">'+esc(t.name)+'</div><div class="rsub">'+esc(t.count)+' seat(s) · '+esc(t.seats)+'</div></div>'
-      +'<div class="rbadges">'+(paid?'<span class="rb paid">Paid</span>':'<span class="rb un">Unpaid</span>')+(t.checked_in?'<span class="rb in">In</span>':'')+'</div></div>'
+      +'<div class="rbadges">'+payb+(t.checked_in?'<span class="rb in">In</span>':'')+'</div></div>'
       +'<div class="racts">'
         +(t.checked_in?'<button class="btn ghost" disabled>Checked in ✓</button>':'<button class="btn green" data-act="in">Check in</button>')
         +(paid?'':'<button class="btn" data-act="pay">Mark paid</button>')
@@ -210,6 +213,7 @@ function renderReviewLocal(t, tokenChecked){
   $("stage").innerHTML=warn
     +'<div class="review '+pt.c+'">'
     +'<div class="pay">'+pt.t+'</div>'
+    +'<div class="paynote">'+pt.note+'</div>'
     +'<div class="who">'+esc(t.name)+'</div>'
     +'<div class="det">'+esc(t.show_title||"")+'</div>'
     +'<div class="seatline">'+esc(t.count)+' seat(s) \u00b7 '+esc(t.seats)+'</div>'
@@ -235,7 +239,11 @@ async function lookup(id,token){
     renderReview(res);
   }catch(e){ inFlight=false; showError({error:"Network error — try again."}); }
 }
-function payText(p){ p=String(p||"").toLowerCase(); if(p==="paid")return{t:"PAID",c:"g"}; if(p==="pay_on_day")return{t:"PAY ON DAY",c:"a"}; return{t:"COLLECT PAYMENT",c:"a"}; }
+function payText(p){ p=String(p||"").toLowerCase();
+  if(p==="paid") return {t:"PAID", c:"g", note:"No payment needed"};
+  if(p==="pay_on_day") return {t:"PAY ON DAY", c:"a", note:"Collect payment at the door"};
+  return {t:"NOT PAID", c:"r", note:"Collect payment at the door"};
+}
 function renderReview(res){
   if(res.cancelled){ showError({error:"Booking "+res.booking.id+" was CANCELLED."}); return; }
   var b=res.booking, pt=payText(b.pay_status);
@@ -246,6 +254,7 @@ function renderReview(res){
   $("stage").innerHTML=warn
     +'<div class="review '+pt.c+'">'
     +'<div class="pay">'+pt.t+'</div>'
+    +'<div class="paynote">'+pt.note+'</div>'
     +'<div class="who">'+esc(b.name)+'</div>'
     +(res.show?'<div class="det">'+esc(res.show.title)+'</div>':'')
     +'<div class="seatline">'+esc(b.count)+' seat(s) · '+esc(b.seats)+'</div>'
