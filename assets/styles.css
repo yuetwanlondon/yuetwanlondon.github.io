@@ -133,6 +133,11 @@ a{color:inherit;text-decoration:none}
 .pcard:hover{transform:translateY(-4px);box-shadow:0 16px 36px rgba(22,19,15,.1)}
 .pcard .ph{position:relative;aspect-ratio:1/1;background:var(--ink)}
 .pcard .ph img.cover{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+/* image loading: animated placeholder in the box until the photo paints, then fade in */
+@keyframes ywshimmer{0%{background-position:140% 0}100%{background-position:-40% 0}}
+.hero .slide,.ecard .img,.gal .t,.pcard .ph,.pfeat .ph{background-color:#efe7d6;background-image:linear-gradient(100deg,#e9e0cd 20%,#f6f0e2 45%,#e9e0cd 70%);background-size:220% 100%;background-repeat:no-repeat;animation:ywshimmer 1.4s ease-in-out infinite}
+img.cover,.ecard .img img,.gal .t img{opacity:0;transition:opacity .5s ease}
+img.cover.is-loaded,.ecard .img img.is-loaded,.gal .t img.is-loaded{opacity:1}
 .pcard .ph .place{position:absolute;inset:0;display:grid;place-items:center;background:radial-gradient(120% 120% at 55% 22%,#26303a,#16130F)}
 .pcard .ph .place .lat{position:absolute;inset:0;opacity:.08}
 .pcard .ph .place .init{position:relative;z-index:1;font-family:var(--disp);font-weight:800;font-size:34px;color:var(--brass-l)}

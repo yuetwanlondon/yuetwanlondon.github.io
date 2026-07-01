@@ -252,5 +252,23 @@ window.YW = (function(){
     try{ new MutationObserver(function(){ if(pend)return; pend=true; requestAnimationFrame(function(){ pend=false; scan(); }); }).observe(document.body,{childList:true,subtree:true}); }catch(e){}
   }
 
-  return {API,DATA_URL,MON,CAT_ZH,TINT,ICON,USER_ICON,SOCIAL,esc,isTrue,lines,lat,fmtDate,isPast,rich,richLines,plain,fetchData,fetchLive,post,clearCache,renderSocial,initMotion,settingsMap,applyStaticLang,setupNav,loadLang,saveLang,lockScroll};
+  /* fade photos in once they load; the CSS shows an animated placeholder until then */
+  function imgFade(root){
+    try{
+      (root||document).querySelectorAll("img.cover, .ecard .img img, .gal .t img").forEach(function(im){
+        if(im.__ywf) return; im.__ywf=1;
+        if(im.complete && im.naturalWidth>0){ im.classList.add("is-loaded"); return; }
+        im.addEventListener("load",function(){ im.classList.add("is-loaded"); });
+        im.addEventListener("error",function(){ im.classList.add("is-loaded"); });
+      });
+    }catch(e){}
+  }
+  (function initImgFade(){
+    function go(){ imgFade(document); }
+    if(document.readyState!=="loading") go(); else document.addEventListener("DOMContentLoaded", go);
+    var pend=false;
+    try{ new MutationObserver(function(){ if(pend) return; pend=true; requestAnimationFrame(function(){ pend=false; imgFade(document); }); }).observe(document.documentElement,{childList:true,subtree:true}); }catch(e){}
+  })();
+
+  return {API,DATA_URL,MON,CAT_ZH,TINT,ICON,USER_ICON,SOCIAL,esc,isTrue,lines,lat,fmtDate,isPast,rich,richLines,plain,fetchData,fetchLive,post,clearCache,renderSocial,initMotion,settingsMap,applyStaticLang,setupNav,loadLang,saveLang,lockScroll,imgFade};
 })();
