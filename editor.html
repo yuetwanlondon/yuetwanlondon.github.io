@@ -738,7 +738,7 @@ function showPane(name){
   try{ window.scrollTo(0,0); }catch(e){}
 }
 /* ---------- newsletter composer + email (v2: logo banner, table layout, lang modes) ---------- */
-var CAMPAIGN={subj_en:"",subj_zh:"",intro_en:"",intro_zh:"",incEvents:true,evN:2,incArticles:true,artN:3,langMode:"both"};
+var CAMPAIGN={subj_en:"",subj_zh:"",intro_en:"",intro_zh:"",incEvents:true,evN:2,incArticles:true,artN:3,langMode:"both",segment:"all"};
 var NL_LOGO="https://yuetwanlondon.com/img/email-logo.png";
 
 function nlUpcomingEvents(n){
@@ -867,6 +867,7 @@ function nlReadState(){
   if($("nl_intro_en")) CAMPAIGN.intro_en=readRich("nl_intro_en");
   if($("nl_intro_zh")) CAMPAIGN.intro_zh=readRich("nl_intro_zh");
   if($("nl_langmode")) CAMPAIGN.langMode=$("nl_langmode").value;
+  if($("nl_segment")) CAMPAIGN.segment=$("nl_segment").value;
   if($("nl_inc_events")) CAMPAIGN.incEvents=$("nl_inc_events").checked;
   if($("nl_inc_articles")) CAMPAIGN.incArticles=$("nl_inc_articles").checked;
   if($("nl_ev_n")) CAMPAIGN.evN=+$("nl_ev_n").value||0;
@@ -907,11 +908,14 @@ async function nlSendTest(){
   }catch(e){ if(g) g.textContent="Could not send (network error)."; }
 }
 async function nlSendAll(){
-  if(!confirm("Send this newsletter to ALL active subscribers now?\n\nReal emails will be sent. Make sure you've sent yourself a test first.")) return;
+  nlReadState();
+  var seg=CAMPAIGN.segment||"all";
+  var segLabel=seg==="en"?"English subscribers only":seg==="zh"?"中文 subscribers only":"ALL active subscribers";
+  if(!confirm("Send this newsletter to "+segLabel+" now?\n\nReal emails will be sent. Make sure you've sent yourself a test first.")) return;
   var p=nlBuildPayload();
   var g=$("nl_gate"); if(g){g.style.display="block";g.textContent="Sending to subscribers… keep this tab open until it finishes.";}
   try{
-    var res=await YW.post({action:"sendCampaign",pass:AUTH.pass,mode:"all",subject:p.subject,html:p.html});
+    var res=await YW.post({action:"sendCampaign",pass:AUTH.pass,mode:"all",subject:p.subject,html:p.html,segment:seg});
     if(res&&res.ok){
       var msg="Done — sent "+res.sent+" email(s).";
       if(res.failed) msg+=" "+res.failed+" failed.";
@@ -922,6 +926,7 @@ async function nlSendAll(){
   }catch(e){ if(g) g.textContent="Could not send (network error)."; }
 }
 function nlLangOpt(v,label){ return '<option value="'+v+'"'+(CAMPAIGN.langMode===v?" selected":"")+'>'+label+'</option>'; }
+function nlSegOpt(v,label){ return '<option value="'+v+'"'+((CAMPAIGN.segment||"all")===v?" selected":"")+'>'+label+'</option>'; }
 function renderNewsletter(host){
   if(!host) return;
   host.innerHTML =
@@ -930,6 +935,8 @@ function renderNewsletter(host){
       + '<div class="nl-banner">Compose your newsletter and watch the live preview update on the right. Send a test to yourself first, then send to all active subscribers.</div>'
       + '<label class="nl-lbl">Email language · 電郵語言</label>'
       + '<select id="nl_langmode" class="nl-in">'+nlLangOpt("both","Bilingual — English + 中文")+nlLangOpt("en","English only")+nlLangOpt("zh","中文 only")+'</select>'
+      + '<label class="nl-lbl">Send to · 傳送對象</label>'
+      + '<select id="nl_segment" class="nl-in">'+nlSegOpt("all","All active subscribers · 全部")+nlSegOpt("en","English subscribers only · 只限英文")+nlSegOpt("zh","中文 subscribers only · 只限中文")+'</select>'
       + '<label class="nl-lbl">Subject line · 主題</label>'
       + '<input id="nl_subj_en" class="nl-in" placeholder="Subject (English)" value="'+E(CAMPAIGN.subj_en)+'">'
       + '<input id="nl_subj_zh" class="nl-in" placeholder="主題（中文）" value="'+E(CAMPAIGN.subj_zh)+'">'
