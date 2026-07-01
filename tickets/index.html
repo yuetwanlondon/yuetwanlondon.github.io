@@ -82,7 +82,6 @@ label.f:first-child{margin-top:0}
 .badge.paid{background:#e2f0e0;color:#2f6b34}.badge.un{background:#f0e6e0;color:#8a5a2f}
 .dl{width:100%;margin-top:16px;border:1px solid var(--brass);background:#fff;color:var(--brass-d);border-radius:30px;padding:12px;font-size:14.5px;font-weight:600}
 .empty{text-align:center;color:var(--ink-55);padding:34px 18px;border:1.5px dashed var(--line);border-radius:16px;font-size:14.5px}
-.foot{max-width:460px;margin:0 auto;padding:8px 16px 24px;color:var(--ink-55);font-size:12px;text-align:center}
 </style>
 </head>
 <body>
@@ -114,8 +113,30 @@ label.f:first-child{margin-top:0}
   <a class="tkback" href="/" data-loader-home>← <span data-en="Back to site" data-zh="返回網站">Back to site</span></a>
   <div id="view"></div>
 </div>
-<div class="foot">Yuet Wan London · 倫敦粵韻曲藝文化協會</div>
+<footer class="foot"><div class="wrap">
+<div class="grid2">
+<div>
+<p class="eyebrow" data-en="Get in touch" data-zh="聯絡我們">Get in touch</p>
+<div class="cinfo">
+<a href="mailto:yuetwanlondon@gmail.com">yuetwanlondon@gmail.com</a><br>
+<a href="tel:+447888344919">+44 7888 344919</a>
+<span class="lab" data-en="Based in London, United Kingdom" data-zh="英國 · 倫敦">Based in London, United Kingdom</span>
+</div>
+<div class="social" id="socialLinks"></div>
+</div>
+<div>
+<p class="eyebrow" data-en="Yuet Wan London" data-zh="倫敦粵韻曲藝文化協會">Yuet Wan London</p>
+<p class="cjk" style="color:var(--brass-l);font-size:16px;margin:0 0 8px">傳情以藝，化人以文</p>
+<p style="color:rgba(244,236,221,.7);font-size:14px;max-width:42ch;margin:0" data-en="A non-profit association promoting the art of Cantonese opera and music in the United Kingdom." data-zh="非牟利團體，致力在英國推廣粵劇及粵樂藝術。">A non-profit association promoting the art of Cantonese opera and music in the United Kingdom.</p>
+</div>
+</div>
+<div class="bottom">
+<a href="/" data-loader-home aria-label="Home" style="display:inline-block;line-height:0"><img src="/img/yuetwanlondon-main.svg" alt="Yuet Wan London" style="width:150px;filter:brightness(0) invert(1)"></a>
+<div class="cr">© 2026 Yuet Wan London · 倫敦粵韻曲藝文化協會<br><span data-en="The sound of Lingnan, the stage of London" data-zh="粵韻飄香 · 揚聲倫敦">The sound of Lingnan, the stage of London</span></div>
+</div>
+</div></footer>
 
+<script src="/assets/app.js"></script>
 <script>
 const BOOK_API = "https://script.google.com/macros/s/AKfycbylfZEOHp8Zngus5S033z2qdARaZJJg8PaDd2dElqntQYIrn8IzFSE3N1jjfvYX3PNUTQ/exec";
 var LANG=(function(){ try{ return localStorage.getItem("yw_lang")==="zh"?"zh":"en"; }catch(e){ return "en"; } })();
@@ -152,6 +173,7 @@ $("langtog").onclick=function(){ LANG=LANG==="zh"?"en":"zh"; try{ localStorage.s
   }
   document.addEventListener("click",function(e){ var a=e.target.closest?e.target.closest('a[data-loader-home]'):null; if(!a) return; try{ sessionStorage.setItem("yw_loader","1"); }catch(_){} if(window.__preCover) window.__preCover(); });
   navLang();
+  if(window.YW&&YW.renderSocial) YW.renderSocial();
 })();
 
 function render(){
