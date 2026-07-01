@@ -66,6 +66,7 @@ html.loader-on #yw-pre{display:flex}
 .ecard-side dd{margin:0;font-size:14.5px;color:var(--ink);font-weight:500}
 .ecard-side .act{padding:16px 20px 20px}
 .ecard-side .act .btn{width:100%}
+.ecard-side .act .btn + .btn{margin-top:10px}
 .enote{text-align:center;font-size:12.5px;color:var(--ink-55);margin-top:10px}
 @media(max-width:880px){
 .elayout{grid-template-columns:1fr;gap:30px}
@@ -186,9 +187,13 @@ window.render=function(){
  if(bring.length)main+='<div class="esec"><h2>'+L("bring")+'</h2><ul class="take">'+bring.map(p=>'<li>'+p+'</li>').join("")+'</ul></div>';
  if(gal.length)main+='<div class="esec"><h2>'+L("gallery")+'</h2><div class="egal">'+gal.map(g=>'<div class="t" data-img="'+YW.esc(g)+'"><img src="'+YW.esc(g)+'" alt=""></div>').join("")+'</div></div>';
  let act="";
- if(!past&&ev.link)act='<a class="btn btn-fill" href="'+YW.esc(ev.link)+'" target="_blank" rel="noopener">'+L("book")+'</a>';
- else if(!past)act='<a class="btn btn-fill" href="mailto:yuetwanlondon@gmail.com?subject='+encodeURIComponent(YW.plain(Lf(ev,"title")))+'">'+L("enquire")+'</a>';
- else act='<div class="btn btn-ghost" style="pointer-events:none">'+L("took")+'</div>';
+ if(past){ act='<div class="btn btn-ghost" style="pointer-events:none">'+L("took")+'</div>'; }
+ else {
+   var parts=[];
+   if(ev.link) parts.push('<a class="btn btn-fill" href="'+YW.esc(ev.link)+'" target="_blank" rel="noopener">'+L("book")+'</a>');
+   if(YW.isTrue(ev.enquire) || !ev.link) parts.push('<a class="btn '+(ev.link?"btn-ghost":"btn-fill")+'" href="mailto:yuetwanlondon@gmail.com?subject='+encodeURIComponent(YW.plain(Lf(ev,"title")))+'">'+L("enquire")+'</a>');
+   act=parts.join("");
+ }
  const side='<aside class="ecard-side"><div class="hd">'+L("details")+'</div><dl>'+
   row(L("date"),YW.esc(YW.fmtDate(ev,LANG)))+row(L("time"),YW.rich(Lf(ev,"time")))+row(L("dur"),YW.rich(Lf(ev,"duration")))+row(L("venue"),YW.rich(Lf(ev,"venue")))+
   row(L("level"),YW.rich(Lf(ev,"level")))+row(L("cap"),YW.esc(ev.capacity))+row(L("lang"),YW.rich(Lf(ev,"language")))+row(L("tix"),YW.rich(Lf(ev,"price")))+

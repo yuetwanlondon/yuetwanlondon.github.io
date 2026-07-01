@@ -7,6 +7,16 @@
 <link rel="icon" type="image/png" href="/img/yuetwanlondon-favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@500;700;900&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<link rel="stylesheet" href="/assets/styles.css">
+<style id="yw-pre-css">
+#yw-pre{display:none;position:fixed;inset:0;z-index:99999;align-items:center;justify-content:center;background-color:#F4ECDD;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='70'%3E%3Cpath d='M20 0 L40 11 L40 35 L20 46 L0 35 L0 11Z M20 46 L40 57 L40 81 M20 46 L0 57 L0 81' fill='none' stroke='%2316130F' stroke-opacity='0.06' stroke-width='1.2'/%3E%3C/svg%3E");transition:opacity .55s ease}
+html.loader-on #yw-pre{display:flex}
+#yw-pre.hide{opacity:0;pointer-events:none}
+#yw-pre .pre-inner{display:flex;flex-direction:column;align-items:center;gap:clamp(18px,5vh,30px);padding:24px}
+#yw-pre .pre-logo{width:min(170px,40vw)}
+#yw-pre .ring{width:min(210px,50vw);height:min(210px,50vw);border-radius:50%;background:#fff;box-shadow:0 20px 56px rgba(22,19,15,.18);overflow:hidden;display:flex;align-items:center;justify-content:center}
+#yw-pre .ring img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+</style>
 <style>
 :root{--ink:#16130F;--ink-70:#4a423a;--ink-55:#6d655c;--paper:#F4ECDD;--mist:#F6F3EE;--brass:#B8893C;--brass-d:#8a6410;
   --vermilion:#C8402E;--vermilion-d:#A8331F;--gold:#C9962E;--line:rgba(22,19,15,.13);--grot:"Plus Jakarta Sans",system-ui,sans-serif;--serif:"Playfair Display",Georgia,serif;--tc:"Noto Sans TC",var(--grot)}
@@ -20,7 +30,9 @@ a{color:var(--vermilion-d)}
 .top .lg{display:flex;align-items:center;gap:9px;font-weight:800;font-size:15px}
 .top .lg .dot{width:7px;height:7px;border-radius:50%;background:var(--vermilion)}
 .top .lang{background:transparent;color:var(--paper);border:1px solid rgba(244,236,221,.28);border-radius:30px;padding:6px 13px;font-size:12.5px;font-weight:600}
-.wrap{max-width:460px;margin:0 auto;padding:26px 16px 70px}
+.tkpage{max-width:460px;margin:0 auto;padding:calc(var(--nav-h,58px) + 20px) 16px 70px}
+.tkback{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;color:var(--ink-55);margin:2px 0 14px;text-decoration:none}
+.tkback:hover{color:var(--vermilion-d)}
 
 /* login */
 .hero-h{text-align:center;margin:14px 0 22px}
@@ -32,7 +44,7 @@ label.f{display:block;font-size:12px;font-weight:600;text-transform:uppercase;le
 label.f:first-child{margin-top:0}
 .in{width:100%;border:1px solid var(--line);border-radius:12px;padding:13px 14px;font-size:16px;font-family:inherit;background:#fff;color:var(--ink)}
 .in:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px rgba(184,137,60,.14)}
-.btn{width:100%;border:none;background:var(--ink);color:var(--paper);border-radius:30px;padding:14px 20px;font-size:15.5px;font-weight:700;margin-top:18px}
+.btn{width:100%;height:auto;border:none;background:var(--ink);color:var(--paper);border-radius:30px;padding:14px 20px;font-size:15.5px;font-weight:700;margin-top:18px}
 .btn:disabled{opacity:.5}
 .gate{margin-top:14px;background:rgba(200,64,46,.08);border:1px solid rgba(200,64,46,.22);color:#8a2c20;border-radius:11px;padding:11px 14px;font-size:13.5px}
 .privacy{color:var(--ink-55);font-size:12px;text-align:center;margin-top:16px;line-height:1.6}
@@ -72,11 +84,34 @@ label.f:first-child{margin-top:0}
 </style>
 </head>
 <body>
-<div class="top">
-  <div class="lg"><img src="/img/yuetwanlondon-icon.svg" alt="" style="height:22px;filter:brightness(0) invert(1)">Yuet Wan London</div>
-  <button class="lang" id="langBtn">中文</button>
+<div id="yw-pre"><div class="pre-inner"><img class="pre-logo" src="/img/yuetwanlondon-main.svg" alt="Yuet Wan London"><div class="ring"><img id="yw-pre-gif" src="/img/pre-load-1.gif" alt=""></div></div></div>
+<script>
+(function(){ var P=document.getElementById('yw-pre'); if(!P) return;
+ var reduce=false; try{reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
+ window.__preCover=function(){ if(reduce) return; P.style.transition='none'; P.classList.remove('hide'); P.style.opacity='1'; P.style.display='flex'; };
+ window.addEventListener('pageshow', function(ev){ if(ev.persisted){ P.classList.add('hide'); P.style.display='none'; } });
+})();
+</script>
+<nav class="nav"><div class="wrap">
+<a class="brandlink" href="/" data-loader-home><img src="/img/yuetwanlondon-icon.svg" alt="" style="width:38px;filter:brightness(0) invert(1)"><span><b>Yuet Wan London</b><span class="cjk">倫敦粵韻曲藝文化協會</span></span></a>
+<button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button>
+<div class="navlinks" id="navlinks">
+<a href="/" data-en="Home" data-zh="主頁" data-loader-home>Home</a>
+<a href="/#whatson" data-en="What's On" data-zh="近期活動">What's On</a>
+<a href="/people/" data-en="People" data-zh="團隊">People</a>
+<a href="/gallery/" data-en="Gallery" data-zh="花絮">Gallery</a>
+<a href="/blog/" data-en="Learn" data-zh="認識粵劇">Learn</a>
+<a href="/news/" data-en="News" data-zh="最新消息">News</a>
+<a href="/about/" data-en="About" data-zh="關於我們">About</a>
+<a href="/contact/" data-en="Contact" data-zh="聯絡">Contact</a>
+<a href="/tickets/" class="active" data-en="My Tickets" data-zh="我的門票">My Tickets</a>
+<button class="langtog" id="langtog">中文</button>
+<a class="cta" href="/contact/" data-en="Get involved" data-zh="參與我們">Get involved</a>
+</div></div></nav>
+<div class="tkpage">
+  <a class="tkback" href="/" data-loader-home>← <span data-en="Back to site" data-zh="返回網站">Back to site</span></a>
+  <div id="view"></div>
 </div>
-<div class="wrap"><div id="view"></div></div>
 <div class="foot">Yuet Wan London · 倫敦粵韻曲藝文化協會</div>
 
 <script>
@@ -105,10 +140,20 @@ async function loadEventImages(){
 function heroFor(sh){ if(!sh) return ""; if(sh.hero_image&&String(sh.hero_image).trim()) return sh.hero_image; return EVENT_IMG[sh.id]||""; }
 loadEventImages();
 
-$("langBtn").onclick=function(){ LANG=LANG==="zh"?"en":"zh"; try{ localStorage.setItem("yw_lang",LANG); }catch(e){} render(); };
+function navLang(){ Array.prototype.forEach.call(document.querySelectorAll("[data-en]"),function(el){ var v=LANG==="zh"?el.getAttribute("data-zh"):el.getAttribute("data-en"); if(v!=null) el.textContent=v; }); if($("langtog")) $("langtog").textContent=LANG==="zh"?"EN":"中文"; }
+$("langtog").onclick=function(){ LANG=LANG==="zh"?"en":"zh"; try{ localStorage.setItem("yw_lang",LANG); }catch(e){} navLang(); render(); };
+(function(){
+  var burger=$("burger"), links=$("navlinks");
+  if(burger&&links){
+    burger.onclick=function(){ burger.classList.toggle("open"); links.classList.toggle("open"); };
+    Array.prototype.forEach.call(links.querySelectorAll("a"),function(a){ a.addEventListener("click",function(){ burger.classList.remove("open"); links.classList.remove("open"); }); });
+  }
+  document.addEventListener("click",function(e){ var a=e.target.closest?e.target.closest('a[data-loader-home]'):null; if(!a) return; try{ sessionStorage.setItem("yw_loader","1"); }catch(_){} if(window.__preCover) window.__preCover(); });
+  navLang();
+})();
 
 function render(){
-  $("langBtn").textContent=LANG==="zh"?"EN":"中文";
+  $("langtog").textContent=LANG==="zh"?"EN":"中文";
   if(TICKETS._loaded) return renderTickets();
   return renderLogin();
 }
@@ -149,7 +194,7 @@ function pin(){ return '<svg class="ic" width="13" height="13" viewBox="0 0 24 2
 function cal(){ return '<svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>'; }
 
 function renderTickets(){
-  $("langBtn").textContent=LANG==="zh"?"EN":"中文";
+  $("langtog").textContent=LANG==="zh"?"EN":"中文";
   var head='<div class="tkhead"><div class="h">'+L("My tickets","我的門票")+'</div><button class="so" id="signout">'+L("Sign out","登出")+'</button></div>';
   if(!TICKETS.length){ $("view").innerHTML=head+'<div class="empty">'+L("No tickets found for those details. Check the email and phone you booked with, or contact us.","找不到相關門票，請核對電郵及電話，或與我們聯絡。")+'</div>'; $("signout").onclick=signout; return; }
   $("view").innerHTML=head+TICKETS.map(ticketHtml).join("");
@@ -257,7 +302,7 @@ function buildTicketCanvas(t,withHero,cb){
 var q=new URLSearchParams(location.search);
 if(q.get("email")) { /* prefill only */ }
 renderLogin();
-$("langBtn").textContent=LANG==="zh"?"EN":"中文";
+$("langtog").textContent=LANG==="zh"?"EN":"中文";
 </script>
 </body>
 </html>
