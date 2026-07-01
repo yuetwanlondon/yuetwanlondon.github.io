@@ -373,6 +373,10 @@ textarea.in{min-height:74px;resize:vertical}
     <div class="dp-h"><b>Door check-in link</b> <span class="dp-sub">Share with the people working the door — it opens the scanner with no password.</span></div>
     <div class="dp-row"><input class="in" id="doorUrl" readonly placeholder="No code yet"><button class="btn sm" id="doorCopy">Copy</button><button class="btn sm ghost" id="doorNew">Generate</button><button class="btn sm ghost" id="doorOffBtn">Turn off</button></div>
   </div>
+  <div class="doorpanel" id="payPanel">
+    <div class="dp-h"><b>Invoice payment details</b> <span class="dp-sub">Shown on invoices under “How to pay”. Saved on this device.</span></div>
+    <textarea id="payDetails" placeholder="e.g. Bank transfer — Yuet Wan London&#10;Sort code 00-00-00 · Account 00000000&#10;Please quote your booking reference." style="width:100%;min-height:74px;resize:vertical;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:13px;line-height:1.5"></textarea>
+  </div>
   <div class="bktools">
     <input class="in" id="bkSearch" placeholder="Search name, email or reference…">
     <label class="selall"><input type="checkbox" id="bkAll"> Select all shown</label>
@@ -874,6 +878,8 @@ function renderBookings(){
         +'<button class="btn xs" data-act="paid">Mark paid</button>'
         +'<button class="btn xs" data-act="pay_on_day">Pay on day</button>'
         +'<button class="btn xs" data-act="confirm">Confirm</button>'
+        +'<button class="btn xs" data-act="invoice">Invoice</button>'
+        +'<button class="btn xs" data-act="receipt">Receipt</button>'
         +(checked?'<button class="btn xs" data-act="uncheck">Undo check-in</button>':'<button class="btn xs" data-act="checkin">Check in</button>')
         +'<button class="btn xs danger" data-act="'+(cancelled?"restore":"cancel")+'">'+(cancelled?"Restore":"Cancel")+'</button>'
       +'</div></div>';
@@ -901,6 +907,11 @@ function getPrintList(){
   return list.filter(function(b){ return String(b.status||"").toLowerCase()!=="cancelled"; });
 }
 async function doBookingAct(id, act, btn){
+  if(act==="invoice"||act==="receipt"){
+    var bDoc=BOOKINGS.filter(function(x){return x.id===id;})[0]; if(!bDoc) return;
+    openPrint(act==="invoice"?invoiceDoc(bDoc):receiptDoc(bDoc));
+    return;
+  }
   if(act==="checkin"||act==="uncheck"){
     var on=(act==="checkin");
     var acts0=btn.parentNode, was0=acts0.innerHTML; acts0.innerHTML='<span class="empty" style="padding:6px;border:none">Saving…</span>';
@@ -1078,6 +1089,91 @@ function openPrint(html){
   if(!w){ alert("Please allow pop-ups for this site to print."); return; }
   w.document.open(); w.document.write(html); w.document.close(); w.focus();
 }
+
+/* ---------- invoices & receipts ---------- */
+try{ if($("payDetails")) $("payDetails").value=localStorage.getItem("ywb_pay")||""; }catch(e){}
+if($("payDetails")) $("payDetails").oninput=function(){ try{ localStorage.setItem("ywb_pay",this.value); }catch(e){} };
+function payDetailsText(){ try{ return localStorage.getItem("ywb_pay")||""; }catch(e){ return ""; } }
+function gbp(n){ if(n==null||isNaN(n)) return ""; return "£"+(Math.round(n*100)/100).toFixed(2).replace(/\.00$/,""); }
+function amountParts(b){
+  var m=String(b.amount_note||"").replace(/,/g,"").match(/(\d+(?:\.\d{1,2})?)/);
+  var total=m?parseFloat(m[1]):NaN;
+  var count=parseInt(b.count,10)||0;
+  var unit=(!isNaN(total)&&count>0&&Math.abs((total/count)*count-total)<0.001)?(total/count):NaN;
+  return { total:total, count:count, unit:unit };
+}
+function todayStr(){ var d=new Date(); return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2); }
+function financeDoc(kind, b){
+  var isRec=(kind==="receipt");
+  var sh=showById(b.show_id)||{};
+  var ap=amountParts(b);
+  var title_en=esc(sh.title_en||sh.title_zh||b.show_title||b.show_id);
+  var title_zh=(sh.title_zh&&sh.title_en)?esc(sh.title_zh):"";
+  var when=esc([sh.date,sh.time].filter(Boolean).join(" · "));
+  var venue=esc(sh.venue_en||sh.venue_zh||"");
+  var docNo=(isRec?"RCT-":"INV-")+esc(b.id);
+  var totalStr=!isNaN(ap.total)?gbp(ap.total):"—";
+  var unitStr=!isNaN(ap.unit)?gbp(ap.unit):"";
+  var pd=payDetailsText();
+  var css='*{box-sizing:border-box}body{margin:0;font-family:"Plus Jakarta Sans",system-ui,sans-serif;color:#16130f;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    +'@page{size:A4;margin:0}'
+    +'.band{background:#16130f;color:#f4ecdd;padding:16mm 16mm 13mm;display:flex;justify-content:space-between;align-items:flex-start;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    +'.bw{display:flex;align-items:center;gap:12px}.bw img{height:38px;filter:brightness(0) invert(1)}'
+    +'.bn{font-family:Georgia,"Noto Sans TC",serif;font-size:15pt;font-weight:700;line-height:1.15}'
+    +'.bn small{display:block;font-family:"Noto Sans TC",serif;font-size:9pt;font-weight:400;color:#c9a45e;margin-top:2px}'
+    +'.dt{text-align:right}.dt .k{font-size:19pt;font-weight:800;letter-spacing:.09em;color:#fff}'
+    +'.dt .no{font-family:"SFMono-Regular",Consolas,monospace;font-size:9.5pt;color:#c9a45e;margin-top:5px}'
+    +'.dt .dd{font-size:9.5pt;color:#e7dcc6;margin-top:2px}'
+    +'.wrap{padding:14mm 16mm 0}'
+    +'.cols{display:flex;gap:26px;margin-bottom:13mm}.col{flex:1}'
+    +'.col h4{font-size:8pt;text-transform:uppercase;letter-spacing:.1em;color:#8a7f6c;margin:0 0 6px}'
+    +'.col .big{font-size:12pt;font-weight:700;line-height:1.2}.col .zh{font-family:"Noto Sans TC",serif;font-size:10pt;color:#5b4f3f;margin-top:1px}'
+    +'.col .ln{font-size:10pt;color:#3a3530;line-height:1.6;margin-top:3px}'
+    +'table{width:100%;border-collapse:collapse;margin-bottom:9mm}'
+    +'th{text-align:left;font-size:8pt;text-transform:uppercase;letter-spacing:.06em;color:#8a7f6c;border-bottom:2px solid #d8cbb2;padding:0 0 9px}'
+    +'th.r,td.r{text-align:right}td{padding:12px 0;border-bottom:1px solid #eadfce;font-size:10.5pt;vertical-align:top}'
+    +'td .s2{color:#8a7f6c;font-size:9pt}'
+    +'.totrow{display:flex;justify-content:flex-end;margin-bottom:11mm}.totbox{min-width:66mm}'
+    +'.tl{display:flex;justify-content:space-between;font-size:10.5pt;padding:5px 0;color:#3a3530}'
+    +'.tl.grand{border-top:2px solid #16130f;margin-top:5px;padding-top:10px;font-size:15pt;font-weight:800;color:#16130f}'
+    +'.st{text-align:right;margin-top:9px}'
+    +'.pill{display:inline-block;font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:4px 13px;border-radius:20px;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    +'.pill.due{background:#f6e9df;color:#8a5a2f}.pill.paid{background:#e5f3e6;color:#2f7a3a}'
+    +'.stamp{border:3px solid #2f7a3a;color:#2f7a3a;font-size:19pt;font-weight:800;letter-spacing:.12em;padding:5px 18px;border-radius:10px;transform:rotate(-7deg);display:inline-block;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    +'.how{background:#f7f2e8;border:1px solid #e6dcc8;border-radius:12px;padding:15px 18px;margin-bottom:10mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    +'.how h4{font-size:9pt;text-transform:uppercase;letter-spacing:.08em;color:#8a6410;margin:0 0 8px}'
+    +'.how .pd{font-size:10.5pt;line-height:1.65;white-space:pre-wrap}.how .q{font-size:9.5pt;color:#5b4f3f;margin-top:8px}'
+    +'.thanks{font-family:Georgia,"Noto Sans TC",serif;font-size:13pt;line-height:1.4;margin-bottom:9mm}'
+    +'.foot{margin:0 16mm;color:#8a7f6c;font-size:8.5pt;line-height:1.65;border-top:1px solid #eadfce;padding-top:11px}';
+  var body='<div class="band">'
+    +'<div class="bw"><img src="/img/yuetwanlondon-icon.svg" alt=""><div class="bn">Yuet Wan London<small>倫敦粵韻曲藝文化協會</small></div></div>'
+    +'<div class="dt"><div class="k">'+(isRec?"RECEIPT":"INVOICE")+'</div><div class="no">'+docNo+'</div><div class="dd">Date: '+todayStr()+'</div></div>'
+    +'</div>'
+    +'<div class="wrap">'
+      +'<div class="cols">'
+        +'<div class="col"><h4>'+(isRec?"Received from":"Billed to")+'</h4><div class="big">'+esc(b.name)+'</div><div class="ln">'+esc(b.email||"")+(b.phone?'<br>'+esc(b.phone):'')+'</div></div>'
+        +'<div class="col"><h4>For</h4><div class="big">'+title_en+'</div>'+(title_zh?'<div class="zh">'+title_zh+'</div>':'')+'<div class="ln">'+[when,venue].filter(Boolean).join('<br>')+'</div></div>'
+      +'</div>'
+      +'<table><thead><tr><th>Description</th><th class="r">Qty</th><th class="r">Unit</th><th class="r">Amount</th></tr></thead>'
+        +'<tbody><tr><td>Admission — '+title_en+(b.seats?' <span class="s2">('+esc(b.seats)+')</span>':'')+'</td>'
+        +'<td class="r">'+(ap.count||"")+'</td><td class="r">'+(unitStr||"—")+'</td><td class="r">'+totalStr+'</td></tr></tbody></table>'
+      +'<div class="totrow"><div class="totbox">'
+        +'<div class="tl"><span>Subtotal</span><span>'+totalStr+'</span></div>'
+        +'<div class="tl grand"><span>'+(isRec?"Amount paid":"Amount due")+'</span><span>'+totalStr+'</span></div>'
+        +'<div class="st">'+(isRec?'<span class="stamp">PAID</span>':'<span class="pill '+(String(b.pay_status||"").toLowerCase()==="paid"?"paid":"due")+'">'+(String(b.pay_status||"").toLowerCase()==="paid"?"Paid":"Awaiting payment")+'</span>')+'</div>'
+      +'</div></div>';
+  if(isRec){
+    body+='<div class="thanks">Payment received with thanks. We look forward to welcoming you.<br><span style="font-size:11pt;color:#5b4f3f">多謝惠顧，期待與您相見。</span></div>';
+  } else {
+    body+='<div class="how"><h4>How to pay</h4>'
+      +'<div class="pd">'+(pd?esc(pd):esc("Please contact us at yuetwanlondon@gmail.com to arrange payment."))+'</div>'
+      +'<div class="q">Please quote reference <b>'+esc(b.id)+'</b>. Your seats are held as a reservation until payment is received.</div></div>';
+  }
+  body+='<div class="foot">Yuet Wan London · 倫敦粵韻曲藝文化協會 · yuetwanlondon@gmail.com · yuetwanlondon.com<br>Reference '+esc(b.id)+' · Thank you for supporting Cantonese opera in the UK.</div></div>';
+  return docShell(isRec?"Receipt":"Invoice", css, body);
+}
+function invoiceDoc(b){ return financeDoc("invoice", b); }
+function receiptDoc(b){ return financeDoc("receipt", b); }
 
 Array.prototype.forEach.call($("secnav").querySelectorAll("[data-sec]"),function(b){
   b.onclick=function(){
