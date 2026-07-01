@@ -96,6 +96,17 @@ button,a,input,.ed-tools button{-webkit-tap-highlight-color:transparent}
 .nl-btn-ui:hover{filter:brightness(.97)}
 select.nl-in{appearance:auto}
 .nl-gate{margin-top:13px;background:rgba(154,47,40,.08);border:1px solid rgba(154,47,40,.25);color:#7a2a23;border-radius:9px;padding:10px 13px;font-size:13px;line-height:1.5}
+.dig-card{margin-top:28px;border:1px solid var(--line,#e4dccb);border-radius:14px;padding:20px 22px;background:#fbf6ec}
+.dig-head{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.dig-head h3{margin:0;font-size:16px;font-family:var(--grot)}
+.dig-note{font-size:13px;color:#6d655c;line-height:1.55;margin:9px 0 14px}
+.dig-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0 14px}
+.dig-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.dig-status{margin-top:13px;font-size:12.5px;color:#5f584f;background:#f1e9d8;border-radius:8px;padding:10px 13px;line-height:1.55}
+.dig-help{margin-top:13px;font-size:13px;color:#6d655c}
+.dig-help summary{cursor:pointer;font-weight:600;color:#6d563a}
+.dig-help ol{margin:9px 0 0;padding-left:20px;line-height:1.65}
+
 .nl-prev{position:sticky;top:16px}
 .nl-prevhead{font-size:12px;font-weight:600;letter-spacing:.02em;color:#6d655c;text-transform:uppercase;margin-bottom:8px}
 .nl-subjline{font-size:12px;font-weight:400;text-transform:none;color:#9a8e79;margin-top:3px}
@@ -1059,6 +1070,77 @@ function downloadCsv(name,csv){
   }catch(e){}
 }
 
+/* ---------- scheduled auto-digest panel ---------- */
+var DIG_STATUS=null;
+function digGet(key,def){ var r=(DATA.settings||[]).find(function(s){return s.key===key;}); return (r&&r.value!=="")?r.value:(def!==undefined?def:""); }
+function digSetVal(key,val){ var r=(DATA.settings||[]).find(function(s){return s.key===key;}); if(!r){r={key:key,value:"",note:""};DATA.settings.push(r);} r.value=val; }
+function renderDigest(host){
+  if(!host) return;
+  var enabled=/^(on|true|yes|1)$/i.test(digGet("digest_enabled","off"));
+  var wd=digGet("digest_weekday","Mon"), lang=digGet("digest_lang","both"), seg=digGet("digest_segment","all");
+  var evN=digGet("digest_events","3"), artN=digGet("digest_articles","3");
+  function wdOpt(v){ return '<option value="'+v+'"'+(wd===v?" selected":"")+'>'+v+'</option>'; }
+  function opt(v,l,cur){ return '<option value="'+v+'"'+(cur===v?" selected":"")+'>'+l+'</option>'; }
+  host.innerHTML=
+    '<div class="dig-card">'
+    + '<div class="dig-head"><h3>Scheduled auto-digest</h3><label class="settoggle"><input type="checkbox" id="dig_enabled"'+(enabled?" checked":"")+'><span class="track"></span><span class="lab">'+(enabled?"On":"Off")+'</span></label></div>'
+    + '<p class="dig-note">Automatically emails subscribers a round-up of upcoming events and the latest articles on your chosen day — but only when there is new content since the last one. Needs a one-time trigger set up in Apps Script (see below).</p>'
+    + '<div class="dig-grid">'
+      + '<div><label class="nl-lbl">Day · 傳送日</label><select id="dig_weekday" class="nl-in">'+["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(wdOpt).join("")+'</select></div>'
+      + '<div><label class="nl-lbl">Language · 語言</label><select id="dig_lang" class="nl-in">'+opt("both","Bilingual",lang)+opt("en","English only",lang)+opt("zh","中文 only",lang)+'</select></div>'
+      + '<div><label class="nl-lbl">Send to · 對象</label><select id="dig_segment" class="nl-in">'+opt("all","All subscribers",seg)+opt("en","English subs",seg)+opt("zh","中文 subs",seg)+'</select></div>'
+      + '<div><label class="nl-lbl">Events · 活動數</label><input id="dig_events" class="nl-in" type="number" min="0" max="6" value="'+E(evN)+'"></div>'
+      + '<div><label class="nl-lbl">Articles · 文章數</label><input id="dig_articles" class="nl-in" type="number" min="0" max="6" value="'+E(artN)+'"></div>'
+    + '</div>'
+    + '<div class="dig-btns"><button class="nl-btn-ui" id="dig_save" type="button">Save digest settings</button><button class="nl-btn-ui" id="dig_preview" type="button">Preview</button><button class="nl-btn-ui primary" id="dig_now" type="button">Send digest now</button></div>'
+    + '<div id="dig_status" class="dig-status">Loading status…</div>'
+    + '<div id="dig_gate" class="nl-gate" style="display:none"></div>'
+    + '<details class="dig-help"><summary>How to switch on the weekly schedule (one-time)</summary><ol><li>Open your Apps Script project, then click the clock icon (Triggers) in the left sidebar.</li><li>Add Trigger &rarr; function <b>runScheduledDigest</b>, event source <b>Time-driven</b>, type <b>Day timer</b>, and a morning hour (e.g. 8&ndash;9am).</li><li>Save. It runs daily but only sends on your chosen Day, when this toggle is On and there is new content.</li></ol></details>'
+    + '</div>';
+  var t=$("dig_enabled"); if(t) t.addEventListener("change",function(){ var l=t.parentElement.querySelector(".lab"); if(l)l.textContent=t.checked?"On":"Off"; });
+  $("dig_save").onclick=async function(){
+    digSetVal("digest_enabled",$("dig_enabled").checked?"on":"off");
+    digSetVal("digest_weekday",$("dig_weekday").value);
+    digSetVal("digest_lang",$("dig_lang").value);
+    digSetVal("digest_segment",$("dig_segment").value);
+    digSetVal("digest_events",String($("dig_events").value||"3"));
+    digSetVal("digest_articles",String($("dig_articles").value||"3"));
+    mark("settings"); await saveAll(); digStatus(true);
+  };
+  $("dig_preview").onclick=async function(){
+    var g=$("dig_gate"); g.style.display="block"; g.textContent="Building preview…";
+    try{ var res=await YW.post({action:"digestPreview",pass:AUTH.pass});
+      if(res&&res.ok){ var w=window.open("","_blank"); if(w){ w.document.open(); w.document.write(res.html); w.document.close(); g.textContent="Preview opened in a new tab ("+res.evs+" event(s), "+res.arts+" article(s))."; } else g.textContent="Allow pop-ups to see the preview ("+res.count+" item(s))."; }
+      else g.textContent="Could not build preview: "+((res&&res.error)||"unknown");
+    }catch(e){ g.textContent="Could not build preview (network)."; }
+  };
+  $("dig_now").onclick=async function(){
+    if(!confirm("Send the digest to subscribers NOW, using the saved language and audience? Real emails will be sent — send yourself a Preview first.")) return;
+    var g=$("dig_gate"); g.style.display="block"; g.textContent="Sending digest…";
+    try{ var res=await YW.post({action:"digestSendNow",pass:AUTH.pass});
+      if(res&&res.ok){ var m="Digest sent — "+res.sent+" email(s)."; if(res.failed)m+=" "+res.failed+" failed."; if(res.pending)m+=" "+res.pending+" pending (daily limit — runs again to finish)."; if(res.sent===0&&!res.pending)m+=" (No subscribers were due — they may already have had an email today.)"; g.textContent=m; }
+      else g.textContent="Could not send: "+((res&&res.error)||"unknown");
+    }catch(e){ g.textContent="Could not send (network)."; }
+    digStatus(true);
+  };
+  digStatus(false);
+}
+function digRenderStatus(el,res){
+  var p=[];
+  p.push(res.cfg.enabled?"Schedule ON":"Schedule OFF");
+  p.push("next: "+res.evs+" event(s) + "+res.arts+" article(s)");
+  p.push(res.lastSent?("last sent "+res.lastSent):"never sent yet");
+  if(res.cfg.enabled) p.push(res.newContent?"new content ready":"nothing new since last digest");
+  el.textContent=p.join("  ·  ");
+}
+async function digStatus(force){
+  var el=$("dig_status"); if(!el) return;
+  if(DIG_STATUS&&!force){ digRenderStatus(el,DIG_STATUS); return; }
+  try{ var res=await YW.post({action:"digestStatus",pass:AUTH.pass});
+    if(res&&res.ok){ DIG_STATUS=res; digRenderStatus(el,res); } else el.textContent="Status unavailable.";
+  }catch(e){ el.textContent="Status unavailable (offline)."; }
+}
+
 function renderAll(){
   $("langItemTxt").textContent = LANG==="en" ? "中文 preview" : "EN preview";
   $("canvas").innerHTML=`
@@ -1076,7 +1158,7 @@ function renderAll(){
     </div>
     <div class="pane" data-pane="news"><div class="sec-wrap"><div class="slabel"><h2>News</h2><span class="ln"></span><span class="sub">最新消息 · blog</span></div><div id="s_news"></div><div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px"><button class="addbtn" data-add="news" style="margin-top:0">+ Add news post</button><button class="addbtn" data-import="news" style="margin-top:0;border-style:solid">Import from Doc</button></div></div>
     </div>
-    <div class="pane" data-pane="newsletter"><div class="sec-wrap"><div class="slabel"><h2>Newsletter</h2><span class="ln"></span><span class="sub">電郵通訊 · compose &amp; preview</span></div><div id="s_newsletter"></div></div>
+    <div class="pane" data-pane="newsletter"><div class="sec-wrap"><div class="slabel"><h2>Newsletter</h2><span class="ln"></span><span class="sub">電郵通訊 · compose &amp; preview</span></div><div id="s_newsletter"></div><div id="s_digest"></div></div>
     </div>
     <div class="pane" data-pane="audience"><div class="sec-wrap"><div class="slabel"><h2>Audience</h2><span class="ln"></span><span class="sub">訂閱者及查詢 · subscribers &amp; enquiries</span></div><div id="s_audience"></div></div>
     </div>
@@ -1088,7 +1170,7 @@ function renderAll(){
     </div>
     <div style="height:60px"></div>`;
   renderHero($("s_hero")); renderEventsGrid($("s_up"),"upcoming"); renderEventsGrid($("s_past"),"past");
-  renderGallery($("s_gal")); renderPeople($("s_ppl")); renderPosts($("s_learn"),"learn"); renderPosts($("s_news"),"news"); renderSocialEditor($("s_social")); renderAbout($("s_about")); renderSettings($("s_set")); renderNewsletter($("s_newsletter")); renderAudience($("s_audience"));
+  renderGallery($("s_gal")); renderPeople($("s_ppl")); renderPosts($("s_learn"),"learn"); renderPosts($("s_news"),"news"); renderSocialEditor($("s_social")); renderAbout($("s_about")); renderSettings($("s_set")); renderNewsletter($("s_newsletter")); renderDigest($("s_digest")); renderAudience($("s_audience"));
   showPane(ACTIVE_PANE);
 }
 
