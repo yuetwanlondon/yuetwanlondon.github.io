@@ -33,6 +33,8 @@ h1{font-size:23px;margin:0 0 3px;line-height:1.2}
 h2{font-size:18px;margin:0 0 10px}
 .sub{color:var(--ink-55);font-size:14px}
 .meta{color:var(--ink-80);font-size:14px;margin-top:8px;line-height:1.6}
+.bhero{height:172px;border-radius:14px;background-size:cover;background-position:center;background-color:#2a2118;position:relative;margin-bottom:18px}
+.bchip{position:absolute;left:12px;top:12px;background:var(--vermilion);color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:4px 12px;border-radius:20px}
 .pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:#e2f0e0;color:#2f6b34;border-radius:20px;padding:3px 10px;margin-left:8px;vertical-align:middle}
 
 /* stage + grid */
@@ -104,6 +106,21 @@ function $(id){ return document.getElementById(id); }
 async function post(p){ const r=await fetch(BOOK_API,{method:"POST",body:JSON.stringify(p)}); return r.json(); }
 function money(n){ return "£"+(Math.round(n*100)/100).toString().replace(/\.00$/,""); }
 
+/* Reuse the linked website event's image (…/book/?show=ID) as the show hero. */
+var EVENT_IMG={}, SHOW_ID="";
+async function loadEventImages(){
+  try{
+    var r=await fetch("/data.json",{cache:"no-cache"}); if(!r.ok) return;
+    var j=await r.json();
+    (j.events||[]).forEach(function(ev){
+      var m=/[?&]show=([^&#]+)/.exec(ev.link||""); if(!m) return;
+      var sid=decodeURIComponent(m[1]); var img=ev.ticket_image||ev.image||"";
+      if(sid&&img) EVENT_IMG[sid]=img;
+    });
+  }catch(e){}
+}
+function heroFor(){ if(SHOW&&SHOW.hero_image&&String(SHOW.hero_image).trim()) return SHOW.hero_image; return EVENT_IMG[SHOW_ID]||""; }
+
 /* ---- seat-map pure logic (mirrors the designer) ---- */
 function decCell(ch){ if(ch==="x")return{t:"blocked"}; if(ch>="0"&&ch<="9")return{t:"seat",sec:+ch,wc:false}; var c=ch.charCodeAt(0); if(c>=97&&c<=106)return{t:"seat",sec:c-97,wc:true}; return{t:"empty"}; }
 function deserializeMap(raw){ raw=raw||{};
@@ -139,6 +156,8 @@ $("langBtn").textContent=LANG==="zh"?"EN":"中文";
 /* ---- boot ---- */
 (function(){
   var id=new URLSearchParams(location.search).get("show");
+  SHOW_ID=id||"";
+  loadEventImages().then(function(){ if(SHOW) render(); });
   if(id) loadShow(id); else loadList();
 })();
 
@@ -150,6 +169,7 @@ async function loadList(){
 }
 var LISTED=[];
 async function loadShow(id){
+  SHOW_ID=id;
   $("view").innerHTML=card('<div class="sub">'+L("Loading show…","載入中…")+'</div>');
   try{
     var res=await post({action:"book_show",show:id});
@@ -186,12 +206,14 @@ function render(){
 }
 
 function showHeaderHtml(){
+  var hero=heroFor();
+  var heroHtml = hero ? '<div class="bhero" style="background-image:url(\''+esc(hero)+'\')">'+(SHOW.category?'<span class="bchip">'+esc(SHOW.category)+'</span>':'')+'</div>' : '';
   var t=esc(L(SHOW.title_en||SHOW.title_zh, SHOW.title_zh||SHOW.title_en));
   var v=esc(L(SHOW.venue_en||SHOW.venue_zh, SHOW.venue_zh||SHOW.venue_en));
   var when=[SHOW.date, SHOW.time].filter(Boolean).join(" · ");
   var m=[]; if(when) m.push(esc(when)); if(v) m.push(v);
   if(SHOW.doors) m.push(L("Doors ","開場 ")+esc(SHOW.doors));
-  return '<h1 class="'+(LANG==="zh"?"zh":"")+'">'+t+'</h1><div class="meta">'+m.join("<br>")+'</div>';
+  return heroHtml+'<h1 class="'+(LANG==="zh"?"zh":"")+'">'+t+'</h1><div class="meta">'+m.join("<br>")+'</div>';
 }
 
 function renderList(){

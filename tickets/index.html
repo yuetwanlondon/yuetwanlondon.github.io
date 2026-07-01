@@ -88,6 +88,23 @@ function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,
 async function post(p){ const r=await fetch(BOOK_API,{method:"POST",body:JSON.stringify(p)}); return r.json(); }
 var TICKETS=[];
 
+/* Pull each show's image from the website event it is linked to (…/book/?show=ID),
+   so the picture is managed once on the website and reused on tickets. */
+var EVENT_IMG={};
+async function loadEventImages(){
+  try{
+    var r=await fetch("/data.json",{cache:"no-cache"}); if(!r.ok) return;
+    var j=await r.json();
+    (j.events||[]).forEach(function(ev){
+      var m=/[?&]show=([^&#]+)/.exec(ev.link||""); if(!m) return;
+      var sid=decodeURIComponent(m[1]); var img=ev.ticket_image||ev.image||"";
+      if(sid&&img) EVENT_IMG[sid]=img;
+    });
+  }catch(e){}
+}
+function heroFor(sh){ if(!sh) return ""; if(sh.hero_image&&String(sh.hero_image).trim()) return sh.hero_image; return EVENT_IMG[sh.id]||""; }
+loadEventImages();
+
 $("langBtn").onclick=function(){ LANG=LANG==="zh"?"en":"zh"; try{ localStorage.setItem("yw_lang",LANG); }catch(e){} render(); };
 
 function render(){
@@ -147,8 +164,9 @@ function ticketHtml(t,i){
   var zh=(sh.title_zh&&sh.title_en&&LANG!=="zh")?('<small>'+esc(sh.title_zh)+'</small>'):'';
   var when=[sh.date,sh.time].filter(Boolean).join(" · ");
   var venue=esc(L(sh.venue_en||sh.venue_zh, sh.venue_zh||sh.venue_en));
-  var heroStyle = sh.hero_image ? ' style="background-image:url(\''+esc(sh.hero_image)+'\')"' : '';
-  var heroCls = sh.hero_image ? 'ehero' : 'ehero ph';
+  var hero = heroFor(sh);
+  var heroStyle = hero ? ' style="background-image:url(\''+esc(hero)+'\')"' : '';
+  var heroCls = hero ? 'ehero' : 'ehero ph';
   var sealTxt = t.checked_in ? L("Attended","已入場") : L("Completed","已結束");
   var subTxt = done ? (t.checked_in?L("Redeemed — thank you for coming","已入場 — 多謝蒞臨"):L("This show has taken place","此演出已結束")) : L("Show this ticket at the entrance","入場時出示此票");
   var pay = String(t.pay_status||"").toLowerCase()==="paid" ? '<span class="badge paid">'+L("Paid","已付款")+'</span>' : '<span class="badge un">'+L("Payment on confirmation","確認後付款")+'</span>';
@@ -226,11 +244,12 @@ function buildTicketCanvas(t,withHero,cb){
     cb(canvas);
   }
   function heroBlock(){ var g=ctx.createLinearGradient(hx,hy,hx+hw,hy+hh); g.addColorStop(0,"#1c1712"); g.addColorStop(1,"#3a2e20"); ctx.save(); roundTop(ctx,hx,hy,hw,hh,20); ctx.clip(); ctx.fillStyle=g; ctx.fillRect(hx,hy,hw,hh); ctx.fillStyle="#c9a45e"; ctx.font="700 11px Plus Jakarta Sans, sans-serif"; ctx.textAlign="center"; ctx.fillText("YUET WAN LONDON",hx+hw/2,hy+hh/2); ctx.restore(); }
-  if(withHero && sh.hero_image){
+  var dlHero = heroFor(sh);
+  if(withHero && dlHero){
     var img=new Image(); img.crossOrigin="anonymous";
     img.onload=function(){ ctx.save(); roundTop(ctx,hx,hy,hw,hh,20); ctx.clip(); cover(ctx,img,hx,hy,hw,hh); ctx.restore(); afterHero(); };
     img.onerror=function(){ heroBlock(); afterHero(); };
-    img.src=sh.hero_image;
+    img.src=dlHero;
   } else { heroBlock(); afterHero(); }
 }
 

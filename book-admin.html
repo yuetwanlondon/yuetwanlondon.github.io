@@ -269,8 +269,9 @@ textarea.in{min-height:74px;resize:vertical}
         <label class="f">Venue — 中文</label>
         <input class="in" id="f_venue_zh" placeholder="倫敦邵氏劇院">
 
-        <label class="f">Hero image — used on tickets &amp; the booking page</label>
-        <input class="in" id="f_hero_image" placeholder="https://yuetwanlondon.com/img/gala-hero.jpg">
+        <label class="f">Ticket image override (optional)</label>
+        <div class="hint" style="margin:-2px 0 6px">Leave blank to use the image from the linked website event. Fill only to force a different image on this show's tickets.</div>
+        <input class="in" id="f_hero_image" placeholder="Blank = use website event image">
         <div class="hint">Paste an image URL (a photo you've uploaded to the site works well). Every ticket for this show uses it.</div>
 
         <div class="two">
@@ -432,8 +433,23 @@ async function boot(){
     if(s && s.ok){ $("conn").innerHTML = 'Connected · backend '+s.version+' · '+s.shows+' show(s) so far.'; }
     else { $("conn").textContent = "Connected, but the backend replied with an error. Re-check the deployment."; }
   }catch(e){ $("conn").textContent = "Connected to the page, but couldn't read from the backend yet."; }
-  loadShows(); loadMaps();
+  loadShows(); loadMaps(); loadEventImages();
 }
+
+/* Reuse the linked website event's image (…/book/?show=ID) when a show has no override. */
+var EVENT_IMG={};
+async function loadEventImages(){
+  try{
+    var r=await fetch("/data.json",{cache:"no-cache"}); if(!r.ok) return;
+    var j=await r.json();
+    (j.events||[]).forEach(function(ev){
+      var m=/[?&]show=([^&#]+)/.exec(ev.link||""); if(!m) return;
+      var sid=decodeURIComponent(m[1]); var img=ev.ticket_image||ev.image||"";
+      if(sid&&img) EVENT_IMG[sid]=img;
+    });
+  }catch(e){}
+}
+function heroFor(sh){ if(!sh) return ""; if(sh.hero_image&&String(sh.hero_image).trim()) return sh.hero_image; return EVENT_IMG[sh.id]||""; }
 
 /* ---------- shows list ---------- */
 function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
@@ -1002,7 +1018,7 @@ function ticketsDoc(list){
     var zh=(sh.title_zh&&sh.title_en)?('<div class="zh">'+esc(sh.title_zh)+'</div>'):'';
     var when=[sh.date,sh.time].filter(Boolean).join(" · ");
     var venue=esc(sh.venue_en||sh.venue_zh||"");
-    var main = sh.hero_image ? '<img class="hero" src="'+esc(sh.hero_image)+'" alt="">' : '<div class="mainfb"></div>';
+    var main = heroFor(sh) ? '<img class="hero" src="'+esc(heroFor(sh))+'" alt="">' : '<div class="mainfb"></div>';
     return '<div class="tk">'
       +'<div class="stub">'
         +'<div class="admit">Admit<b>'+esc(b.count)+'</b></div>'
@@ -1041,7 +1057,7 @@ function manifestDoc(list){
     +'.box{width:17px;height:17px;border:1.5px solid #b0a48c;border-radius:4px;display:inline-block}'
     +'.chk{color:#2f6b34;font-weight:700}';
   var head='<div class="mhead">'
-    +(shName&&shName.hero_image?'<img src="'+esc(shName.hero_image)+'" alt="">':'')
+    +(shName&&heroFor(shName)?'<img src="'+esc(heroFor(shName))+'" alt="">':'')
     +'<div><div class="mttl">'+esc(shName?(shName.title_en||shName.title_zh):"Attendee list")+'</div>'
     +'<div class="msub">'+esc(shName?[shName.date,shName.time,(shName.venue_en||shName.venue_zh)].filter(Boolean).join(" · "):"Multiple shows")+'</div>'
     +'<div class="mtag">Attendee list · '+list.length+' booking(s) · '+totalSeats+' seat(s)</div></div>'
