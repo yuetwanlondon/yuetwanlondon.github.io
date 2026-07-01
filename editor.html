@@ -142,6 +142,13 @@ select.nl-in{appearance:auto}
 .setrow .k{font-family:var(--grot);font-size:12.5px;font-weight:700;color:var(--ink-80)}
 .setrow .k small{display:block;font-weight:500;color:var(--ink-55);font-size:11px;margin-top:2px}
 .setrow input{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:16px;font-family:var(--grot)}
+.settoggle{display:inline-flex;align-items:center;gap:11px;cursor:pointer}
+.settoggle input{position:absolute;opacity:0;width:0;height:0}
+.settoggle .track{width:46px;height:26px;border-radius:20px;background:#cfc6b6;position:relative;transition:.2s;flex:0 0 auto}
+.settoggle input:checked + .track{background:var(--brass,#B8893C)}
+.settoggle .track::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
+.settoggle input:checked + .track::after{transform:translateX(20px)}
+.settoggle .lab{font-family:var(--grot);font-size:13px;font-weight:700;color:var(--ink-80)}
 .abrow{display:grid;grid-template-columns:190px 1fr;gap:14px;padding:14px 18px;border-bottom:1px solid var(--line-2,#EFEAE0);align-items:start}
 .abrow:last-child{border-bottom:none}
 .abrow .k{font-family:var(--grot);font-size:12.5px;font-weight:700;color:var(--ink-80);padding-top:6px}
@@ -451,7 +458,8 @@ const SETKEYS=[
   {key:"site_email",note:"Contact email"},{key:"site_phone",note:"Contact phone"},
   {key:"location_en",note:"Location (EN)"},{key:"location_zh",note:"Location (中文)"},
   {key:"newsletter_url",note:"Newsletter form URL"},
-  {key:"tagline_en",note:"Strapline (EN)"},{key:"tagline_zh",note:"Strapline (中文)"},{key:"motto_zh",note:"Motto"}
+  {key:"tagline_en",note:"Strapline (EN)"},{key:"tagline_zh",note:"Strapline (中文)"},{key:"motto_zh",note:"Motto"},
+  {key:"auto_emails",note:"Auto welcome + acknowledgement emails",type:"toggle"}
 ];
 
 const ABOUTKEYS=[
@@ -667,13 +675,18 @@ function renderAbout(host){
 function renderSettings(host){
   host.innerHTML=`<div class="setpanel">${SETKEYS.map(sk=>{
     const row=DATA.settings.find(s=>s.key===sk.key)||{key:sk.key,value:""};
+    if(sk.type==="toggle"){
+      const on=String(row.value||"").toLowerCase()!=="off";
+      return `<div class="setrow"><div class="k">${E(sk.key)}<small>${E(sk.note)}</small></div><label class="settoggle"><input type="checkbox" data-key="${E(sk.key)}" data-toggle="1"${on?" checked":""}><span class="track"></span><span class="lab">${on?"On":"Off"}</span></label></div>`;
+    }
     return `<div class="setrow"><div class="k">${E(sk.key)}<small>${E(sk.note)}</small></div><input type="text" data-key="${E(sk.key)}" value="${E(row.value)}"></div>`;
   }).join("")}</div><button class="addbtn" id="setSave" style="border-style:solid">Save settings</button>`;
+  host.querySelectorAll("input[data-toggle]").forEach(t=>{ t.addEventListener("change",()=>{ const l=t.parentElement.querySelector(".lab"); if(l)l.textContent=t.checked?"On":"Off"; }); });
   host.querySelector("#setSave").onclick=async()=>{
-    host.querySelectorAll("input[data-key]").forEach(inp=>{
+    host.querySelectorAll("[data-key]").forEach(inp=>{
       let row=DATA.settings.find(s=>s.key===inp.dataset.key);
       if(!row){row={key:inp.dataset.key,value:"",note:""};DATA.settings.push(row);}
-      row.value=inp.value;
+      row.value = inp.dataset.toggle ? (inp.checked?"on":"off") : inp.value;
     });
     mark("settings"); await saveAll();
   };
