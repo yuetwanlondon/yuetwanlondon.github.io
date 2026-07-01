@@ -143,6 +143,25 @@ textarea.in{min-height:74px;resize:vertical}
 .prow .pin{width:120px;margin-bottom:0}
 .nps{display:flex;align-items:flex-start;gap:9px;font-size:13.5px;color:var(--ink-80);cursor:pointer}
 .nps input{width:18px;height:18px;margin-top:1px;flex:none}
+.badge.paid{background:#e2f0e0;color:#2f6b34}
+.badge.day{background:#fbf0d8;color:#8a6410}
+.badge.unpaid{background:#f0e6e0;color:#8a5a2f}
+.badge.ok{background:#e0ecf0;color:#2f5a6b}
+.badge.pend{background:#eee7d7;color:#7a6a4a}
+.badge.canc{background:#f0e0de;color:#9a3a2f}
+.badge.in{background:#16130f;color:#e7dcc6}
+.bkcard{border:1px solid var(--line);border-radius:14px;background:#fff;padding:14px 16px;margin-bottom:12px}
+.bktop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.bkref{font-weight:800;font-size:15px;letter-spacing:.02em}
+.bkshow{color:var(--ink-55);font-size:13px;text-align:right}
+.bkbody{display:flex;gap:18px;flex-wrap:wrap;margin:10px 0 12px;font-size:14px}
+.bkwho{min-width:180px}
+.bkwho a{color:var(--vermilion-d);text-decoration:none}
+.bkseats{color:var(--ink-80)}
+.bkamt{color:var(--ink-55);font-size:12.5px}
+.bkacts{display:flex;gap:7px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:11px}
+.btn.xs{padding:6px 11px;font-size:12px;border-radius:22px}
+.btn.danger{border-color:rgba(200,64,46,.5);color:var(--vermilion-d)}
 </style>
 </head>
 <body>
@@ -174,6 +193,7 @@ textarea.in{min-height:74px;resize:vertical}
     <div class="secnav" id="secnav">
       <button data-sec="shows" class="on">Shows</button>
       <button data-sec="maps">Seat maps</button>
+      <button data-sec="bookings">Bookings</button>
     </div>
     <div id="showsArea">
     <!-- list view -->
@@ -317,6 +337,18 @@ textarea.in{min-height:74px;resize:vertical}
   </div>
 </div>
 
+<div id="bookingsArea" class="hidden">
+  <div class="rowhead">
+    <h2>Bookings</h2>
+    <div style="display:flex;gap:8px;align-items:center">
+      <select id="bkFilter" class="in" style="width:auto;padding:8px 12px;font-size:13px"><option value="">All shows</option></select>
+      <button class="btn sm" id="bkRefresh">Refresh</button>
+    </div>
+  </div>
+  <div class="note">Every reservation lands here. Contact the buyer, take payment your way, then mark it <b>Paid</b> or <b>Pay on day</b>. <b>Cancel</b> releases the seats back for sale.</div>
+  <div id="bkList"></div>
+</div>
+
   </div>
 </div>
 
@@ -363,7 +395,7 @@ async function boot(){
   showForm(false);
   try{
     var s = await post({ action:"stats", pass: AUTH.pass });
-    if(s && s.ok){ $("conn").innerHTML = 'Connected · backend '+s.version+' · '+s.shows+' show(s) so far. <span style="color:var(--ink-55)">Phase 1 — Shows. Seat maps, the buyer booking page and check-in come next.</span>'; }
+    if(s && s.ok){ $("conn").innerHTML = 'Connected · backend '+s.version+' · '+s.shows+' show(s) so far.'; }
     else { $("conn").textContent = "Connected, but the backend replied with an error. Re-check the deployment."; }
   }catch(e){ $("conn").textContent = "Connected to the page, but couldn't read from the backend yet."; }
   loadShows(); loadMaps();
@@ -597,7 +629,7 @@ function renderMapList(){
 }
 
 /* ---- open / switch views ---- */
-function showMapsArea(on){ $("mapsArea").classList.toggle("hidden",!on); $("showsArea").classList.toggle("hidden",on); }
+function switchArea(name){ $("showsArea").classList.toggle("hidden",name!=="shows"); $("mapsArea").classList.toggle("hidden",name!=="maps"); $("bookingsArea").classList.toggle("hidden",name!=="bookings"); }
 function showDesigner(on){ $("mapDesigner").classList.toggle("hidden",!on); $("mapsListView").classList.toggle("hidden",on); if(on) window.scrollTo(0,0); }
 
 function openMap(id){
@@ -746,13 +778,73 @@ $("mapBack2").onclick=function(){ showDesigner(false); };
 $("saveMap").onclick=saveMapNow;
 $("saveMap2").onclick=saveMapNow;
 $("deleteMap").onclick=deleteMapNow;
+/* ---------- bookings ---------- */
+var BOOKINGS=[];
+async function loadBookings(){
+  var host=$("bkList"); host.innerHTML='<div class="empty">Loading bookings…</div>';
+  try{
+    var res=await post({action:"bookings", pass:AUTH.pass});
+    BOOKINGS=(res&&res.ok&&res.bookings)?res.bookings:[];
+    var f=$("bkFilter"), cur=f.value;
+    f.innerHTML='<option value="">All shows</option>'+(((res&&res.shows)||[]).map(function(s){return '<option value="'+esc(s.id)+'">'+esc(s.title)+'</option>';}).join(""));
+    f.value=cur;
+  }catch(e){ BOOKINGS=[]; }
+  renderBookings();
+}
+function payBadge(p){ p=String(p||"").toLowerCase(); if(p==="paid")return '<span class="badge paid">Paid</span>'; if(p==="pay_on_day")return '<span class="badge day">Pay on day</span>'; return '<span class="badge unpaid">Unpaid</span>'; }
+function stBadge(s){ s=String(s||"").toLowerCase(); if(s==="confirmed")return '<span class="badge ok">Confirmed</span>'; if(s==="cancelled")return '<span class="badge canc">Cancelled</span>'; return '<span class="badge pend">Pending</span>'; }
+function renderBookings(){
+  var host=$("bkList"), fil=$("bkFilter").value;
+  var list=BOOKINGS.filter(function(b){ return !fil || String(b.show_id)===fil; });
+  if(!list.length){ host.innerHTML='<div class="empty">No bookings'+(fil?' for this show':'')+' yet.</div>'; return; }
+  host.innerHTML=list.map(function(b){
+    var checked=b.checkin_ts && String(b.checkin_ts).trim();
+    var cancelled=String(b.status||"").toLowerCase()==="cancelled";
+    return '<div class="bkcard" data-id="'+esc(b.id)+'">'
+      +'<div class="bktop"><div><span class="bkref">'+esc(b.id)+'</span>'+payBadge(b.pay_status)+stBadge(b.status)+(checked?'<span class="badge in">Checked in</span>':'')+'</div>'
+      +'<div class="bkshow">'+esc(b.show_title||b.show_id)+'</div></div>'
+      +'<div class="bkbody"><div class="bkwho"><b>'+esc(b.name)+'</b><br><a href="mailto:'+esc(b.email)+'">'+esc(b.email)+'</a>'+(b.phone?' · '+esc(b.phone):'')+'</div>'
+      +'<div class="bkseats">'+esc(b.count)+' seat(s): <b>'+esc(b.seats)+'</b>'+(b.amount_note?'<br><span class="bkamt">'+esc(b.amount_note)+'</span>':'')+'</div></div>'
+      +'<div class="bkacts">'
+        +'<button class="btn xs" data-act="paid">Mark paid</button>'
+        +'<button class="btn xs" data-act="pay_on_day">Pay on day</button>'
+        +'<button class="btn xs" data-act="confirm">Confirm</button>'
+        +'<button class="btn xs danger" data-act="'+(cancelled?"restore":"cancel")+'">'+(cancelled?"Restore":"Cancel")+'</button>'
+      +'</div></div>';
+  }).join("");
+  Array.prototype.forEach.call(host.querySelectorAll(".bkcard"),function(card){
+    Array.prototype.forEach.call(card.querySelectorAll("[data-act]"),function(btn){
+      btn.onclick=function(){ doBookingAct(card.getAttribute("data-id"), btn.getAttribute("data-act"), btn); };
+    });
+  });
+}
+async function doBookingAct(id, act, btn){
+  var patch=null, confirmMsg=null;
+  if(act==="paid") patch={pay_status:"paid"};
+  else if(act==="pay_on_day") patch={pay_status:"pay_on_day"};
+  else if(act==="confirm") patch={status:"confirmed"};
+  else if(act==="cancel"){ patch={status:"cancelled"}; confirmMsg="Cancel booking "+id+"? This releases the seats back for sale."; }
+  else if(act==="restore"){ patch={status:"pending"}; }
+  if(!patch) return;
+  if(confirmMsg && !window.confirm(confirmMsg)) return;
+  var acts=btn.parentNode, was=acts.innerHTML; acts.innerHTML='<span class="empty" style="padding:6px;border:none">Saving…</span>';
+  try{
+    var res=await post({action:"bookingPatch", pass:AUTH.pass, id:id, patch:patch});
+    if(res&&res.ok){ var b=BOOKINGS.filter(function(x){return x.id===id;})[0]; if(b){ Object.keys(patch).forEach(function(k){ b[k]=patch[k]; }); } renderBookings(); }
+    else { acts.innerHTML=was; alert((res&&res.error)||"Couldn't update."); }
+  }catch(e){ acts.innerHTML=was; alert("Network error — please try again."); }
+}
+$("bkRefresh").onclick=loadBookings;
+$("bkFilter").onchange=renderBookings;
+
 Array.prototype.forEach.call($("secnav").querySelectorAll("[data-sec]"),function(b){
   b.onclick=function(){
     Array.prototype.forEach.call($("secnav").querySelectorAll("[data-sec]"),function(x){ x.classList.remove("on"); });
     b.classList.add("on");
     var sec=b.getAttribute("data-sec");
-    showMapsArea(sec==="maps");
+    switchArea(sec);
     if(sec==="maps" && !MAPS.length) loadMaps();
+    if(sec==="bookings") loadBookings();
   };
 });
 

@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Check-in · Yuet Wan London</title>
+<link rel="icon" type="image/png" href="/img/yuetwanlondon-favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+:root{--ink:#16130F;--paper:#F4ECDD;--mist:#F6F3EE;--brass:#B8893C;--vermilion:#C8402E;--line:rgba(22,19,15,.14);
+  --green:#2f7a3a;--green-bg:#e5f3e6;--amber:#a9721a;--amber-bg:#fbf1da;--red:#a8331f;--red-bg:#f5e2de;--grot:"Plus Jakarta Sans",system-ui,sans-serif}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--mist);color:var(--ink);font-family:var(--grot);line-height:1.5}
+button{font-family:inherit;cursor:pointer}
+.hidden{display:none!important}
+.top{background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:space-between;padding:13px 18px}
+.top .lg{display:flex;align-items:center;gap:9px;font-weight:800;font-size:15px}
+.top .lg .dot{width:7px;height:7px;border-radius:50%;background:var(--vermilion)}
+.top .out{background:transparent;color:var(--paper);border:1px solid rgba(244,236,221,.28);border-radius:30px;padding:6px 13px;font-size:12.5px;font-weight:600}
+.wrap{max-width:520px;margin:0 auto;padding:20px 16px 60px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px}
+h1{font-size:20px;margin:0 0 4px}
+.sub{color:#6d655c;font-size:14px;margin-bottom:14px}
+label.f{display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.02em;color:#6d655c;margin:8px 0 6px}
+.in{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px 13px;font-size:16px;font-family:inherit}
+.in:focus{outline:none;border-color:var(--brass)}
+.btn{border:1px solid var(--brass);background:#fff;color:#6d563a;border-radius:30px;padding:12px 20px;font-size:15px;font-weight:600;width:100%}
+.btn.primary{background:var(--vermilion);border-color:var(--vermilion);color:#fff}
+.btn.dark{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.gate{margin-top:12px;background:var(--red-bg);border:1px solid rgba(168,51,31,.3);color:var(--red);border-radius:10px;padding:11px 14px;font-size:13.5px}
+#reader{width:100%;border-radius:14px;overflow:hidden;margin-bottom:12px;background:#000;min-height:60px}
+.or{text-align:center;color:#9a9186;font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin:14px 0}
+.row{display:flex;gap:8px}.row .in{flex:1}.row .btn{width:auto;white-space:nowrap}
+.result{border-radius:16px;padding:22px 20px;text-align:center;margin-bottom:14px}
+.result .status{font-size:30px;font-weight:800;letter-spacing:.01em;margin:0 0 4px}
+.result .who{font-size:20px;font-weight:700;margin:12px 0 2px}
+.result .det{font-size:15px;opacity:.85}
+.result.g{background:var(--green-bg);color:var(--green);border:2px solid var(--green)}
+.result.a{background:var(--amber-bg);color:var(--amber);border:2px solid var(--amber)}
+.result.r{background:var(--red-bg);color:var(--red);border:2px solid var(--red)}
+.warn{background:#fff4d6;border:1px solid rgba(169,114,26,.4);color:#8a6410;border-radius:10px;padding:9px 12px;font-size:13px;font-weight:600;margin-bottom:12px;text-align:center}
+.seatline{font-size:17px;font-weight:700;color:var(--ink);background:#f3ece0;border-radius:10px;padding:10px;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="lg"><span class="dot"></span>Yuet Wan London <span style="font-weight:600;opacity:.7">Check-in</span></div>
+  <button class="out hidden" id="logout">Sign out</button>
+</div>
+<div class="wrap">
+
+  <div id="login" class="card">
+    <h1>Door check-in</h1>
+    <div class="sub">Enter the booking admin password to scan tickets.</div>
+    <label class="f">Password</label>
+    <input class="in" id="pass" type="password" autocomplete="off">
+    <div style="height:12px"></div>
+    <button class="btn dark" id="signin">Start</button>
+    <div class="gate hidden" id="lgate"></div>
+  </div>
+
+  <div id="scan" class="hidden">
+    <div id="resultWrap"></div>
+    <div class="card" id="scanCard">
+      <h1>Scan a ticket</h1>
+      <div class="sub">Point the camera at the QR code on the guest's confirmation.</div>
+      <div id="reader"></div>
+      <button class="btn" id="camToggle">Start camera</button>
+      <div class="or">or enter reference</div>
+      <div class="row"><input class="in" id="manual" placeholder="YW260901-XXXX" autocapitalize="characters"><button class="btn dark" id="lookup">Look up</button></div>
+    </div>
+    <div style="height:12px"></div>
+    <button class="btn primary hidden" id="nextBtn">Scan next guest</button>
+  </div>
+
+</div>
+
+<script>
+const BOOK_API = "https://script.google.com/macros/s/AKfycbylfZEOHp8Zngus5S033z2qdARaZJJg8PaDd2dElqntQYIrn8IzFSE3N1jjfvYX3PNUTQ/exec";
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+async function post(p){ const r=await fetch(BOOK_API,{method:"POST",body:JSON.stringify(p)}); return r.json(); }
+var PASS=null, scanner=null, camOn=false, busy=false;
+
+/* ---- login ---- */
+try{ var saved=sessionStorage.getItem("ywc_pass"); if(saved){ PASS=saved; enterApp(); } }catch(e){}
+$("pass").addEventListener("keydown",function(e){ if(e.key==="Enter") $("signin").click(); });
+$("signin").onclick=async function(){
+  var p=$("pass").value; if(!p){ gate("Please enter the password."); return; }
+  this.disabled=true; this.textContent="Checking…";
+  try{
+    var res=await post({action:"login",user:"yuetwan",pass:p});
+    if(res&&res.ok){ PASS=p; try{ sessionStorage.setItem("ywc_pass",p); }catch(e){} enterApp(); }
+    else { gate("Wrong password."); this.disabled=false; this.textContent="Start"; }
+  }catch(e){ gate("Couldn't reach the backend."); this.disabled=false; this.textContent="Start"; }
+};
+function gate(m){ var g=$("lgate"); g.textContent=m; g.classList.remove("hidden"); }
+$("logout").onclick=function(){ try{ sessionStorage.removeItem("ywc_pass"); }catch(e){} location.reload(); };
+
+function enterApp(){
+  $("login").classList.add("hidden"); $("scan").classList.remove("hidden"); $("logout").classList.remove("hidden");
+  var q=new URLSearchParams(location.search);
+  if(q.get("b")){ doCheckin(q.get("b"), q.get("t")||""); }
+}
+
+/* ---- camera ---- */
+$("camToggle").onclick=function(){ camOn?stopCam():startCam(); };
+function startCam(){
+  if(typeof Html5Qrcode==="undefined"){ $("camToggle").textContent="Camera unavailable — use reference"; return; }
+  scanner=new Html5Qrcode("reader");
+  scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:240,height:240}},onDecode,function(){})
+    .then(function(){ camOn=true; $("camToggle").textContent="Stop camera"; })
+    .catch(function(){ $("camToggle").textContent="Can't open camera — use reference"; });
+}
+function stopCam(){ if(scanner&&camOn){ scanner.stop().then(function(){ camOn=false; $("camToggle").textContent="Start camera"; try{scanner.clear();}catch(e){} }).catch(function(){}); } }
+function onDecode(text){
+  if(busy) return; busy=true;
+  var p=parseTicket(text);
+  stopCam();
+  doCheckin(p.id, p.token);
+}
+function parseTicket(text){
+  text=String(text||"").trim();
+  if(text.indexOf("?")>-1 || text.indexOf("b=")>-1){
+    try{ var qs=text.substring(text.indexOf("?")+1); var params=new URLSearchParams(qs); if(params.get("b")) return {id:params.get("b"), token:params.get("t")||""}; }catch(e){}
+  }
+  return {id:text, token:""};
+}
+
+/* ---- manual ---- */
+$("manual").addEventListener("keydown",function(e){ if(e.key==="Enter") $("lookup").click(); });
+$("lookup").onclick=function(){ var v=$("manual").value.trim(); if(!v) return; busy=true; doCheckin(v,""); };
+$("nextBtn").onclick=function(){ $("resultWrap").innerHTML=""; $("nextBtn").classList.add("hidden"); $("scanCard").classList.remove("hidden"); $("manual").value=""; busy=false; };
+
+/* ---- check-in ---- */
+async function doCheckin(id, token){
+  $("scanCard").classList.add("hidden");
+  $("resultWrap").innerHTML='<div class="result a"><div class="status">Checking…</div></div>';
+  try{
+    var res=await post({action:"checkin", pass:PASS, id:id, token:token});
+    renderResult(res);
+  }catch(e){ renderResult({ok:false,error:"Network error — try again."}); }
+  $("nextBtn").classList.remove("hidden");
+}
+function renderResult(res){
+  var html;
+  if(!res || !res.ok){
+    var cls = res&&res.cancelled ? "r" : "r";
+    html='<div class="result r"><div class="status">'+(res&&res.cancelled?"CANCELLED":"NOT FOUND")+'</div><div class="det">'+esc((res&&res.error)||"Unknown error")+'</div></div>';
+    $("resultWrap").innerHTML=html; return;
+  }
+  var b=res.booking, pay=String(b.pay_status||"").toLowerCase();
+  var admit = pay==="paid";
+  var cls = admit ? "g" : "a";
+  var status = admit ? "PAID · ADMIT" : (pay==="pay_on_day" ? "PAY ON DAY" : "COLLECT PAYMENT");
+  var warn = res.already ? '<div class="warn">⚠ Already checked in'+(b.checkin_at?(" at "+esc(b.checkin_at)):"")+'</div>' : '';
+  html = warn
+    + '<div class="result '+cls+'">'
+    + '<div class="status">'+status+'</div>'
+    + '<div class="who">'+esc(b.name)+'</div>'
+    + (res.show?'<div class="det">'+esc(res.show.title)+'</div>':'')
+    + '<div class="seatline">'+esc(b.count)+' seat(s) · '+esc(b.seats)+'</div>'
+    + '<div class="det" style="margin-top:8px">Ref '+esc(b.id)+'</div>'
+    + '</div>';
+  $("resultWrap").innerHTML=html;
+}
+</script>
+</body>
+</html>
