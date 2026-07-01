@@ -162,6 +162,15 @@ textarea.in{min-height:74px;resize:vertical}
 .bkacts{display:flex;gap:7px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:11px}
 .btn.xs{padding:6px 11px;font-size:12px;border-radius:22px}
 .btn.danger{border-color:rgba(200,64,46,.5);color:var(--vermilion-d)}
+.bktools{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.bktools .in{flex:1;min-width:180px;padding:9px 12px;font-size:14px}
+.bktools .grow{flex:1}
+.selall{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;color:var(--ink-80);white-space:nowrap;cursor:pointer}
+.selcount{font-size:12.5px;color:var(--ink-55);white-space:nowrap}
+.bkcard{position:relative}
+.bkpick{position:absolute;top:14px;right:16px}
+.bkpick input{width:19px;height:19px;cursor:pointer}
+.bktop{padding-right:34px}
 </style>
 </head>
 <body>
@@ -237,6 +246,9 @@ textarea.in{min-height:74px;resize:vertical}
         <label class="f">Title — 中文</label>
         <input class="in" id="f_title_zh" placeholder="粵劇之夜">
 
+        <label class="f">Category — shown as a chip on tickets</label>
+        <input class="in" id="f_category" placeholder="Cantonese Opera">
+
         <div class="two">
           <div><label class="f">Date (YYYY-MM-DD)</label><input class="in" id="f_date" placeholder="2026-09-06"></div>
           <div><label class="f">Start time</label><input class="in" id="f_time" placeholder="7:30pm"></div>
@@ -250,6 +262,10 @@ textarea.in{min-height:74px;resize:vertical}
         <input class="in" id="f_venue_en" placeholder="Shaw Theatre, London">
         <label class="f">Venue — 中文</label>
         <input class="in" id="f_venue_zh" placeholder="倫敦邵氏劇院">
+
+        <label class="f">Hero image — used on tickets &amp; the booking page</label>
+        <input class="in" id="f_hero_image" placeholder="https://yuetwanlondon.com/img/gala-hero.jpg">
+        <div class="hint">Paste an image URL (a photo you've uploaded to the site works well). Every ticket for this show uses it.</div>
 
         <div class="two">
           <div><label class="f">Capacity <span style="text-transform:none;color:var(--ink-55)">(total seats)</span></label><input class="in" id="f_capacity" type="number" min="0" placeholder="200"></div>
@@ -346,6 +362,14 @@ textarea.in{min-height:74px;resize:vertical}
     </div>
   </div>
   <div class="note">Every reservation lands here. Contact the buyer, take payment your way, then mark it <b>Paid</b> or <b>Pay on day</b>. <b>Cancel</b> releases the seats back for sale.</div>
+  <div class="bktools">
+    <input class="in" id="bkSearch" placeholder="Search name, email or reference…">
+    <label class="selall"><input type="checkbox" id="bkAll"> Select all shown</label>
+    <span class="selcount" id="bkCount">0 selected</span>
+    <span class="grow"></span>
+    <button class="btn sm" id="printTickets">Print tickets</button>
+    <button class="btn sm" id="printList">Print attendee sheet</button>
+  </div>
   <div id="bkList"></div>
 </div>
 
@@ -461,12 +485,14 @@ function openForm(id){
   fid("seating").value = s.seating_type||"assigned";
   fid("title_en").value = s.title_en||"";
   fid("title_zh").value = s.title_zh||"";
+  fid("category").value = s.category||"";
   fid("date").value = s.date||"";
   fid("time").value = s.time||"";
   fid("doors").value = s.doors||"";
   fid("daily_cap").value = (s.daily_cap!=null&&s.daily_cap!=="")?s.daily_cap:"100";
   fid("venue_en").value = s.venue_en||"";
   fid("venue_zh").value = s.venue_zh||"";
+  fid("hero_image").value = s.hero_image||"";
   fid("capacity").value = s.capacity||"";
   populateMapPicker(); fid("map_id").value = s.map_id||"";
   CUR_PRICES = s.prices_json||""; if($("f_nameseat")) $("f_nameseat").checked = (s.name_per_seat==="yes"); renderPriceRows();
@@ -493,6 +519,8 @@ $("saveShow").onclick = async function(){
     seating_type: fid("seating").value,
     title_en: fid("title_en").value.trim(),
     title_zh: fid("title_zh").value.trim(),
+    category: fid("category").value.trim(),
+    hero_image: fid("hero_image").value.trim(),
     date: fid("date").value.trim(),
     time: fid("time").value.trim(),
     doors: fid("doors").value.trim(),
@@ -779,7 +807,16 @@ $("saveMap").onclick=saveMapNow;
 $("saveMap2").onclick=saveMapNow;
 $("deleteMap").onclick=deleteMapNow;
 /* ---------- bookings ---------- */
-var BOOKINGS=[];
+var BOOKINGS=[], SELECTED_BK={};
+function showById(id){ return SHOWS.filter(function(s){return s.id===id;})[0]||{}; }
+function filteredBookings(){
+  var fil=$("bkFilter").value, q=($("bkSearch").value||"").trim().toLowerCase();
+  return BOOKINGS.filter(function(b){
+    if(fil && String(b.show_id)!==fil) return false;
+    if(!q) return true;
+    return (String(b.name||"")+" "+String(b.email||"")+" "+String(b.id||"")+" "+String(b.seats||"")).toLowerCase().indexOf(q)>-1;
+  });
+}
 async function loadBookings(){
   var host=$("bkList"); host.innerHTML='<div class="empty">Loading bookings…</div>';
   try{
@@ -794,13 +831,14 @@ async function loadBookings(){
 function payBadge(p){ p=String(p||"").toLowerCase(); if(p==="paid")return '<span class="badge paid">Paid</span>'; if(p==="pay_on_day")return '<span class="badge day">Pay on day</span>'; return '<span class="badge unpaid">Unpaid</span>'; }
 function stBadge(s){ s=String(s||"").toLowerCase(); if(s==="confirmed")return '<span class="badge ok">Confirmed</span>'; if(s==="cancelled")return '<span class="badge canc">Cancelled</span>'; return '<span class="badge pend">Pending</span>'; }
 function renderBookings(){
-  var host=$("bkList"), fil=$("bkFilter").value;
-  var list=BOOKINGS.filter(function(b){ return !fil || String(b.show_id)===fil; });
-  if(!list.length){ host.innerHTML='<div class="empty">No bookings'+(fil?' for this show':'')+' yet.</div>'; return; }
+  var host=$("bkList");
+  var list=filteredBookings();
+  if(!list.length){ host.innerHTML='<div class="empty">No bookings match.</div>'; updateSelCount(); return; }
   host.innerHTML=list.map(function(b){
     var checked=b.checkin_ts && String(b.checkin_ts).trim();
     var cancelled=String(b.status||"").toLowerCase()==="cancelled";
     return '<div class="bkcard" data-id="'+esc(b.id)+'">'
+      +'<div class="bkpick"><input type="checkbox" class="bksel" data-id="'+esc(b.id)+'"'+(SELECTED_BK[b.id]?" checked":"")+'></div>'
       +'<div class="bktop"><div><span class="bkref">'+esc(b.id)+'</span>'+payBadge(b.pay_status)+stBadge(b.status)+(checked?'<span class="badge in">Checked in</span>':'')+'</div>'
       +'<div class="bkshow">'+esc(b.show_title||b.show_id)+'</div></div>'
       +'<div class="bkbody"><div class="bkwho"><b>'+esc(b.name)+'</b><br><a href="mailto:'+esc(b.email)+'">'+esc(b.email)+'</a>'+(b.phone?' · '+esc(b.phone):'')+'</div>'
@@ -817,6 +855,22 @@ function renderBookings(){
       btn.onclick=function(){ doBookingAct(card.getAttribute("data-id"), btn.getAttribute("data-act"), btn); };
     });
   });
+  Array.prototype.forEach.call(host.querySelectorAll(".bksel"),function(cb){
+    cb.onchange=function(){ if(cb.checked) SELECTED_BK[cb.getAttribute("data-id")]=true; else delete SELECTED_BK[cb.getAttribute("data-id")]; updateSelCount(); };
+  });
+  updateSelCount();
+}
+function updateSelCount(){
+  var n=Object.keys(SELECTED_BK).length;
+  $("bkCount").textContent = n ? (n+" selected") : "0 selected";
+  var shown=filteredBookings();
+  var allSel = shown.length>0 && shown.every(function(b){ return SELECTED_BK[b.id]; });
+  if($("bkAll")) $("bkAll").checked = allSel;
+}
+function getPrintList(){
+  var sel=Object.keys(SELECTED_BK);
+  var list = sel.length ? BOOKINGS.filter(function(b){ return SELECTED_BK[b.id]; }) : filteredBookings();
+  return list.filter(function(b){ return String(b.status||"").toLowerCase()!=="cancelled"; });
 }
 async function doBookingAct(id, act, btn){
   var patch=null, confirmMsg=null;
@@ -835,7 +889,108 @@ async function doBookingAct(id, act, btn){
   }catch(e){ acts.innerHTML=was; alert("Network error — please try again."); }
 }
 $("bkRefresh").onclick=loadBookings;
-$("bkFilter").onchange=renderBookings;
+$("bkFilter").onchange=function(){ renderBookings(); };
+$("bkSearch").oninput=function(){ renderBookings(); };
+$("bkAll").onchange=function(){
+  var shown=filteredBookings();
+  if($("bkAll").checked) shown.forEach(function(b){ SELECTED_BK[b.id]=true; });
+  else shown.forEach(function(b){ delete SELECTED_BK[b.id]; });
+  renderBookings();
+};
+$("printTickets").onclick=function(){ var l=getPrintList(); if(!l.length){ alert("Select some bookings first (or clear filters)."); return; } openPrint(ticketsDoc(l)); };
+$("printList").onclick=function(){ var l=getPrintList(); if(!l.length){ alert("Select some bookings first (or clear filters)."); return; } openPrint(manifestDoc(l)); };
+
+/* ---------- printable tickets + attendee sheet ---------- */
+function qrFor(b){ return "https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=0&data="+encodeURIComponent(location.origin+"/checkin/?b="+encodeURIComponent(b.id)+"&t="+encodeURIComponent(b.token||"")); }
+function pinSvg(){ return '<svg class="ic" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="2.6"/></svg>'; }
+function calSvg(){ return '<svg class="ic" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>'; }
+function heroBlock(sh){
+  if(sh.hero_image) return '<img class="hero" src="'+esc(sh.hero_image)+'" alt="">';
+  return '<div class="hero heroph"><span>YUET WAN LONDON</span></div>';
+}
+function docShell(title, css, body){
+  return '<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title>'
+    +'<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Noto+Sans+TC:wght@500;700&display=swap" rel="stylesheet">'
+    +'<style>'+css+'</style></head><body>'+body
+    +'<script>window.onload=function(){setTimeout(function(){window.print();},350);};<\/script></body></html>';
+}
+function ticketsDoc(list){
+  var css='*{box-sizing:border-box}body{margin:0;font-family:"Plus Jakarta Sans",system-ui,sans-serif;color:#16130f;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    +'@page{size:A4;margin:10mm}'
+    +'.tk{width:88mm;display:inline-block;vertical-align:top;margin:0 3mm 7mm 0;border:1px solid #e0d6c2;border-radius:12px;overflow:hidden;page-break-inside:avoid}'
+    +'.herowrap{position:relative}'
+    +'.hero{width:100%;height:38mm;object-fit:cover;display:block}'
+    +'.heroph{background:linear-gradient(135deg,#1c1712,#3a2e20);display:flex;align-items:center;justify-content:center}'
+    +'.heroph span{color:#c9a45e;font-size:9pt;font-weight:700;letter-spacing:.18em}'
+    +'.chip{position:absolute;top:6px;left:6px;background:rgba(255,250,240,.94);color:#7a5a1f;font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 10px;border-radius:20px}'
+    +'.body{padding:8mm 6mm 7mm;text-align:center}'
+    +'.ttl{font-family:Georgia,"Noto Sans TC",serif;font-size:16pt;font-weight:700;line-height:1.12}'
+    +'.ttl small{display:block;font-size:10.5pt;color:#5b4f3f;font-weight:400;margin-top:2px}'
+    +'.sub{color:#9a8f7c;font-size:8pt;margin:5px 0 9px;letter-spacing:.02em}'
+    +'.qr{width:33mm;height:33mm;display:block;margin:0 auto}'
+    +'.ref{font-family:"SFMono-Regular",Consolas,monospace;font-size:9pt;letter-spacing:.04em;color:#3a3530;margin-top:4px}'
+    +'.meta{font-size:9pt;color:#3a3530;margin-top:9px;line-height:1.7}'
+    +'.meta div{display:flex;align-items:center;justify-content:center;gap:5px}'
+    +'.ic{color:#b8893c;flex:none}'
+    +'.nmlbl{font-size:7pt;text-transform:uppercase;letter-spacing:.1em;color:#9a8f7c;margin-top:9px}'
+    +'.nm{font-weight:700;font-size:11.5pt}'
+    +'.seatrow{margin-top:7px;background:#f3ece0;border-radius:8px;padding:5px 8px;font-weight:700;font-size:10pt}';
+  var body=list.map(function(b){
+    var sh=showById(b.show_id);
+    var title=esc(sh.title_en||sh.title_zh||b.show_title||b.show_id);
+    var zh=(sh.title_zh&&sh.title_en)?('<small>'+esc(sh.title_zh)+'</small>'):'';
+    var when=[sh.date,sh.time].filter(Boolean).join(" · ");
+    var venue=esc(sh.venue_en||sh.venue_zh||"");
+    return '<div class="tk"><div class="herowrap">'+heroBlock(sh)+(sh.category?'<span class="chip">'+esc(sh.category)+'</span>':'')+'</div>'
+      +'<div class="body"><div class="ttl">'+title+zh+'</div><div class="sub">Show this ticket at the entrance</div>'
+      +'<img class="qr" src="'+qrFor(b)+'" alt=""><div class="ref">'+esc(b.id)+'</div>'
+      +'<div class="meta">'+(venue?'<div>'+pinSvg()+'<span>'+venue+'</span></div>':'')+(when?'<div>'+calSvg()+'<span>'+esc(when)+'</span></div>':'')+'</div>'
+      +'<div class="nmlbl">Name</div><div class="nm">'+esc(b.name)+'</div>'
+      +'<div class="seatrow">'+esc(b.count)+' seat(s) · '+esc(b.seats)+'</div></div></div>';
+  }).join("");
+  return docShell("Tickets", css, body);
+}
+function manifestDoc(list){
+  var shName = (function(){ var ids={}; list.forEach(function(b){ids[b.show_id]=1;}); var k=Object.keys(ids); return k.length===1?showById(k[0]):null; })();
+  var totalSeats=list.reduce(function(t,b){ return t+(parseInt(b.count,10)||0); },0);
+  var css='*{box-sizing:border-box}body{margin:0;font-family:"Plus Jakarta Sans",system-ui,sans-serif;color:#16130f;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    +'@page{size:A4;margin:12mm}'
+    +'.mhead{display:flex;align-items:center;gap:14px;border-bottom:3px solid #b8893c;padding-bottom:12px;margin-bottom:14px}'
+    +'.mhead img{width:66px;height:66px;object-fit:cover;border-radius:10px;flex:none}'
+    +'.mttl{font-family:Georgia,"Noto Sans TC",serif;font-size:19pt;font-weight:700;line-height:1.1}'
+    +'.msub{color:#5b4f3f;font-size:10.5pt;margin-top:3px}'
+    +'.mtag{color:#8a7f6c;font-size:9pt;margin-top:3px;text-transform:uppercase;letter-spacing:.06em}'
+    +'.brand{margin-left:auto;text-align:right;font-size:8pt;color:#9a8f7c;letter-spacing:.12em;text-transform:uppercase}'
+    +'table{width:100%;border-collapse:collapse;font-size:10pt}'
+    +'th,td{text-align:left;padding:8px 8px;border-bottom:1px solid #e6ddcc;vertical-align:top}'
+    +'th{font-size:8pt;text-transform:uppercase;letter-spacing:.06em;color:#8a7f6c;border-bottom:2px solid #d8cbb2}'
+    +'tr{page-break-inside:avoid}'
+    +'.pill{font-size:8pt;font-weight:700;padding:2px 8px;border-radius:20px}'
+    +'.p-paid{background:#e2f0e0;color:#2f6b34}.p-un{background:#f0e6e0;color:#8a5a2f}.p-day{background:#fbf0d8;color:#8a6410}'
+    +'.box{width:15px;height:15px;border:1.5px solid #b0a48c;border-radius:4px;display:inline-block}'
+    +'.chk{color:#2f6b34;font-weight:700}';
+  var head='<div class="mhead">'
+    +(shName&&shName.hero_image?'<img src="'+esc(shName.hero_image)+'" alt="">':'')
+    +'<div><div class="mttl">'+esc(shName?(shName.title_en||shName.title_zh):"Attendee list")+'</div>'
+    +'<div class="msub">'+esc(shName?[shName.date,shName.time,(shName.venue_en||shName.venue_zh)].filter(Boolean).join(" · "):"Multiple shows")+'</div>'
+    +'<div class="mtag">Attendee list · '+list.length+' booking(s) · '+totalSeats+' seat(s)</div></div>'
+    +'<div class="brand">Yuet Wan London<br>倫敦粵韻曲藝文化協會</div></div>';
+  var rows=list.map(function(b,i){
+    var pay=String(b.pay_status||"").toLowerCase();
+    var payPill=pay==="paid"?'<span class="pill p-paid">Paid</span>':(pay==="pay_on_day"?'<span class="pill p-day">Pay on day</span>':'<span class="pill p-un">Unpaid</span>');
+    var inTxt=(b.checkin_ts&&String(b.checkin_ts).trim())?('<span class="chk">✓</span> '+esc(String(b.checkin_ts))):'';
+    return '<tr><td>'+(i+1)+'</td><td><b>'+esc(b.name)+'</b><br><span style="color:#8a7f6c;font-size:8.5pt">'+esc(b.email)+(b.phone?' · '+esc(b.phone):'')+'</span></td>'
+      +'<td>'+esc(b.seats)+'<br><span style="color:#8a7f6c;font-size:8.5pt">'+esc(b.id)+'</span></td><td>'+esc(b.count)+'</td>'
+      +'<td>'+payPill+'</td><td>'+inTxt+'</td><td><span class="box"></span></td></tr>';
+  }).join("");
+  var body=head+'<table><thead><tr><th>#</th><th>Name &amp; contact</th><th>Seats / ref</th><th>Qty</th><th>Payment</th><th>Checked in</th><th>Arrived</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  return docShell("Attendee sheet", css, body);
+}
+function openPrint(html){
+  var w=window.open("","_blank");
+  if(!w){ alert("Please allow pop-ups for this site to print."); return; }
+  w.document.open(); w.document.write(html); w.document.close(); w.focus();
+}
 
 Array.prototype.forEach.call($("secnav").querySelectorAll("[data-sec]"),function(b){
   b.onclick=function(){
