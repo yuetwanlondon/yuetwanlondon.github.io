@@ -136,6 +136,13 @@ textarea.in{min-height:74px;resize:vertical}
 .leg{display:inline-flex;align-items:center;gap:5px;margin-right:14px}
 .leg .sw{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid rgba(0,0,0,.15)}
 
+.prow{display:flex;align-items:center;gap:9px;margin:7px 0}
+.prow .sw{width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.15);flex:none}
+.prow .pn{flex:1;font-size:14px;color:var(--ink-80)}
+.prow .pp{color:var(--ink-55);font-size:14px}
+.prow .pin{width:120px;margin-bottom:0}
+.nps{display:flex;align-items:flex-start;gap:9px;font-size:13.5px;color:var(--ink-80);cursor:pointer}
+.nps input{width:18px;height:18px;margin-top:1px;flex:none}
 </style>
 </head>
 <body>
@@ -229,7 +236,10 @@ textarea.in{min-height:74px;resize:vertical}
           <div><label class="f">Seat map</label><select class="in" id="f_map_id"><option value="">— none / general admission —</option></select><div class="hint">Pick a venue built under “Seat maps”. Prices per section are set next.</div></div>
         </div>
 
-        <label class="f">Price note — English <span style="text-transform:none;color:var(--ink-55)">(shown to buyers; payment is arranged with you)</span></label>
+        <div id="priceBox" style="margin-top:6px"></div>
+        <label class="nps" style="margin-top:16px"><input type="checkbox" id="f_nameseat"> <span>Collect an attendee name for every seat (useful for groups, kids &amp; concessions)</span></label>
+
+        <label class="f">Price note — English <span style="text-transform:none;color:var(--ink-55)">(extra text shown to buyers, e.g. concessions)</span></label>
         <input class="in" id="f_price_note_en" placeholder="£15 · £10 concessions — pay on confirmation">
         <label class="f">Price note — 中文</label>
         <input class="in" id="f_price_note_zh" placeholder="£15 · 優惠 £10 — 確認後付款">
@@ -427,6 +437,7 @@ function openForm(id){
   fid("venue_zh").value = s.venue_zh||"";
   fid("capacity").value = s.capacity||"";
   populateMapPicker(); fid("map_id").value = s.map_id||"";
+  CUR_PRICES = s.prices_json||""; if($("f_nameseat")) $("f_nameseat").checked = (s.name_per_seat==="yes"); renderPriceRows();
   fid("price_note_en").value = s.price_note_en||"";
   fid("price_note_zh").value = s.price_note_zh||"";
   fid("notes").value = s.notes||"";
@@ -462,6 +473,8 @@ $("saveShow").onclick = async function(){
     price_note_zh: fid("price_note_zh").value.trim(),
     notes: fid("notes").value.trim()
   };
+  show.prices_json = gatherPrices();
+  show.name_per_seat = ($("f_nameseat") && $("f_nameseat").checked) ? "yes" : "";
   if(!show.id){ showGate($("fgate"),"Please give the show an ID.",false); return; }
   if(!show.title_en && !show.title_zh){ showGate($("fgate"),"Please give the show a title.",false); return; }
   this.disabled=true; this.textContent="Saving…";
