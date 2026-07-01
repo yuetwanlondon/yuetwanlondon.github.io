@@ -52,7 +52,10 @@ html.loader-on #yw-pre{display:flex}
 .csent .tick{width:58px;height:58px;border-radius:50%;background:var(--jade);display:grid;place-items:center;margin:0 auto 16px}
 .csent .tick svg{width:28px;height:28px;color:#fff}
 .csent h3{font-family:var(--disp);font-weight:800;font-size:21px;margin:0 0 6px}
-.csent p{color:var(--ink-55);margin:0}
+.csent p{color:var(--ink-55);margin:0;line-height:1.55}
+.btn-spin{display:inline-block;width:15px;height:15px;margin-right:9px;vertical-align:-2px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;animation:btnspin .6s linear infinite}
+@keyframes btnspin{to{transform:rotate(360deg)}}
+.btn.loading{opacity:.9;cursor:default}
 .creach{background:var(--mist);border:1px solid var(--line);border-radius:20px;padding:clamp(24px,3vw,32px)}
 .creach .it{display:flex;gap:14px;padding:15px 0;border-bottom:1px solid var(--line)}
 .creach .it:last-child{border-bottom:none}
@@ -130,7 +133,7 @@ html.loader-on #yw-pre{display:flex}
 </div>
 <div class="csent" id="csent"><div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
 <h3 data-en="Thank you!" data-zh="多謝您！">Thank you!</h3>
-<p data-en="Your message has been sent. We'll be in touch soon." data-zh="您的訊息已送出，我們會盡快回覆。">Your message has been sent. We'll be in touch soon.</p></div>
+<p data-en="Your message has been sent — we'll be in touch soon. Please check your spam / junk folder in case our reply lands there." data-zh="您的訊息已送出，我們會盡快回覆。請留意垃圾郵件匣，以免錯過我們的回覆。">Your message has been sent. We'll be in touch soon.</p></div>
 </div>
 <aside class="creach">
 <p class="eyebrow" data-en="Reach us directly" data-zh="直接聯絡">Reach us directly</p>
@@ -181,13 +184,15 @@ function submitContact(){
  if(bad) return;
  var hp=document.getElementById("c_hp");
  if((hp&&hp.value)||(Date.now()-(window.__cfStart||0)<1500)){ document.querySelector(".cform-in").style.display="none"; document.getElementById("csent").classList.add("show"); return; }
- const btn=document.getElementById("csend"); btn.disabled=true;
+ const btn=document.getElementById("csend");
  var sub=document.getElementById("c_sub");
  var clang=(YW.loadLang&&YW.loadLang()==="zh")?"zh":"en";
+ btn.dataset.orig=btn.innerHTML; btn.disabled=true; btn.classList.add("loading"); btn.innerHTML='<span class="btn-spin" aria-hidden="true"></span>'+(clang==="zh"?"傳送中…":"Sending…");
+ function reset(){ btn.disabled=false; btn.classList.remove("loading"); btn.innerHTML=btn.dataset.orig; }
  YW.post({action:"contact",name:name.value,email:email.value,message:msg.value,hp:"",subscribe:!!(sub&&sub.checked),lang:clang}).then(function(res){
    if(res&&res.ok){ document.querySelector(".cform-in").style.display="none"; document.getElementById("csent").classList.add("show"); }
-   else { btn.disabled=false; alert("Could not send — the server replied: "+(res&&res.error||"no response")+". If it says 'unknown action', the Apps Script needs to be re-deployed as a New version."); }
- }).catch(function(){ btn.disabled=false; alert("Sorry — could not reach the server. Please email yuetwanlondon@gmail.com directly."); });
+   else { reset(); alert("Could not send — the server replied: "+(res&&res.error||"no response")+". If it says 'unknown action', the Apps Script needs to be re-deployed as a New version."); }
+ }).catch(function(){ reset(); alert("Sorry — could not reach the server. Please email yuetwanlondon@gmail.com directly."); });
 }
 document.getElementById("csend").onclick=submitContact;
 ["f_name","f_email"].forEach(function(id){document.getElementById(id).addEventListener("input",function(e){e.target.style.borderColor="";});});

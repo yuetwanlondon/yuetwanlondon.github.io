@@ -69,7 +69,11 @@ html.loader-on #yw-pre{display:flex}
 .news .consent.err span{color:#e8836b}
 .news .ok{color:var(--brass-l);font-weight:600;margin-top:14px;display:none}
 .news .fine{color:rgba(244,236,221,.5);font-size:12.5px;margin-top:14px}
-@media(max-width:560px){.news .news-row{flex-direction:column}.news .news-row .btn{width:100%}}
+.btn-spin{display:inline-block;width:15px;height:15px;margin-right:9px;vertical-align:-2px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;animation:btnspin .6s linear infinite}
+@keyframes btnspin{to{transform:rotate(360deg)}}
+.btn.loading{opacity:.9;cursor:default}
+.news .ok{line-height:1.55}
+@media(max-width:560px){.news .news-row{flex-direction:column}.news .news-row input,.news .news-row .btn{width:100%;flex:0 0 auto}}
 .slabel .seeall{font-family:var(--grot);font-size:14px;font-weight:600;color:var(--vermilion-d);text-decoration:none;white-space:nowrap}
 .slabel .seeall:hover{color:var(--vermilion)}
 .hnews-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
@@ -191,7 +195,7 @@ html.loader-on #yw-pre{display:flex}
 <input type="checkbox" id="newsAgree">
 <span data-en="I agree to receive email newsletters from Yuet Wan London, and understand I can unsubscribe at any time." data-zh="我同意接收倫敦粵韻曲藝文化協會的電郵通訊，並明白可隨時取消訂閱。">I agree to receive email newsletters from Yuet Wan London, and understand I can unsubscribe at any time.</span>
 </label>
-<div class="ok" id="newsOk" data-en="Thank you for subscribing!" data-zh="多謝您的訂閱！">Thank you for subscribing!</div>
+<div class="ok" id="newsOk" data-en="Thank you for subscribing! Please check your inbox — and your spam / junk folder — for our welcome email." data-zh="多謝您的訂閱！我們已寄出歡迎電郵，請同時查看垃圾郵件匣，以免錯過。">Thank you for subscribing!</div>
 <p class="fine" data-en="We'll only email you about our events. No spam, ever." data-zh="我們只會傳送活動相關電郵，絕不濫發。">We'll only email you about our events. No spam, ever.</p>
 </div></div>
 </div></section>
@@ -323,11 +327,13 @@ document.getElementById("newsBtn").onclick=async function(){
  const ag=document.getElementById("newsAgree");
  const cs=document.getElementById("newsConsent");
  const hp=document.getElementById("newsHp");
+ const btn=document.getElementById("newsBtn");
+ const lang=(YW.loadLang&&YW.loadLang()==="zh")?"zh":"en";
  if(!em.value.trim()||em.value.indexOf("@")<1){em.style.borderColor="var(--vermilion)";return;}
  if(!ag.checked){cs.classList.add("err");return;}
  function done(){ document.getElementById("newsForm").style.display="none"; cs.style.display="none"; document.getElementById("newsOk").style.display="block"; }
  if((hp&&hp.value)||(Date.now()-window.__nfStart<1500)){ done(); return; }   // honeypot or instant submit -> ignore
- const lang=(YW.loadLang&&YW.loadLang()==="zh")?"zh":"en";
+ btn.disabled=true; btn.classList.add("loading"); btn.innerHTML='<span class="btn-spin" aria-hidden="true"></span>'+(lang==="zh"?"訂閱中…":"Subscribing…");
  try{await YW.post({action:"subscribe",email:em.value.trim(),name:nm.value.trim(),lang:lang,consent:true,hp:""});}catch(e){}
  done();
 };
