@@ -764,6 +764,24 @@ function populateMapPicker(){
   sel.value=cur;
 }
 
+/* ---- show form: per-section prices + name-per-seat ---- */
+var CUR_PRICES = "";   // prices_json of the show being edited (set by openForm)
+function currentMap(){ var el=$("f_map_id"); var id=el?el.value:""; return MAPS.filter(function(x){return x.id===id;})[0]||null; }
+function renderPriceRows(){
+  var box=$("priceBox"); if(!box) return;
+  var m=currentMap();
+  if(!m||!m.sections.length){ box.innerHTML='<div class="hint">Pick a seat map above to set a price for each section. For general admission, use the price note below.</div>'; return; }
+  var saved={}; try{ (JSON.parse(CUR_PRICES||"[]")||[]).forEach(function(p,i){ if(p&&p.amount!=null&&p.amount!=="") saved[i]=p.amount; }); }catch(e){}
+  box.innerHTML='<label class="f">Ticket price per section</label>'+m.sections.map(function(s,i){
+    return '<div class="prow"><span class="sw" style="background:'+esc(s.color)+'"></span><span class="pn">'+esc(s.name)+'</span><span class="pp">£</span><input class="in pin" data-pi="'+i+'" type="number" min="0" step="0.5" placeholder="0" value="'+esc(saved[i]!=null?saved[i]:"")+'"></div>';
+  }).join("")+'<div class="hint">Buyers see an indicative total from these; you set the final amount when confirming payment.</div>';
+}
+function gatherPrices(){
+  var m=currentMap(); if(!m) return "";
+  return JSON.stringify(m.sections.map(function(s,i){ var inp=document.querySelector('.pin[data-pi="'+i+'"]'); return { name:s.name, amount: inp?String(inp.value).trim():"" }; }));
+}
+(function(){ var mp=$("f_map_id"); if(mp) mp.addEventListener("change", function(){ CUR_PRICES=""; renderPriceRows(); }); })();
+
 /* ---------- resume session ---------- */
 (function(){
   try{ var a = sessionStorage.getItem("ywb_auth"); if(a){ AUTH = JSON.parse(a); boot(); } }catch(e){}
