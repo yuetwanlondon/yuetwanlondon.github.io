@@ -44,6 +44,9 @@ html.loader-on #yw-pre{display:flex}
 .cform input:focus,.cform textarea:focus{outline:none;border-color:var(--brass);background:#fff}
 .cform textarea{min-height:130px;resize:vertical;line-height:1.6}
 .cform .btn{width:100%;margin-top:6px}
+.copt{display:flex;align-items:flex-start;gap:9px;margin:-2px 0 16px;cursor:pointer}
+.copt input{width:18px;height:18px;flex:0 0 auto;margin-top:1px;accent-color:var(--brass);cursor:pointer}
+.copt span{font-family:var(--serif);font-size:14px;line-height:1.5;color:#5a5148}
 .csent{display:none;text-align:center;padding:30px 10px}
 .csent.show{display:block}.cform.sent .cform-in{display:none}
 .csent .tick{width:58px;height:58px;border-radius:50%;background:var(--jade);display:grid;place-items:center;margin:0 auto 16px}
@@ -121,6 +124,7 @@ html.loader-on #yw-pre{display:flex}
 <div class="fld"><label data-en="Your name" data-zh="您的姓名">Your name</label><input type="text" id="f_name" data-gf="name" required></div>
 <div class="fld"><label data-en="Email address" data-zh="電郵地址">Email address</label><input type="email" id="f_email" data-gf="email" required></div>
 <div class="fld"><label data-en="Message" data-zh="您的訊息">Message</label><textarea id="f_msg" data-gf="message"></textarea></div>
+<label class="copt"><input type="checkbox" id="c_sub"><span data-en="Also subscribe me to the newsletter for events and updates." data-zh="同時訂閱電郵通訊，接收活動及最新消息。">Also subscribe me to the newsletter for events and updates.</span></label>
 <input type="text" id="c_hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="nf-hp">
 <button class="btn btn-fill" id="csend" data-en="Send message" data-zh="送出訊息">Send message</button>
 </div>
@@ -178,7 +182,9 @@ function submitContact(){
  var hp=document.getElementById("c_hp");
  if((hp&&hp.value)||(Date.now()-(window.__cfStart||0)<1500)){ document.querySelector(".cform-in").style.display="none"; document.getElementById("csent").classList.add("show"); return; }
  const btn=document.getElementById("csend"); btn.disabled=true;
- YW.post({action:"contact",name:name.value,email:email.value,message:msg.value,hp:""}).then(function(res){
+ var sub=document.getElementById("c_sub");
+ var clang=(YW.loadLang&&YW.loadLang()==="zh")?"zh":"en";
+ YW.post({action:"contact",name:name.value,email:email.value,message:msg.value,hp:"",subscribe:!!(sub&&sub.checked),lang:clang}).then(function(res){
    if(res&&res.ok){ document.querySelector(".cform-in").style.display="none"; document.getElementById("csent").classList.add("show"); }
    else { btn.disabled=false; alert("Could not send — the server replied: "+(res&&res.error||"no response")+". If it says 'unknown action', the Apps Script needs to be re-deployed as a New version."); }
  }).catch(function(){ btn.disabled=false; alert("Sorry — could not reach the server. Please email yuetwanlondon@gmail.com directly."); });
