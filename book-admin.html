@@ -222,6 +222,7 @@ textarea.in{min-height:74px;resize:vertical}
       <button data-sec="shows" class="on">Shows</button>
       <button data-sec="maps">Seat maps</button>
       <button data-sec="bookings">Bookings</button>
+      <button data-sec="settings">Settings</button>
     </div>
     <div id="showsArea">
     <!-- list view -->
@@ -387,10 +388,20 @@ textarea.in{min-height:74px;resize:vertical}
     <div class="dp-h"><b>Door check-in link</b> <span class="dp-sub">Share with the people working the door — it opens the scanner with no password.</span></div>
     <div class="dp-row"><input class="in" id="doorUrl" readonly placeholder="No code yet"><button class="btn sm" id="doorCopy">Copy</button><button class="btn sm ghost" id="doorNew">Generate</button><button class="btn sm ghost" id="doorOffBtn">Turn off</button></div>
   </div>
-  <div class="doorpanel" id="payPanel">
-    <div class="dp-h"><b>Invoice payment details</b> <span class="dp-sub">Shown on invoices under “How to pay”. Saved on this device.</span></div>
-    <textarea id="payDetails" placeholder="e.g. Bank transfer — Yuet Wan London&#10;Sort code 00-00-00 · Account 00000000&#10;Please quote your booking reference." style="width:100%;min-height:74px;resize:vertical;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:13px;line-height:1.5"></textarea>
+  <div class="bktools">
+    <input class="in" id="bkSearch" placeholder="Search name, email or reference…">
+    <label class="selall"><input type="checkbox" id="bkAll"> Select all shown</label>
+    <span class="selcount" id="bkCount">0 selected</span>
+    <span class="grow"></span>
+    <button class="btn sm" id="printTickets">Print tickets</button>
+    <button class="btn sm" id="printList">Print attendee sheet</button>
   </div>
+  <div id="bkList"></div>
+</div>
+
+<div id="settingsArea" class="hidden">
+  <div class="rowhead"><h2>Settings</h2></div>
+  <div class="note">Master settings used across all your tickets and invoices — set once here.</div>
   <div class="doorpanel" id="termsPanel">
     <div class="dp-h"><b>Conditions of Entry</b> <span class="dp-sub">Printed on the back of every ticket. Saved to your booking sheet — one master copy for all tickets.</span></div>
     <div id="termsList"></div>
@@ -401,15 +412,10 @@ textarea.in{min-height:74px;resize:vertical}
       <button class="btn sm" id="termSave">Save conditions</button>
     </div>
   </div>
-  <div class="bktools">
-    <input class="in" id="bkSearch" placeholder="Search name, email or reference…">
-    <label class="selall"><input type="checkbox" id="bkAll"> Select all shown</label>
-    <span class="selcount" id="bkCount">0 selected</span>
-    <span class="grow"></span>
-    <button class="btn sm" id="printTickets">Print tickets</button>
-    <button class="btn sm" id="printList">Print attendee sheet</button>
+  <div class="doorpanel" id="payPanel">
+    <div class="dp-h"><b>Invoice payment details</b> <span class="dp-sub">Shown on invoices under “How to pay”. Saved on this device.</span></div>
+    <textarea id="payDetails" placeholder="e.g. Bank transfer — Yuet Wan London&#10;Sort code 00-00-00 · Account 00000000&#10;Please quote your booking reference." style="width:100%;min-height:74px;resize:vertical;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:13px;line-height:1.5"></textarea>
   </div>
-  <div id="bkList"></div>
 </div>
 
   </div>
@@ -715,7 +721,7 @@ function renderMapList(){
 }
 
 /* ---- open / switch views ---- */
-function switchArea(name){ $("showsArea").classList.toggle("hidden",name!=="shows"); $("mapsArea").classList.toggle("hidden",name!=="maps"); $("bookingsArea").classList.toggle("hidden",name!=="bookings"); }
+function switchArea(name){ $("showsArea").classList.toggle("hidden",name!=="shows"); $("mapsArea").classList.toggle("hidden",name!=="maps"); $("bookingsArea").classList.toggle("hidden",name!=="bookings"); $("settingsArea").classList.toggle("hidden",name!=="settings"); }
 function showDesigner(on){ $("mapDesigner").classList.toggle("hidden",!on); $("mapsListView").classList.toggle("hidden",on); if(on) window.scrollTo(0,0); }
 
 function openMap(id){
@@ -1097,8 +1103,8 @@ function ticketsDoc(list){
     +'.veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 50%,rgba(9,7,5,.62) 100%);-webkit-print-color-adjust:exact;print-color-adjust:exact}'
     +'.picfb{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#2a2016,#4a3a26);-webkit-print-color-adjust:exact;print-color-adjust:exact}'
     +'.cat{position:absolute;left:5mm;top:5mm;background:#c8402e;color:#fff;font-size:6.4pt;font-weight:700;text-transform:uppercase;letter-spacing:.12em;padding:3px 10px;border-radius:20px;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
-    +'.plogo{position:absolute;left:5mm;bottom:4.5mm;display:flex;align-items:center;gap:5px;color:#f4ecdd}'
-    +'.plogo span{font-size:5.8pt;letter-spacing:.16em;text-transform:uppercase;line-height:1}'
+    +'.plogo{position:absolute;left:5mm;bottom:4.5mm}'
+    +'.plogo img{height:5mm;filter:brightness(0) invert(1);opacity:.95;display:block}'
     /* content */
     +'.mid{flex:1;min-width:0;padding:7mm 7.5mm 6mm;display:flex;flex-direction:column;border-right:1.6pt dashed #cdbf9f}'
     +'.ey{font-size:6.2pt;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:#b8893c}'
@@ -1141,6 +1147,7 @@ function ticketsDoc(list){
     +'.bfoot{background:#efe6d4;border-top:1px solid #ddd2ba;padding:2mm 7mm;font-size:5.4pt;color:#6d655c;letter-spacing:.02em;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact}';
   var hex=function(sz,col){ return '<svg width="'+sz+'" height="'+(sz*1.15)+'" viewBox="0 0 40 46" fill="none"><path d="M20 2 L38 12.5 L38 33.5 L20 44 L2 33.5 L2 12.5 Z" stroke="'+col+'" stroke-width="2.6"/></svg>'; };
   var TERMS=ticketTerms();
+  var LOGO=location.origin+"/img/yuetwanlondon-main.svg";
   function frontHtml(b){
     var sh=showById(b.show_id);
     var title=esc(sh.title_en||sh.title_zh||b.show_title||b.show_id);
@@ -1149,12 +1156,12 @@ function ticketsDoc(list){
     var venue=esc(sh.venue_en||sh.venue_zh||"");
     var pic = heroFor(sh)
       ? '<img src="'+esc(heroFor(sh))+'" alt=""><div class="veil"></div>'
-      : '<div class="picfb">'+hex(30,"#c9a45e")+'</div>';
+      : '<div class="picfb"><img src="'+LOGO+'" alt="Yuet Wan London" style="width:36mm;filter:brightness(0) invert(1);opacity:.9"></div>';
     return '<div class="tk">'
       +'<span class="notch t"></span><span class="notch b"></span>'
       +'<div class="pic">'+pic
         +(sh.category?'<span class="cat">'+esc(sh.category)+'</span>':'')
-        +'<div class="plogo">'+hex(11,"#f4ecdd")+'<span>Yuet Wan London</span></div>'
+        +'<div class="plogo"><img src="'+LOGO+'" alt="Yuet Wan London"></div>'
       +'</div>'
       +'<div class="mid">'
         +'<div class="ey">Yuet Wan London Presents</div>'
@@ -1410,6 +1417,7 @@ Array.prototype.forEach.call($("secnav").querySelectorAll("[data-sec]"),function
     switchArea(sec);
     if(sec==="maps" && !MAPS.length) loadMaps();
     if(sec==="bookings") loadBookings();
+    if(sec==="settings") renderTermsEditor();
   };
 });
 

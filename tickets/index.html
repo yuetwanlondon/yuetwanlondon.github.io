@@ -341,23 +341,33 @@ function buildTicketCanvas(t,withHero,cb){
   function heroBlock(){
     ctx.save(); roundTop(ctx,hx,hy,hw,hh,20); ctx.clip();
     var g=ctx.createLinearGradient(hx,hy,hx,hy+hh); g.addColorStop(0,"#241c14"); g.addColorStop(1,"#14100b"); ctx.fillStyle=g; ctx.fillRect(hx,hy,hw,hh);
-    var cx=hx+hw/2, cy=hy+hh/2-14;
-    drawHex(ctx,cx,cy,21,"#c9a45e",2.4);
-    ctx.textAlign="center"; ctx.textBaseline="alphabetic";
-    ctx.fillStyle="#f4ecdd"; ctx.font="700 13px Plus Jakarta Sans, sans-serif"; dlSpacing(ctx,"2px"); ctx.fillText("YUET WAN LONDON",cx,cy+42); dlSpacing(ctx,"0px");
-    ctx.fillStyle="#c9a45e"; ctx.font="500 11px 'Noto Sans TC', sans-serif"; ctx.fillText("\u502b\u6566\u7ca4\u97fb\u66f2\u85dd\u6587\u5316\u5354\u6703",cx,cy+60);
+    var cx=hx+hw/2;
+    if(logoOK && logo.width){ var lw=Math.min(180,hw-60), lh=lw*(logo.height/logo.width); ctx.drawImage(logo,cx-lw/2,hy+(hh-lh)/2,lw,lh); }
+    else {
+      var cy=hy+hh/2-14; drawHex(ctx,cx,cy,21,"#c9a45e",2.4);
+      ctx.textAlign="center"; ctx.textBaseline="alphabetic";
+      ctx.fillStyle="#f4ecdd"; ctx.font="700 13px Plus Jakarta Sans, sans-serif"; dlSpacing(ctx,"2px"); ctx.fillText("YUET WAN LONDON",cx,cy+42); dlSpacing(ctx,"0px");
+      ctx.fillStyle="#c9a45e"; ctx.font="500 11px 'Noto Sans TC', sans-serif"; ctx.fillText("\u502b\u6566\u7ca4\u97fb\u66f2\u85dd\u6587\u5316\u5354\u6703",cx,cy+60);
+    }
     ctx.restore();
   }
-  var dlHero = heroFor(sh);
-  if(withHero && dlHero){
-    var img=new Image(); img.crossOrigin="anonymous";
-    img.onload=function(){ ctx.save(); roundTop(ctx,hx,hy,hw,hh,20); ctx.clip(); cover(ctx,img,hx,hy,hw,hh);
-      var vg=ctx.createLinearGradient(hx,hy+hh*0.45,hx,hy+hh); vg.addColorStop(0,"rgba(9,7,5,0)"); vg.addColorStop(1,"rgba(9,7,5,.6)"); ctx.fillStyle=vg; ctx.fillRect(hx,hy,hw,hh);
-      ctx.fillStyle="#f4ecdd"; ctx.font="700 10px Plus Jakarta Sans, sans-serif"; ctx.textAlign="left"; ctx.textBaseline="alphabetic"; dlSpacing(ctx,"1.5px"); ctx.fillText("YUET WAN LONDON",hx+16,hy+hh-14); dlSpacing(ctx,"0px");
-      ctx.restore(); afterHero(); };
-    img.onerror=function(){ heroBlock(); afterHero(); };
-    img.src=dlHero;
-  } else { heroBlock(); afterHero(); }
+  function renderHeader(){
+    var dlHero = heroFor(sh);
+    if(withHero && dlHero){
+      var img=new Image(); img.crossOrigin="anonymous";
+      img.onload=function(){ ctx.save(); roundTop(ctx,hx,hy,hw,hh,20); ctx.clip(); cover(ctx,img,hx,hy,hw,hh);
+        var vg=ctx.createLinearGradient(hx,hy+hh*0.45,hx,hy+hh); vg.addColorStop(0,"rgba(9,7,5,0)"); vg.addColorStop(1,"rgba(9,7,5,.6)"); ctx.fillStyle=vg; ctx.fillRect(hx,hy,hw,hh);
+        if(logoOK && logo.width){ var lw=Math.min(110,hw*0.4), lh=lw*(logo.height/logo.width); ctx.drawImage(logo,hx+16,hy+hh-12-lh,lw,lh); }
+        else { ctx.fillStyle="#f4ecdd"; ctx.font="700 10px Plus Jakarta Sans, sans-serif"; ctx.textAlign="left"; ctx.textBaseline="alphabetic"; dlSpacing(ctx,"1.5px"); ctx.fillText("YUET WAN LONDON",hx+16,hy+hh-14); dlSpacing(ctx,"0px"); }
+        ctx.restore(); afterHero(); };
+      img.onerror=function(){ heroBlock(); afterHero(); };
+      img.src=dlHero;
+    } else { heroBlock(); afterHero(); }
+  }
+  var logo=new Image(); var logoOK=false;
+  logo.onload=function(){ logoOK=true; renderHeader(); };
+  logo.onerror=function(){ logoOK=false; renderHeader(); };
+  logo.src="/img/email-logo.png";
 }
 
 /* boot */
