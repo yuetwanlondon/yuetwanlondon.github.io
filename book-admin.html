@@ -181,6 +181,13 @@ textarea.in{min-height:74px;resize:vertical}
 .dp-h{font-size:14px;margin-bottom:9px}
 .dp-sub{color:var(--ink-55);font-weight:400;font-size:12.5px}
 .dp-row{display:flex;gap:8px;flex-wrap:wrap}
+.termsrow{border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:9px;background:#fff}
+.termsrow .th{display:flex;gap:8px;align-items:center}
+.termsrow .th .thh{flex:1;font-weight:700}
+.termsrow .rm{flex:none;width:32px;height:32px;border-radius:9px;border:1px solid rgba(200,64,46,.4);background:#fff;color:var(--vermilion-d);cursor:pointer;font-size:17px;line-height:1}
+.termsrow .rm:hover{background:rgba(200,64,46,.07)}
+.termsrow textarea{width:100%;min-height:38px;resize:vertical;padding:8px 10px;border:1px solid var(--line);border-radius:9px;font-family:inherit;font-size:12.5px;line-height:1.45;margin-top:7px;color:var(--ink)}
+.termsact{display:flex;align-items:center;gap:8px;margin-top:4px}
 .dp-row .in{flex:1;min-width:200px;padding:9px 12px;font-size:13px;font-family:monospace}
 .btn.ghost{border-color:var(--line);color:var(--ink-55)}
 </style>
@@ -384,6 +391,16 @@ textarea.in{min-height:74px;resize:vertical}
     <div class="dp-h"><b>Invoice payment details</b> <span class="dp-sub">Shown on invoices under “How to pay”. Saved on this device.</span></div>
     <textarea id="payDetails" placeholder="e.g. Bank transfer — Yuet Wan London&#10;Sort code 00-00-00 · Account 00000000&#10;Please quote your booking reference." style="width:100%;min-height:74px;resize:vertical;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:13px;line-height:1.5"></textarea>
   </div>
+  <div class="doorpanel" id="termsPanel">
+    <div class="dp-h"><b>Conditions of Entry</b> <span class="dp-sub">Printed on the back of every ticket. Saved to your booking sheet — one master copy for all tickets.</span></div>
+    <div id="termsList"></div>
+    <div class="termsact">
+      <button class="btn sm ghost" id="termAdd">+ Add term</button>
+      <span class="grow"></span>
+      <button class="btn sm ghost" id="termReset">Reset to defaults</button>
+      <button class="btn sm" id="termSave">Save conditions</button>
+    </div>
+  </div>
   <div class="bktools">
     <input class="in" id="bkSearch" placeholder="Search name, email or reference…">
     <label class="selall"><input type="checkbox" id="bkAll"> Select all shown</label>
@@ -444,7 +461,11 @@ async function boot(){
     if(s && s.ok){ $("conn").innerHTML = 'Connected · backend '+s.version+' · '+s.shows+' show(s) so far.'; }
     else { $("conn").textContent = "Connected, but the backend replied with an error. Re-check the deployment."; }
   }catch(e){ $("conn").textContent = "Connected to the page, but couldn't read from the backend yet."; }
-  loadShows(); loadMaps(); loadEventImages();
+  loadShows(); loadMaps(); loadEventImages(); loadTerms();
+}
+async function loadTerms(){
+  try{ var r=await post({action:"getTerms", pass:AUTH.pass}); if(r&&r.ok){ TERMS_DATA=(r.terms&&r.terms.length)?r.terms:null; } }catch(e){}
+  renderTermsEditor();
 }
 
 /* Reuse the linked website event's image (…/book/?show=ID) when a show has no override. */
@@ -1028,58 +1049,145 @@ function heroBlock(sh){
 }
 function docShell(title, css, body){
   return '<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title>'
-    +'<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Noto+Sans+TC:wght@500;700&display=swap" rel="stylesheet">'
+    +'<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Playfair+Display:wght@700;800;900&family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">'
     +'<style>'+css+'</style></head><body>'+body
-    +'<script>window.onload=function(){setTimeout(function(){window.print();},350);};<\/script></body></html>';
+    +'<script>window.onload=function(){var done=false;function go(){if(done)return;done=true;setTimeout(function(){window.print();},250);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go);}setTimeout(go,1600);};<\/script></body></html>';
+}
+var TERMS_DATA=null, EDIT_TERMS=null;
+var DEFAULT_TERMS=[
+    {h:"Admission", e:"This ticket admits the number of guests shown on the front. Please keep it and have your QR code ready at the door.", z:"本票可供正面所示人數入場。請保留門票並於入場時準備二維碼。"},
+    {h:"Arrival", e:"Please arrive before the start time. For the comfort of performers and audience, latecomers may be seated only at a suitable break.", z:"請於開演前到場。為顧及演員及觀眾，遲到者或須待適當時候方可入座。"},
+    {h:"Seating", e:"Seats are as printed. The organiser may reallocate seating when necessary.", z:"座位以門票所示為準；主辦單位或會於必要時作出調整。"},
+    {h:"Refunds & exchanges", e:"Tickets are non-refundable and non-transferable, except where an event is cancelled or rescheduled.", z:"除演出取消或改期外，門票恕不退款或轉讓。"},
+    {h:"No recording", e:"Photography, filming and audio recording during the performance are not permitted.", z:"演出期間請勿拍照、錄影或錄音。"},
+    {h:"Mobile phones", e:"Please switch mobile devices to silent before the performance begins.", z:"演出開始前請將手機調校至靜音。"},
+    {h:"Right of admission", e:"The organiser reserves the right to refuse admission and to vary the programme, cast or timings.", z:"主辦單位保留拒絕入場及更改節目、演員或時間之權利。"},
+    {h:"Your QR code", e:"Your QR code is unique to this booking — please do not share it. A ticket already scanned may be refused.", z:"二維碼為此購票專用，請勿轉發；已掃描之門票或會被拒入場。"}
+];
+function ticketTerms(){ return (TERMS_DATA&&TERMS_DATA.length)?TERMS_DATA:DEFAULT_TERMS; }
+/* group + range-collapse seats so even a full booking reads cleanly (e.g. "Main A1–A6, B1–B6") */
+function formatSeats(str){
+  var seats=String(str||"").split(",").map(function(s){return s.trim();}).filter(Boolean);
+  if(!seats.length) return "";
+  var order=[], byFloor={};
+  seats.forEach(function(s){
+    var m=s.match(/^(.*?)\s*([A-Za-z]+)(\d+)$/);
+    if(!m){ if(!byFloor["\u0000raw"]){byFloor["\u0000raw"]={raw:[]};order.push("\u0000raw");} byFloor["\u0000raw"].raw.push(s); return; }
+    var fl=(m[1]||"").trim(), row=m[2].toUpperCase(), num=parseInt(m[3],10);
+    if(!byFloor[fl]){ byFloor[fl]={rows:{},rowOrder:[]}; order.push(fl); }
+    if(!byFloor[fl].rows[row]){ byFloor[fl].rows[row]=[]; byFloor[fl].rowOrder.push(row); }
+    byFloor[fl].rows[row].push(num);
+  });
+  function collapse(row,nums){ nums=nums.slice().sort(function(a,b){return a-b;}); var out=[],i=0; while(i<nums.length){ var s=nums[i],e=nums[i]; while(i+1<nums.length&&nums[i+1]===nums[i]+1){i++;e=nums[i];} out.push(e===s?(row+s):(row+s+"\u2013"+row+e)); i++; } return out.join(", "); }
+  return order.map(function(fl){
+    var g=byFloor[fl];
+    if(g.raw) return g.raw.join(", ");
+    var rows=g.rowOrder.slice().sort().map(function(row){ return collapse(row,g.rows[row]); });
+    return (fl?fl+" ":"")+rows.join(", ");
+  }).join("  \u00b7  ");
 }
 function ticketsDoc(list){
-  var css='*{box-sizing:border-box}body{margin:0;font-family:"Plus Jakarta Sans",system-ui,sans-serif;color:#16130f;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
-    +'@page{size:A4;margin:12mm}'
-    +'.tk{display:flex;width:184mm;height:72mm;margin:0 0 8mm;border:1px solid #cbbfa6;border-radius:12px;overflow:hidden;page-break-inside:avoid;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
-    +'.pic{width:62mm;flex:none;position:relative;background:#241c14;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+  var css='*{box-sizing:border-box}'
+    +'body{margin:0;font-family:"Plus Jakarta Sans",system-ui,sans-serif;color:#16130f;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    +'@page{size:A4;margin:11mm}'
+    +'.tk{position:relative;display:flex;width:186mm;height:75mm;margin:0 auto 9mm;background:#fbf7ef;border:1px solid #ddd2ba;border-radius:12px;page-break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    /* image */
+    +'.pic{position:relative;width:59mm;flex:none;background:#241c14;border-radius:12px 0 0 12px;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
     +'.pic img{width:100%;height:100%;object-fit:cover;display:block}'
-    +'.picfb{position:absolute;inset:0;background:linear-gradient(135deg,#2a2016,#4a3a26);display:flex;align-items:center;justify-content:center;color:#c9a45e;font-size:8pt;letter-spacing:.16em;text-transform:uppercase;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
-    +'.cat{position:absolute;left:4mm;top:4mm;background:#c8402e;color:#fff;font-size:7pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:3px 10px;border-radius:20px;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
-    +'.mid{flex:1;min-width:0;display:flex;flex-direction:column}'
-    +'.band{background:#16130f;color:#f4ecdd;padding:5mm 6mm 4.5mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
-    +'.band .t{font-family:Georgia,"Noto Sans TC",serif;font-size:15pt;font-weight:700;line-height:1.12;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}'
-    +'.band .z{font-family:"Noto Sans TC",serif;font-size:9.5pt;color:#d8b570;margin-top:2px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}'
-    +'.info{flex:1;padding:4mm 6mm;display:grid;grid-template-columns:1fr 1fr;gap:3mm 5mm;align-content:center}'
-    +'.info .k{font-size:6.6pt;text-transform:uppercase;letter-spacing:.1em;color:#8a7f6c;margin-bottom:1.5px}'
-    +'.info .v{font-size:10pt;font-weight:600;color:#16130f;line-height:1.3;overflow:hidden}'
+    +'.veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 50%,rgba(9,7,5,.62) 100%);-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    +'.picfb{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#2a2016,#4a3a26);-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    +'.cat{position:absolute;left:5mm;top:5mm;background:#c8402e;color:#fff;font-size:6.4pt;font-weight:700;text-transform:uppercase;letter-spacing:.12em;padding:3px 10px;border-radius:20px;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    +'.plogo{position:absolute;left:5mm;bottom:4.5mm;display:flex;align-items:center;gap:5px;color:#f4ecdd}'
+    +'.plogo span{font-size:5.8pt;letter-spacing:.16em;text-transform:uppercase;line-height:1}'
+    /* content */
+    +'.mid{flex:1;min-width:0;padding:7mm 7.5mm 6mm;display:flex;flex-direction:column;border-right:1.6pt dashed #cdbf9f}'
+    +'.ey{font-size:6.2pt;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:#b8893c}'
+    +'.ttl{font-family:"Playfair Display",Georgia,"Noto Sans TC",serif;font-size:18.5pt;font-weight:800;line-height:1.06;margin:4px 0 0;color:#16130f;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}'
+    +'.zh{font-family:"Noto Sans TC",serif;font-size:10.5pt;font-weight:700;color:#8a6410;margin-top:3px;line-height:1.18;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}'
+    +'.rule{width:26mm;height:1.6pt;background:#b8893c;margin:7px 0 0;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    +'.info{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:2.7mm 6mm}'
+    +'.info .k{font-size:6pt;text-transform:uppercase;letter-spacing:.14em;color:#a3916a;margin-bottom:2px}'
+    +'.info .v{font-size:10pt;font-weight:600;color:#16130f;line-height:1.24;overflow:hidden}'
+    +'.info .seatsv{font-size:9.5pt;line-height:1.22;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}'
     +'.info .full{grid-column:1 / -1}'
-    +'.stub{width:42mm;flex:none;background:#16130f;color:#f4ecdd;padding:5mm 4mm;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;border-left:2px dashed rgba(244,236,221,.45);-webkit-print-color-adjust:exact;print-color-adjust:exact}'
-    +'.admit{font-size:7.5pt;letter-spacing:.14em;text-transform:uppercase;color:#c9a45e;line-height:1.1}'
-    +'.admit b{display:block;font-size:18pt;color:#fff;line-height:1;margin-top:1px}'
-    +'.qbox{background:#fff;padding:2.4mm;border-radius:6px;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    /* stub */
+    +'.stub{width:42mm;flex:none;background:#16130f;color:#f4ecdd;border-radius:0 12px 12px 0;padding:6mm 5mm;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    +'.admit{font-size:6.4pt;letter-spacing:.22em;text-transform:uppercase;color:#c9a45e;line-height:1.2}'
+    +'.admit b{display:block;font-family:"Playfair Display",Georgia,serif;font-size:23pt;font-weight:800;color:#fff;line-height:.9;margin-top:2px}'
+    +'.qbox{background:#fff;padding:2.6mm;border-radius:7px;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
     +'.qr{width:24mm;height:24mm;display:block}'
     +'.sfoot{line-height:1.3}'
-    +'.ref{font-family:"SFMono-Regular",Consolas,monospace;font-size:7.5pt;letter-spacing:.02em}'
-    +'.org{font-size:6pt;color:#c9a45e;letter-spacing:.1em;text-transform:uppercase;margin-top:2px}';
-  var body=list.map(function(b){
+    +'.sseat{font-size:8.5pt;font-weight:700;color:#ffd9a0;letter-spacing:.01em;max-width:34mm;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}'
+    +'.sref{font-family:"SFMono-Regular",Consolas,monospace;font-size:7pt;letter-spacing:.03em;color:#cdbf9f;margin-top:2px}'
+    +'.sorg{font-size:5.4pt;color:#c9a45e;letter-spacing:.14em;text-transform:uppercase;margin-top:3px}'
+    /* perforation punch-notches */
+    +'.notch{position:absolute;width:5mm;height:5mm;border-radius:50%;background:#fff;right:42mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    +'.notch.t{top:0;transform:translate(50%,-50%)}'
+    +'.notch.b{bottom:0;transform:translate(50%,50%)}'
+    /* pages: front then back, paired for double-sided printing */
+    +'.page{page-break-before:always}'
+    +'.page:first-child{page-break-before:avoid}'
+    /* ticket back — conditions of entry */
+    +'.tkb{position:relative;width:186mm;height:75mm;margin:0 auto 9mm;background:#fbf7ef;border:1px solid #ddd2ba;border-radius:12px;overflow:hidden;page-break-inside:avoid;display:flex;flex-direction:column;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    +'.bhead{display:flex;align-items:center;gap:7px;background:#16130f;color:#f4ecdd;padding:3mm 7mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    +'.bhead .bt{font-family:"Playfair Display",Georgia,serif;font-size:11pt;font-weight:800}'
+    +'.bhead .bz{font-family:"Noto Sans TC",serif;font-size:9pt;color:#d8b570}'
+    +'.bhead .bshow{margin-left:auto;font-size:6.6pt;color:#c9a45e;letter-spacing:.08em;text-transform:uppercase;max-width:82mm;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+    +'.terms{flex:1;padding:4mm 7mm 2mm;column-count:2;column-gap:10mm;overflow:hidden}'
+    +'.tm{-webkit-column-break-inside:avoid;break-inside:avoid;margin:0 0 2.5mm}'
+    +'.tm .h{font-size:6.6pt;font-weight:700;color:#16130f;text-transform:uppercase;letter-spacing:.05em}'
+    +'.tm .e{font-size:6.3pt;color:#4a4136;line-height:1.3;margin-top:1px}'
+    +'.tm .z{font-family:"Noto Sans TC","Plus Jakarta Sans",sans-serif;font-size:6.1pt;color:#8a6410;line-height:1.28;margin-top:1px}'
+    +'.bfoot{background:#efe6d4;border-top:1px solid #ddd2ba;padding:2.3mm 7mm;font-size:5.8pt;color:#6d655c;letter-spacing:.02em;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact}';
+  var hex=function(sz,col){ return '<svg width="'+sz+'" height="'+(sz*1.15)+'" viewBox="0 0 40 46" fill="none"><path d="M20 2 L38 12.5 L38 33.5 L20 44 L2 33.5 L2 12.5 Z" stroke="'+col+'" stroke-width="2.6"/></svg>'; };
+  var TERMS=ticketTerms();
+  function frontHtml(b){
     var sh=showById(b.show_id);
     var title=esc(sh.title_en||sh.title_zh||b.show_title||b.show_id);
-    var zh=(sh.title_zh&&sh.title_en)?('<div class="z">'+esc(sh.title_zh)+'</div>'):'';
-    var when=esc([sh.date,sh.time].filter(Boolean).join("  ·  "));
+    var zh=(sh.title_zh&&sh.title_en)?('<div class="zh">'+esc(sh.title_zh)+'</div>'):'';
+    var when=esc([sh.date,sh.time].filter(Boolean).join("  \u00b7  "));
     var venue=esc(sh.venue_en||sh.venue_zh||"");
-    var pic = heroFor(sh) ? '<img src="'+esc(heroFor(sh))+'" alt="">' : '<div class="picfb">Yuet Wan London</div>';
+    var pic = heroFor(sh)
+      ? '<img src="'+esc(heroFor(sh))+'" alt=""><div class="veil"></div>'
+      : '<div class="picfb">'+hex(30,"#c9a45e")+'</div>';
     return '<div class="tk">'
-      +'<div class="pic">'+pic+(sh.category?'<span class="cat">'+esc(sh.category)+'</span>':'')+'</div>'
+      +'<span class="notch t"></span><span class="notch b"></span>'
+      +'<div class="pic">'+pic
+        +(sh.category?'<span class="cat">'+esc(sh.category)+'</span>':'')
+        +'<div class="plogo">'+hex(11,"#f4ecdd")+'<span>Yuet Wan London</span></div>'
+      +'</div>'
       +'<div class="mid">'
-        +'<div class="band"><div class="t">'+title+'</div>'+zh+'</div>'
+        +'<div class="ey">Yuet Wan London Presents</div>'
+        +'<div class="ttl">'+title+'</div>'+zh
+        +'<div class="rule"></div>'
         +'<div class="info">'
-          +'<div class="full"><div class="k">Date &amp; time</div><div class="v">'+(when||'&mdash;')+'</div></div>'
+          +'<div class="full"><div class="k">Date &amp; Time</div><div class="v">'+(when||'&mdash;')+'</div></div>'
           +(venue?'<div class="full"><div class="k">Venue</div><div class="v">'+venue+'</div></div>':'')
-          +'<div><div class="k">Guest</div><div class="v">'+esc(b.name)+'</div></div>'
-          +'<div><div class="k">Seats</div><div class="v">'+esc(b.seats)+'</div></div>'
+          +'<div class="full"><div class="k">Guest</div><div class="v">'+esc(b.name)+'</div></div>'
+          +'<div class="full"><div class="k">Seat'+(String(b.count)==="1"?"":"s")+' &middot; '+esc(b.count)+'</div><div class="v seatsv">'+esc(formatSeats(b.seats))+'</div></div>'
         +'</div>'
       +'</div>'
       +'<div class="stub">'
         +'<div class="admit">Admit<b>'+esc(b.count)+'</b></div>'
         +'<div class="qbox"><img class="qr" src="'+qrFor(b)+'" alt=""></div>'
-        +'<div class="sfoot"><div class="ref">'+esc(b.id)+'</div><div class="org">Yuet Wan London</div></div>'
+        +'<div class="sfoot"><div class="sseat">'+esc(formatSeats(b.seats))+'</div><div class="sref">'+esc(b.id)+'</div><div class="sorg">Yuet Wan London</div></div>'
       +'</div>'
     +'</div>';
+  }
+  function backHtml(b){
+    var sh=showById(b.show_id);
+    var showTitle=esc(sh.title_en||sh.title_zh||b.show_id);
+    var terms=TERMS.map(function(t){ return '<div class="tm"><div class="h">'+esc(t.h)+'</div><div class="e">'+esc(t.e)+'</div><div class="z">'+esc(t.z)+'</div></div>'; }).join("");
+    return '<div class="tkb">'
+      +'<div class="bhead">'+hex(12,"#f4ecdd")+'<span class="bt">Conditions of Entry</span><span class="bz">入場條款</span><span class="bshow">'+showTitle+'</span></div>'
+      +'<div class="terms">'+terms+'</div>'
+      +'<div class="bfoot">This ticket remains the property of Yuet Wan London · 倫敦粵韻曲藝文化協會 &nbsp;·&nbsp; yuetwanlondon@gmail.com &nbsp;·&nbsp; yuetwanlondon.com</div>'
+    +'</div>';
+  }
+  var groups=[]; for(var gi=0;gi<list.length;gi+=3) groups.push(list.slice(gi,gi+3));
+  var body=groups.map(function(g){
+    return '<div class="page">'+g.map(frontHtml).join("")+'</div>'
+         + '<div class="page">'+g.map(backHtml).join("")+'</div>';
   }).join("");
   return docShell("Tickets", css, body);
 }
@@ -1180,6 +1288,39 @@ function openPrint(html){
 /* ---------- invoices & receipts ---------- */
 try{ if($("payDetails")) $("payDetails").value=localStorage.getItem("ywb_pay")||""; }catch(e){}
 if($("payDetails")) $("payDetails").oninput=function(){ try{ localStorage.setItem("ywb_pay",this.value); }catch(e){} };
+/* ---- Conditions of Entry editor (master copy, saved to the sheet) ---- */
+function renderTermsEditor(){
+  var host=$("termsList"); if(!host) return;
+  if(EDIT_TERMS===null) EDIT_TERMS=ticketTerms().map(function(t){ return {h:t.h,e:t.e,z:t.z}; });
+  host.innerHTML=EDIT_TERMS.map(function(t,i){
+    return '<div class="termsrow">'
+      +'<div class="th"><input class="in thh" placeholder="Heading (e.g. Admission)" value="'+esc(t.h)+'"><button class="rm" data-rm="'+i+'" title="Remove term">\u00d7</button></div>'
+      +'<textarea class="te" placeholder="English">'+esc(t.e)+'</textarea>'
+      +'<textarea class="tz cjk" placeholder="\u4e2d\u6587">'+esc(t.z)+'</textarea>'
+    +'</div>';
+  }).join("") || '<div class="dp-sub" style="padding:6px 2px">No terms yet — add one, or reset to the defaults.</div>';
+  Array.prototype.forEach.call(host.querySelectorAll("[data-rm]"),function(b){ b.onclick=function(){ readTermsEditor(); EDIT_TERMS.splice(+b.getAttribute("data-rm"),1); renderTermsEditor(); }; });
+}
+function readTermsEditor(){
+  var host=$("termsList"); if(!host) return;
+  EDIT_TERMS=Array.prototype.map.call(host.querySelectorAll(".termsrow"),function(row){
+    return { h:(row.querySelector(".thh")||{}).value||"", e:(row.querySelector(".te")||{}).value||"", z:(row.querySelector(".tz")||{}).value||"" };
+  });
+}
+if($("termAdd")) $("termAdd").onclick=function(){ readTermsEditor(); EDIT_TERMS.push({h:"",e:"",z:""}); renderTermsEditor(); };
+if($("termReset")) $("termReset").onclick=function(){ if(!confirm("Reset the conditions of entry back to the default wording?")) return; EDIT_TERMS=DEFAULT_TERMS.map(function(t){ return {h:t.h,e:t.e,z:t.z}; }); renderTermsEditor(); };
+if($("termSave")) $("termSave").onclick=async function(){
+  readTermsEditor();
+  var clean=EDIT_TERMS.filter(function(t){ return (t.h&&t.h.trim())||(t.e&&t.e.trim())||(t.z&&t.z.trim()); })
+    .map(function(t){ return { h:(t.h||"").trim(), e:(t.e||"").trim(), z:(t.z||"").trim() }; });
+  var btn=$("termSave"), was=btn.textContent; btn.textContent="Saving\u2026"; btn.disabled=true;
+  try{
+    var r=await post({action:"saveTerms", pass:AUTH.pass, terms:clean});
+    if(r&&r.ok){ TERMS_DATA=clean.length?clean:null; EDIT_TERMS=clean.map(function(t){ return {h:t.h,e:t.e,z:t.z}; }); renderTermsEditor(); btn.textContent="Saved \u2713"; setTimeout(function(){ btn.textContent=was; btn.disabled=false; },1400); return; }
+    alert((r&&r.error)||"Couldn't save the conditions.");
+  }catch(e){ alert("Network error — please try again."); }
+  btn.textContent=was; btn.disabled=false;
+};
 function payDetailsText(){ try{ return localStorage.getItem("ywb_pay")||""; }catch(e){ return ""; } }
 function gbp(n){ if(n==null||isNaN(n)) return ""; return "£"+(Math.round(n*100)/100).toFixed(2).replace(/\.00$/,""); }
 function amountParts(b){
