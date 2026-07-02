@@ -251,7 +251,7 @@ function ticketHtml(t,i){
       +'<div class="ediv"></div>'
       +'<div class="emeta">'+(venue?'<div class="r">'+pin()+'<span>'+venue+'</span></div>':'')+(when?'<div class="r">'+cal()+'<span>'+esc(when)+'</span></div>':'')+'</div>'
       +'<div class="enamelbl">'+L("Name","姓名")+'</div><div class="ename">'+esc(t.name)+'</div>'
-      +'<div class="eseat">'+esc(t.count)+' '+L("seat(s)","座位")+' · '+esc(t.seats)+'</div>'
+      +'<div class="eseat">'+esc(t.count)+' '+L("seat(s)","座位")+' · '+esc(fmtSeats(t.seats))+'</div>'
       +'<div class="epay">'+pay+'</div>'
       +'<button class="dl" data-dl="'+i+'">'+L("Download ticket","下載電子票")+'</button>'
     +'</div></div>';
@@ -261,7 +261,28 @@ function ticketHtml(t,i){
 function roundRect(ctx,x,y,w,h,r){ ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath(); }
 function roundTop(ctx,x,y,w,h,r){ ctx.beginPath();ctx.moveTo(x,y+h);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h);ctx.closePath(); }
 function cover(ctx,img,x,y,w,h){ var ir=img.width/img.height, tr=w/h, sw,sh,sx,sy; if(ir>tr){ sh=img.height; sw=sh*tr; sx=(img.width-sw)/2; sy=0; } else { sw=img.width; sh=sw/tr; sx=0; sy=(img.height-sh)/2; } ctx.drawImage(img,sx,sy,sw,sh,x,y,w,h); }
-function wrapText(ctx,text,cx,y,maxW,lh){ var words=String(text).split(" "),line="",lines=[]; for(var n=0;n<words.length;n++){ var test=line?line+" "+words[n]:words[n]; if(ctx.measureText(test).width>maxW && line){ lines.push(line); line=words[n]; } else line=test; } lines.push(line); for(var i=0;i<lines.length;i++) ctx.fillText(lines[i],cx,y+i*lh); return lines.length*lh; }
+function splitLines(ctx,text,maxW){
+  var tokens=String(text||"").split(/\s+/).filter(Boolean), lines=[], line="";
+  function add(w){ var test=line?line+" "+w:w; if(line&&ctx.measureText(test).width>maxW){ lines.push(line); line=w; } else line=test; }
+  tokens.forEach(function(tok){
+    if(ctx.measureText(tok).width<=maxW){ add(tok); return; }
+    var cur=""; for(var k=0;k<tok.length;k++){ var ch=tok[k]; if(cur&&ctx.measureText(cur+ch).width>maxW){ add(cur); cur=ch; } else cur+=ch; } if(cur) add(cur);
+  });
+  if(line) lines.push(line);
+  return lines.length?lines:[""];
+}
+function wrapText(ctx,text,cx,y,maxW,lh){ var lines=splitLines(ctx,text,maxW); for(var i=0;i<lines.length;i++) ctx.fillText(lines[i],cx,y+i*lh); return lines.length*lh; }
+function drawHex(ctx,cx,cy,r,color,lw){ ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=lw||2; ctx.beginPath(); for(var i=0;i<6;i++){ var a=Math.PI/180*(60*i-90); var x=cx+r*Math.cos(a), yy=cy+r*Math.sin(a); if(i===0)ctx.moveTo(x,yy); else ctx.lineTo(x,yy); } ctx.closePath(); ctx.stroke(); ctx.restore(); }
+function dlSpacing(ctx,v){ try{ ctx.letterSpacing=v; }catch(e){} }
+function fmtSeats(str){
+  var seats=String(str||"").split(",").map(function(s){return s.trim();}).filter(Boolean); if(!seats.length) return "";
+  var order=[], byF={};
+  seats.forEach(function(s){ var m=s.match(/^(.*?)\s*([A-Za-z]+)(\d+)$/); if(!m){ if(!byF["\u0000r"]){byF["\u0000r"]={raw:[]};order.push("\u0000r");} byF["\u0000r"].raw.push(s); return; }
+    var fl=(m[1]||"").trim(), row=m[2].toUpperCase(), num=parseInt(m[3],10);
+    if(!byF[fl]){ byF[fl]={rows:{},ord:[]}; order.push(fl); } if(!byF[fl].rows[row]){ byF[fl].rows[row]=[]; byF[fl].ord.push(row); } byF[fl].rows[row].push(num); });
+  function coll(row,nums){ nums=nums.slice().sort(function(a,b){return a-b;}); var o=[],i=0; while(i<nums.length){ var s=nums[i],e=nums[i]; while(i+1<nums.length&&nums[i+1]===nums[i]+1){i++;e=nums[i];} o.push(e===s?(row+s):(row+s+"\u2013"+row+e)); i++; } return o.join(", "); }
+  return order.map(function(fl){ var g=byF[fl]; if(g.raw) return g.raw.join(", "); return (fl?fl+" ":"")+g.ord.slice().sort().map(function(row){return coll(row,g.rows[row]);}).join(", "); }).join("  \u00b7  ");
+}
 
 function downloadTicket(t,btn){
   var old=btn.textContent; btn.textContent=L("Preparing…","準備中…"); btn.disabled=true;
@@ -288,9 +309,11 @@ function buildTicketCanvas(t,withHero,cb){
     if(sh.category){ ctx.font="700 10px "+ "Plus Jakarta Sans, sans-serif"; var cw=ctx.measureText(sh.category.toUpperCase()).width+20; ctx.fillStyle="rgba(255,250,240,.94)"; roundRect(ctx,hx+10,hy+10,cw,20,10); ctx.fill(); ctx.fillStyle="#8a6410"; ctx.textAlign="left"; ctx.textBaseline="middle"; ctx.fillText(sh.category.toUpperCase(),hx+20,hy+20); }
     ctx.textBaseline="alphabetic"; ctx.textAlign="center";
     var y=hy+hh+34;
-    ctx.fillStyle="#16130f"; ctx.font="700 22px Georgia, serif";
-    y+=wrapText(ctx,L(sh.title_en||sh.title_zh,sh.title_zh||sh.title_en)||"",w/2,y,w-70,26)-26;
-    y+=26;
+    var title=L(sh.title_en||sh.title_zh,sh.title_zh||sh.title_en)||"";
+    var tf=22; ctx.fillStyle="#16130f"; ctx.font="700 "+tf+"px Georgia, serif";
+    while(tf>15 && splitLines(ctx,title,w-70).length>3){ tf-=2; ctx.font="700 "+tf+"px Georgia, serif"; }
+    var lh=Math.round(tf*1.2);
+    y+=wrapText(ctx,title,w/2,y,w-70,lh)-lh; y+=lh;
     ctx.fillStyle=done?"#8a6410":"#8a7f6c"; ctx.font=(done?"600 ":"")+"11px Plus Jakarta Sans, sans-serif";
     var sub=done?(t.checked_in?"Redeemed — thank you for coming":"This show has taken place"):"Show this ticket at the entrance";
     ctx.fillText(sub,w/2,y); y+=20;
@@ -308,17 +331,30 @@ function buildTicketCanvas(t,withHero,cb){
     y+=6; ctx.fillStyle="#9a8f7c"; ctx.font="700 9px Plus Jakarta Sans, sans-serif"; ctx.fillText("NAME",w/2,y); y+=17;
     ctx.fillStyle="#16130f"; ctx.font="700 15px Plus Jakarta Sans, sans-serif"; ctx.fillText(t.name||"",w/2,y); y+=24;
     // seat pill
-    var st=t.count+" seat(s) \u00b7 "+t.seats; ctx.font="700 13px Plus Jakarta Sans, sans-serif"; var pw=ctx.measureText(st).width+28;
+    var st=t.count+" seat(s) \u00b7 "+fmtSeats(t.seats); ctx.font="700 13px Plus Jakarta Sans, sans-serif"; var pw=ctx.measureText(st).width+28;
+    if(pw>w-24){ ctx.font="700 11px Plus Jakarta Sans, sans-serif"; pw=ctx.measureText(st).width+24; }
     ctx.fillStyle="#f3ece0"; roundRect(ctx,(w-pw)/2,y-14,pw,26,9); ctx.fill(); ctx.fillStyle="#16130f"; ctx.textBaseline="middle"; ctx.fillText(st,w/2,y); ctx.textBaseline="alphabetic";
     // gold seal if done
     if(done){ var seal=(t.checked_in?"ATTENDED":"COMPLETED"); ctx.font="800 10px Plus Jakarta Sans, sans-serif"; var sw2=ctx.measureText(seal).width+22; var g=ctx.createLinearGradient(0,0,sw2,0); g.addColorStop(0,"#e7c063"); g.addColorStop(1,"#b8892f"); ctx.fillStyle=g; roundRect(ctx,hx+hw-sw2-10,hy+10,sw2,20,10); ctx.fill(); ctx.fillStyle="#3a2c08"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(seal,hx+hw-10-sw2/2,hy+20); ctx.textBaseline="alphabetic"; }
     cb(canvas);
   }
-  function heroBlock(){ var g=ctx.createLinearGradient(hx,hy,hx+hw,hy+hh); g.addColorStop(0,"#1c1712"); g.addColorStop(1,"#3a2e20"); ctx.save(); roundTop(ctx,hx,hy,hw,hh,20); ctx.clip(); ctx.fillStyle=g; ctx.fillRect(hx,hy,hw,hh); ctx.fillStyle="#c9a45e"; ctx.font="700 11px Plus Jakarta Sans, sans-serif"; ctx.textAlign="center"; ctx.fillText("YUET WAN LONDON",hx+hw/2,hy+hh/2); ctx.restore(); }
+  function heroBlock(){
+    ctx.save(); roundTop(ctx,hx,hy,hw,hh,20); ctx.clip();
+    var g=ctx.createLinearGradient(hx,hy,hx,hy+hh); g.addColorStop(0,"#241c14"); g.addColorStop(1,"#14100b"); ctx.fillStyle=g; ctx.fillRect(hx,hy,hw,hh);
+    var cx=hx+hw/2, cy=hy+hh/2-14;
+    drawHex(ctx,cx,cy,21,"#c9a45e",2.4);
+    ctx.textAlign="center"; ctx.textBaseline="alphabetic";
+    ctx.fillStyle="#f4ecdd"; ctx.font="700 13px Plus Jakarta Sans, sans-serif"; dlSpacing(ctx,"2px"); ctx.fillText("YUET WAN LONDON",cx,cy+42); dlSpacing(ctx,"0px");
+    ctx.fillStyle="#c9a45e"; ctx.font="500 11px 'Noto Sans TC', sans-serif"; ctx.fillText("\u502b\u6566\u7ca4\u97fb\u66f2\u85dd\u6587\u5316\u5354\u6703",cx,cy+60);
+    ctx.restore();
+  }
   var dlHero = heroFor(sh);
   if(withHero && dlHero){
     var img=new Image(); img.crossOrigin="anonymous";
-    img.onload=function(){ ctx.save(); roundTop(ctx,hx,hy,hw,hh,20); ctx.clip(); cover(ctx,img,hx,hy,hw,hh); ctx.restore(); afterHero(); };
+    img.onload=function(){ ctx.save(); roundTop(ctx,hx,hy,hw,hh,20); ctx.clip(); cover(ctx,img,hx,hy,hw,hh);
+      var vg=ctx.createLinearGradient(hx,hy+hh*0.45,hx,hy+hh); vg.addColorStop(0,"rgba(9,7,5,0)"); vg.addColorStop(1,"rgba(9,7,5,.6)"); ctx.fillStyle=vg; ctx.fillRect(hx,hy,hw,hh);
+      ctx.fillStyle="#f4ecdd"; ctx.font="700 10px Plus Jakarta Sans, sans-serif"; ctx.textAlign="left"; ctx.textBaseline="alphabetic"; dlSpacing(ctx,"1.5px"); ctx.fillText("YUET WAN LONDON",hx+16,hy+hh-14); dlSpacing(ctx,"0px");
+      ctx.restore(); afterHero(); };
     img.onerror=function(){ heroBlock(); afterHero(); };
     img.src=dlHero;
   } else { heroBlock(); afterHero(); }
