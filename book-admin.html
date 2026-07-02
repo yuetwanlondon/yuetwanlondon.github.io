@@ -165,6 +165,8 @@ textarea.in{min-height:74px;resize:vertical}
 .bkamt{color:var(--ink-55);font-size:12.5px}
 .bkacts{display:flex;gap:7px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:11px}
 .btn.xs{padding:6px 11px;font-size:12px;border-radius:22px}
+.btn.xs.del{background:var(--vermilion);border-color:var(--vermilion);color:#fff}
+.btn.xs.del:hover{background:var(--vermilion-d);border-color:var(--vermilion-d)}
 .btn.danger{border-color:rgba(200,64,46,.5);color:var(--vermilion-d)}
 .bktools{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
 .bktools .in{flex:1;min-width:180px;padding:9px 12px;font-size:14px}
@@ -899,6 +901,7 @@ function renderBookings(){
         +'<button class="btn xs" data-act="receipt">Receipt</button>'
         +(checked?'<button class="btn xs" data-act="uncheck">Undo check-in</button>':'<button class="btn xs" data-act="checkin">Check in</button>')
         +'<button class="btn xs danger" data-act="'+(cancelled?"restore":"cancel")+'">'+(cancelled?"Restore":"Cancel")+'</button>'
+        +'<button class="btn xs del" data-act="delete">Delete</button>'
       +'</div></div>';
   }).join("");
   Array.prototype.forEach.call(host.querySelectorAll(".bkcard"),function(card){
@@ -937,6 +940,19 @@ async function doBookingAct(id, act, btn){
       if(r0&&r0.ok){ var bb=BOOKINGS.filter(function(x){return x.id===id;})[0]; if(bb) bb.checkin_ts = on ? (r0.checkin_at||"checked") : ""; renderBookings(); }
       else { acts0.innerHTML=was0; alert((r0&&r0.error)||"Couldn't update."); }
     }catch(e){ acts0.innerHTML=was0; alert("Network error."); }
+    return;
+  }
+  if(act==="delete"){
+    var bd=BOOKINGS.filter(function(x){return x.id===id;})[0];
+    var who=bd?(bd.name+(bd.seats?(" · "+bd.seats):"")):id;
+    if(!window.confirm("Permanently delete this booking?\n\n"+who+"\nRef "+id+"\n\nThis erases the person's data and CANNOT be undone.")) return;
+    if(!window.confirm("Are you absolutely sure?\n\nThe row will be removed from the Google Sheet for good.")) return;
+    var actsD=btn.parentNode, wasD=actsD.innerHTML; actsD.innerHTML='<span class="empty" style="padding:6px;border:none">Deleting…</span>';
+    try{
+      var rd=await post({action:"bookingDelete", pass:AUTH.pass, id:id});
+      if(rd&&rd.ok){ BOOKINGS=BOOKINGS.filter(function(x){return x.id!==id;}); delete SELECTED_BK[id]; renderBookings(); }
+      else { actsD.innerHTML=wasD; alert((rd&&rd.error)||"Couldn't delete."); }
+    }catch(e){ actsD.innerHTML=wasD; alert("Network error — please try again."); }
     return;
   }
   var patch=null, confirmMsg=null;

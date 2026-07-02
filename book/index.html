@@ -51,7 +51,7 @@ h1{font-size:23px;margin:0 0 3px;line-height:1.2}
 h2{font-size:18px;margin:0 0 10px}
 .sub{color:var(--ink-55);font-size:14px}
 .loadbox{display:flex;flex-direction:column;align-items:center;gap:15px;padding:34px 16px}
-.ldring{width:118px;height:118px;border-radius:50%;background:#fff;box-shadow:0 12px 34px rgba(22,19,15,.14);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.ldring{width:150px;height:150px;border-radius:50%;background:#fff;box-shadow:0 16px 40px rgba(22,19,15,.16);overflow:hidden;display:flex;align-items:center;justify-content:center}
 .ldring img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .ldcap{font-size:13.5px;color:var(--ink-55);letter-spacing:.02em}
 .meta{color:var(--ink-80);font-size:14px;margin-top:8px;line-height:1.6}
@@ -60,34 +60,45 @@ h2{font-size:18px;margin:0 0 10px}
 .pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:#e2f0e0;color:#2f6b34;border-radius:20px;padding:3px 10px;margin-left:8px;vertical-align:middle}
 
 /* stage + grid */
-.stage{text-align:center;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-55);background:linear-gradient(#efe7d7,#e7dcc6);border-radius:8px;padding:7px;margin:4px 0 16px}
+.stage{text-align:center;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-55);background:linear-gradient(#efe7d7,#e7dcc6);border-radius:8px;padding:7px;margin:4px 0 12px}
 .floors{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .floors button{font-size:13px;font-weight:600;color:var(--ink-55);background:#f2ece0;border:1px solid var(--line);border-radius:9px;padding:7px 14px}
 .floors button.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.mapbox{position:relative}
+.zoom{position:absolute;top:2px;right:2px;display:flex;flex-direction:column;gap:7px;z-index:3}
+.zoom button{width:34px;height:34px;border-radius:50%;background:var(--white);border:1px solid var(--line);box-shadow:0 4px 14px rgba(22,19,15,.14);font-size:19px;font-weight:700;line-height:1;color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.zoom button:active{background:#f3ece0}
 .gridwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:6px 2px 10px}
-.sgrid{display:inline-grid;gap:4px;margin:0 auto}
+.sgrid{display:inline-grid;gap:5px;margin:0 auto;--seat:24px}
 .rl{font-size:10px;font-weight:700;color:var(--ink-55);display:flex;align-items:center;justify-content:center;min-width:16px}
-.st{width:24px;height:24px;border-radius:6px;border:1px solid rgba(0,0,0,.12);position:relative}
+.st{width:var(--seat,24px);height:var(--seat,24px);border-radius:50%;border:1px solid rgba(0,0,0,.12);position:relative;transition:transform .06s ease}
 .st.gap{visibility:hidden}
 .st.blk{background:repeating-linear-gradient(45deg,#ddd4c4,#ddd4c4 3px,#cabfa8 3px);opacity:.5;border:none}
 .st.av{cursor:pointer}
 .st.av:hover{transform:scale(1.08)}
 .st.taken{background:#cfc7b8!important;border-color:#bcb3a1;cursor:not-allowed;opacity:.55}
-.st.sel{box-shadow:0 0 0 3px var(--ink);z-index:1}
-.st.sel::after{content:"";position:absolute;inset:0;display:grid;place-items:center}
-.wc-dot{position:absolute;top:2px;right:2px;width:6px;height:6px;border-radius:50%;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.3)}
+.st.sel{box-shadow:0 0 0 2px #fff,0 0 0 5px var(--ink);z-index:1}
+.wc-dot{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36%;height:36%;border-radius:50%;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.3)}
 
-.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:6px;font-size:13px;color:var(--ink-80)}
-.legend .lg{display:inline-flex;align-items:center;gap:6px}
-.legend .sw{width:13px;height:13px;border-radius:4px;border:1px solid rgba(0,0,0,.15)}
-.legend .taken-sw{width:13px;height:13px;border-radius:4px;background:#cfc7b8}
+.plegend{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.plegend .pl{display:inline-flex;align-items:center;gap:7px;background:#f3ece0;border:1px solid var(--line);border-radius:20px;padding:5px 12px;font-size:12.5px;font-weight:600;color:var(--ink-80)}
+.plegend .pl .d{width:12px;height:12px;border-radius:50%;border:1px solid rgba(0,0,0,.15)}
+.plegend .pl .pr{color:var(--ink-55)}
 
 /* summary bar */
-.bar2{position:fixed;left:0;right:0;bottom:0;background:var(--white);border-top:1px solid var(--line);box-shadow:0 -6px 24px rgba(22,19,15,.08);padding:12px 16px;z-index:5}
-.bar2 .in{max-width:820px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.bar2{position:fixed;left:0;right:0;bottom:0;background:var(--white);border-top:1px solid var(--line);box-shadow:0 -6px 24px rgba(22,19,15,.08);padding:12px 16px calc(12px + env(safe-area-inset-bottom));z-index:5}
+.bar2 .in{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
 .bar2 .info{font-size:13.5px;color:var(--ink-80);line-height:1.4}
-.bar2 .tot{font-weight:800;font-size:17px;color:var(--ink)}
-.bar2 .seats{color:var(--ink-55);font-size:12.5px}
+.bar2 .row1{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.bar2 .tot{font-weight:800;font-size:19px;color:var(--ink)}
+.bar2 .cnt{color:var(--ink-55);font-size:13px;font-weight:600}
+.bar2 .chips{display:flex;flex-wrap:wrap;gap:6px;max-height:66px;overflow-y:auto}
+.bar2 .schip{display:inline-flex;align-items:center;gap:7px;background:#f3ece0;border:1px solid var(--line);border-radius:20px;padding:4px 5px 4px 11px;font-size:12.5px;font-weight:600;color:var(--ink)}
+.bar2 .schip .pr{color:var(--ink-55);font-weight:600}
+.bar2 .schip .rm{width:19px;height:19px;border-radius:50%;background:rgba(22,19,15,.09);border:none;display:inline-flex;align-items:center;justify-content:center;color:var(--ink-55);cursor:pointer;font-size:14px;line-height:1;padding:0}
+.bar2 .schip .rm:active{background:rgba(22,19,15,.18)}
+.bar2 .seats{color:var(--ink-55);font-size:13px}
+.bar2 .btn{width:100%;margin-top:0}
 
 /* buttons + form */
 .btn{border:1px solid var(--brass);height:auto;background:#fff;color:#6d563a;border-radius:30px;padding:12px 22px;font-size:15px;font-weight:600}
@@ -208,7 +219,7 @@ function numberFloor(floor){
 }
 
 /* ---- state ---- */
-var SHOW=null, MAP=null, TAKEN={}, SELECTED={}, SEAT_META={}, PRICES=[], FLOOR=0, VIEWSTATE="book";
+var SHOW=null, MAP=null, TAKEN={}, SELECTED={}, SEAT_META={}, PRICES=[], FLOOR=0, VIEWSTATE="book", ZOOM=24;
 
 function priceOf(sec){ var p=PRICES[sec]; var a=p?parseFloat(p.amount):NaN; return isNaN(a)?0:a; }
 function selectedList(){ return Object.keys(SELECTED); }
@@ -313,19 +324,34 @@ function renderClosed(){ $("view").innerHTML=card(showHeaderHtml()+'<div class="
 function renderBook(){
   if(!MAP){ $("view").innerHTML=card(showHeaderHtml()+'<div class="note" style="margin-top:16px">'+L("Online seat selection isn't available for this show yet — please contact us to book.","此演出暫未開放網上選位，請與我們聯絡購票。")+'</div>'); return; }
   var floorsTabs = MAP.floors.length>1 ? '<div class="floors">'+MAP.floors.map(function(f,i){ return '<button class="'+(i===FLOOR?"on":"")+'" data-fl="'+i+'">'+esc(f.name||("Floor "+(i+1)))+'</button>'; }).join("")+'</div>' : '';
-  var legend='<div class="legend">'+MAP.sections.map(function(s,i){ var pr=priceOf(i); return '<span class="lg"><span class="sw" style="background:'+esc(s.color)+'"></span>'+esc(s.name)+(pr?(" · "+money(pr)):"")+'</span>'; }).join("")+'<span class="lg"><span class="taken-sw"></span>'+L("Taken","已售")+'</span></div>';
+  var legend='<div class="plegend">'+MAP.sections.map(function(s,i){ var pr=priceOf(i); return '<span class="pl"><span class="d" style="background:'+esc(s.color)+'"></span>'+esc(s.name)+(pr?(' <span class="pr">'+money(pr)+'</span>'):'')+'</span>'; }).join("")+'<span class="pl"><span class="d" style="background:#cfc7b8"></span>'+L("Taken","已售")+'</span></div>';
+  var zoom='<div class="zoom"><button class="zb" data-z="1" aria-label="Zoom in">+</button><button class="zb" data-z="-1" aria-label="Zoom out">\u2212</button></div>';
   $("view").innerHTML=card(showHeaderHtml())
-    + card('<h2>'+L("Choose your seats","選擇座位")+'</h2><div class="stage">'+L("Stage","舞台")+'</div>'+floorsTabs+'<div class="gridwrap">'+gridHtml(FLOOR)+'</div>'+legend
+    + card('<h2>'+L("Choose your seats","選擇座位")+'</h2>'+legend
+       +'<div class="mapbox">'+zoom+'<div class="stage">'+L("Stage","舞台")+'</div>'+floorsTabs+'<div class="gridwrap">'+gridHtml(FLOOR)+'</div></div>'
        +(SHOW.price_note_en||SHOW.price_note_zh?'<div class="note" style="margin-top:14px">'+esc(L(SHOW.price_note_en||SHOW.price_note_zh,SHOW.price_note_zh||SHOW.price_note_en))+'</div>':''))
     + summaryBar();
   Array.prototype.forEach.call(document.querySelectorAll("[data-fl]"),function(b){ b.onclick=function(){ FLOOR=+b.getAttribute("data-fl"); renderBook(); }; });
+  Array.prototype.forEach.call(document.querySelectorAll(".zb"),function(b){ b.onclick=function(){ applyZoom(+b.getAttribute("data-z")); }; });
+  var sbar=$("sbar"); if(sbar) sbar.addEventListener("click",function(e){ var rm=e.target.closest?e.target.closest("[data-rm]"):null; if(rm){ deselectSeat(rm.getAttribute("data-rm")); } });
   bindSeatTaps();
   $("goDetails").onclick=function(){ if(!selectedList().length) return; VIEWSTATE="details"; render(); };
+}
+function applyZoom(dz){
+  ZOOM=Math.max(18,Math.min(40,ZOOM+dz*4));
+  var g=document.querySelector(".sgrid"); if(!g||!MAP) return;
+  g.style.setProperty("--seat",ZOOM+"px");
+  g.style.gridTemplateColumns="16px repeat("+MAP.floors[FLOOR].cols+","+ZOOM+"px)";
+}
+function deselectSeat(sid){
+  if(!SELECTED[sid]) return; delete SELECTED[sid];
+  Array.prototype.forEach.call(document.querySelectorAll(".st.sel"),function(el){ if(el.getAttribute("data-sid")===sid) el.classList.remove("sel"); });
+  updateSummary();
 }
 
 function gridHtml(fi){
   var f=MAP.floors[fi], num=numberFloor(f), pfx=floorPrefix(fi);
-  var html='<div class="sgrid" style="grid-template-columns:16px repeat('+f.cols+',24px)">';
+  var html='<div class="sgrid" style="--seat:'+ZOOM+'px;grid-template-columns:16px repeat('+f.cols+','+ZOOM+'px)">';
   for(var r=0;r<f.rows;r++){
     html+='<div class="rl">'+(num.rowLabel[r]||"")+'</div>';
     for(var c=0;c<f.cols;c++){
@@ -354,23 +380,28 @@ function bindSeatTaps(){
     };
   });
 }
+function seatChip(sid){
+  var pr=SEAT_META[sid]?priceOf(SEAT_META[sid].sec):0;
+  return '<span class="schip">'+esc(sid)+(pr?(' <span class="pr">'+money(pr)+'</span>'):'')+'<button class="rm" data-rm="'+esc(sid)+'" aria-label="'+L("Remove","移除")+'">\u00d7</button></span>';
+}
+function summaryInner(){
+  var list=selectedList(), n=list.length;
+  if(!n) return '<div class="seats">'+L("Tap seats to select","點選座位")+'</div>';
+  return '<div class="row1"><div class="tot">'+money(total())+'</div><div class="cnt">'+n+' '+L(n===1?"ticket":"tickets","張門票")+'</div></div>'
+    + '<div class="chips">'+list.map(seatChip).join("")+'</div>';
+}
 function updateSummary(){
   var gw=document.querySelector(".gridwrap");
   var sx=gw?gw.scrollLeft:0;                 // remember where the user scrolled to
-  var n=selectedList().length, seats=selectedList().join(", ");
   var info=document.getElementById("sbarinfo");
-  if(info) info.innerHTML = n
-    ? ('<div class="tot">'+money(total())+'</div><div class="seats">'+n+' '+L(n===1?"seat":"seats",'個座位')+': '+esc(seats)+'</div>')
-    : ('<div class="seats">'+L("Tap seats to select","點選座位")+'</div>');
-  var gd=$("goDetails"); if(gd) gd.disabled=!n;
+  if(info) info.innerHTML=summaryInner();
+  var gd=$("goDetails"); if(gd) gd.disabled=!selectedList().length;
   if(gw) gw.scrollLeft=sx;                    // restore, in case the reflow nudged it
 }
 function summaryBar(){
-  var n=selectedList().length, seats=selectedList().join(", ");
-  return '<div class="bar2" id="sbar"><div class="in"><div class="info" id="sbarinfo">'
-    + (n? ('<div class="tot">'+money(total())+'</div><div class="seats">'+n+' '+L(n===1?"seat":"seats",'個座位')+': '+esc(seats)+'</div>')
-        : ('<div class="seats">'+L("Tap seats to select","點選座位")+'</div>'))
-    + '</div><button class="btn primary" id="goDetails"'+(n?'':' disabled')+'>'+L("Continue","繼續")+'</button></div></div>';
+  var n=selectedList().length;
+  return '<div class="bar2" id="sbar"><div class="in"><div class="info" id="sbarinfo">'+summaryInner()+'</div>'
+    + '<button class="btn primary" id="goDetails"'+(n?'':' disabled')+'>'+L("Continue","繼續")+'</button></div></div>';
 }
 
 function renderDetails(){
