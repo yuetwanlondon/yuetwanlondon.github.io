@@ -8,7 +8,7 @@ on:
   repository_dispatch:               # the editor's "Publish now" button
     types: [rebuild]
   schedule:
-    - cron: '*/30 * * * *'           # safety auto-refresh every 30 min
+    - cron: '0 */6 * * *'            # safety auto-refresh every 6 hours (editor's "Publish now" is instant, so this is only a backstop)
 permissions:
   contents: write                    # to commit the refreshed data.json
 concurrency:
