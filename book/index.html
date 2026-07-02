@@ -7,6 +7,9 @@
 <link rel="icon" type="image/png" href="/img/yuetwanlondon-favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com">
+<link rel="dns-prefetch" href="https://script.google.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/styles.css">
 <style id="yw-pre-css">
@@ -47,6 +50,10 @@ a{color:var(--vermilion-d)}
 h1{font-size:23px;margin:0 0 3px;line-height:1.2}
 h2{font-size:18px;margin:0 0 10px}
 .sub{color:var(--ink-55);font-size:14px}
+.loadbox{display:flex;flex-direction:column;align-items:center;gap:15px;padding:34px 16px}
+.ldring{width:118px;height:118px;border-radius:50%;background:#fff;box-shadow:0 12px 34px rgba(22,19,15,.14);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.ldring img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.ldcap{font-size:13.5px;color:var(--ink-55);letter-spacing:.02em}
 .meta{color:var(--ink-80);font-size:14px;margin-top:8px;line-height:1.6}
 .bhero{height:172px;border-radius:14px;background-size:cover;background-position:center;background-color:#2a2118;position:relative;margin-bottom:18px}
 .bchip{position:absolute;left:12px;top:12px;background:var(--vermilion);color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:4px 12px;border-radius:20px}
@@ -128,7 +135,7 @@ select.in{appearance:auto}
 </div></div></nav>
 <div class="bkpage">
   <a class="bkback" href="/" data-loader-home>← <span data-en="Back to site" data-zh="返回網站">Back to site</span></a>
-  <div id="view"><div class="card"><div class="sub" id="boot">Loading…</div></div></div>
+  <div id="view"><div class="card"><div class="loadbox"><div class="ldring"><img src="/img/pre-load-1.gif" alt=""></div><div class="ldcap" data-en="Loading…" data-zh="載入中…">Loading…</div></div></div></div>
 </div>
 <footer class="foot"><div class="wrap">
 <div class="grid2">
@@ -238,9 +245,12 @@ async function loadList(){
   }catch(e){ $("view").innerHTML=card('<div class="gate">'+L("Couldn't reach the booking service.","無法連接購票系統。")+'</div>'); }
 }
 var LISTED=[];
+function loadingCard(msg){
+  return '<div class="card"><div class="loadbox"><div class="ldring"><img src="/img/pre-load-1.gif" alt=""></div><div class="ldcap">'+esc(msg||L("Loading…","載入中…"))+'</div></div></div>';
+}
 async function loadShow(id){
   SHOW_ID=id;
-  $("view").innerHTML=card('<div class="sub">'+L("Loading show…","載入中…")+'</div>');
+  $("view").innerHTML=loadingCard(L("Loading show…","載入中…"));
   try{
     var res=await post({action:"book_show",show:id});
     if(!res||!res.ok){ $("view").innerHTML=card('<div class="gate">'+L("Show not found.","找不到此演出。")+'</div>'); return; }
