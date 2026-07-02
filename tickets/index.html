@@ -57,9 +57,11 @@ label.f:first-child{margin-top:0}
 .tkhead .h{font-family:var(--serif);font-size:22px;font-weight:700}
 .tkhead .so{background:transparent;border:1px solid var(--line);border-radius:30px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--ink-70)}
 .etk{background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 12px 34px rgba(22,19,15,.08);margin-bottom:22px;position:relative}
-.ehero{height:150px;background-size:cover;background-position:center;position:relative;background-color:#2a2118}
-.ehero.ph{background:linear-gradient(135deg,#1c1712,#3a2e20);display:flex;align-items:center;justify-content:center}
-.ehero.ph::after{content:"YUET WAN LONDON";color:#c9a45e;font-size:11px;font-weight:700;letter-spacing:.2em}
+.ehero{height:150px;background-size:cover;background-position:center;position:relative;background-color:#2a2118;overflow:hidden}
+.ehero::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 52%,rgba(9,7,5,.5))}
+.ehero.ph{background:linear-gradient(135deg,#1c1712,#3a2e20)}
+.elogo{position:absolute;left:16px;bottom:12px;height:19px;filter:brightness(0) invert(1);opacity:.95;z-index:1}
+.ehero.ph .elogo{left:50%;top:50%;bottom:auto;transform:translate(-50%,-50%);height:34px}
 .echip{position:absolute;top:12px;left:12px;background:rgba(255,250,240,.94);color:var(--brass-d);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:4px 11px;border-radius:20px}
 .eseal{position:absolute;top:12px;right:12px;background:linear-gradient(135deg,#e7c063,#b8892f);color:#3a2c08;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;padding:5px 12px;border-radius:20px;box-shadow:0 3px 10px rgba(140,100,16,.35)}
 .ebody{padding:20px 22px 22px;text-align:center}
@@ -242,7 +244,7 @@ function ticketHtml(t,i){
   var subTxt = done ? (t.checked_in?L("Redeemed — thank you for coming","已入場 — 多謝蒞臨"):L("This show has taken place","此演出已結束")) : L("Show this ticket at the entrance","入場時出示此票");
   var pay = String(t.pay_status||"").toLowerCase()==="paid" ? '<span class="badge paid">'+L("Paid","已付款")+'</span>' : '<span class="badge un">'+L("Payment on confirmation","確認後付款")+'</span>';
   return '<div class="etk">'
-    +'<div class="'+heroCls+'"'+heroStyle+'>'+(sh.category?'<span class="echip">'+esc(sh.category)+'</span>':'')+(done?'<span class="eseal">'+sealTxt+'</span>':'')+'</div>'
+    +'<div class="'+heroCls+'"'+heroStyle+'>'+(sh.category?'<span class="echip">'+esc(sh.category)+'</span>':'')+(done?'<span class="eseal">'+sealTxt+'</span>':'')+'<img class="elogo" src="/img/yuetwanlondon-main.svg" alt="Yuet Wan London"></div>'
     +'<div class="ebody">'
       +'<div class="etitle">'+title+zh+'</div>'
       +'<div class="esub'+(done?' done':'')+'">'+subTxt+'</div>'
