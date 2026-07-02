@@ -335,14 +335,21 @@ function gridHtml(fi){
 function bindSeatTaps(){
   Array.prototype.forEach.call(document.querySelectorAll(".st.av"),function(el){
     el.onclick=function(){ var sid=el.getAttribute("data-sid");
-      if(SELECTED[sid]){ delete SELECTED[sid]; } else { if(selectedList().length>=12){ return; } SELECTED[sid]=true; }
-      renderBook();
+      if(SELECTED[sid]){ delete SELECTED[sid]; el.classList.remove("sel"); }
+      else { if(selectedList().length>=12){ return; } SELECTED[sid]=true; el.classList.add("sel"); }
+      updateSummary();   // update in place — do NOT re-render the grid (that resets the scroll position on mobile)
     };
   });
 }
+function updateSummary(){
+  var bar=document.getElementById("sbar");
+  if(bar) bar.outerHTML=summaryBar();
+  var gd=$("goDetails");
+  if(gd) gd.onclick=function(){ if(!selectedList().length) return; VIEWSTATE="details"; render(); };
+}
 function summaryBar(){
   var n=selectedList().length, seats=selectedList().join(", ");
-  return '<div class="bar2"><div class="in"><div class="info">'
+  return '<div class="bar2" id="sbar"><div class="in"><div class="info">'
     + (n? ('<div class="tot">'+money(total())+'</div><div class="seats">'+n+' '+L(n===1?"seat":"seats",'個座位')+': '+esc(seats)+'</div>')
         : ('<div class="seats">'+L("Tap seats to select","點選座位")+'</div>'))
     + '</div><button class="btn primary" id="goDetails"'+(n?'':' disabled')+'>'+L("Continue","繼續")+'</button></div></div>';
