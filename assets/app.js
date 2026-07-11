@@ -218,6 +218,32 @@ window.YW = (function(){
     }).catch(function(){});
   }
 
+  /* ---------- contact details (footer + "reach us" block), driven by the editor's Settings tab ---------- */
+  /* Fills email / phone / location from data.json so editing them in the CMS updates every page.
+     Footer is matched by .cinfo (present on every page); other places opt in with data-contact="email|phone|loc". */
+  function renderContact(){
+    fetchData().then(function(j){
+      var s=settingsMap((j&&j.settings)||[]);
+      var email=s.site_email, phone=s.site_phone, locEn=s.location_en, locZh=s.location_zh;
+      var lang=loadLang();
+      if(email){
+        document.querySelectorAll(".cinfo a[href^='mailto:'], [data-contact='email']").forEach(function(a){ if(a.tagName==="A") a.setAttribute("href","mailto:"+email); a.textContent=email; });
+      }
+      if(phone){
+        var telHref="tel:"+String(phone).replace(/[^\d+]/g,"");
+        document.querySelectorAll(".cinfo a[href^='tel:'], [data-contact='phone']").forEach(function(a){ if(a.tagName==="A") a.setAttribute("href",telHref); a.textContent=phone; });
+      }
+      if(locEn||locZh){
+        document.querySelectorAll(".cinfo .lab, [data-contact='loc']").forEach(function(el){
+          if(locEn) el.setAttribute("data-en",locEn);
+          if(locZh) el.setAttribute("data-zh",locZh);
+          var v=el.getAttribute("data-"+lang); if(v!=null) el.textContent=v;   // keep it bilingual with the current language
+        });
+      }
+    }).catch(function(){});
+  }
+  (function initContact(){ function go(){ renderContact(); } if(document.readyState!=="loading") go(); else document.addEventListener("DOMContentLoaded", go); })();
+
   /* ---------- page transitions + scroll reveal ---------- */
   function initMotion(){
     var docEl=document.documentElement, reduce=false;
@@ -270,5 +296,5 @@ window.YW = (function(){
     try{ new MutationObserver(function(){ if(pend) return; pend=true; requestAnimationFrame(function(){ pend=false; imgFade(document); }); }).observe(document.documentElement,{childList:true,subtree:true}); }catch(e){}
   })();
 
-  return {API,DATA_URL,MON,CAT_ZH,TINT,ICON,USER_ICON,SOCIAL,esc,isTrue,lines,lat,fmtDate,isPast,rich,richLines,plain,fetchData,fetchLive,post,clearCache,renderSocial,initMotion,settingsMap,applyStaticLang,setupNav,loadLang,saveLang,lockScroll,imgFade};
+  return {API,DATA_URL,MON,CAT_ZH,TINT,ICON,USER_ICON,SOCIAL,esc,isTrue,lines,lat,fmtDate,isPast,rich,richLines,plain,fetchData,fetchLive,post,clearCache,renderSocial,renderContact,initMotion,settingsMap,applyStaticLang,setupNav,loadLang,saveLang,lockScroll,imgFade};
 })();
