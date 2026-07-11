@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -48,6 +47,8 @@ a{color:var(--vermilion-d)}
 .lhero{height:150px;border-radius:12px;background-size:cover;background-position:center;background-color:#2a2118;position:relative;margin-bottom:14px}
 .lchip{position:absolute;left:12px;top:12px;background:var(--vermilion);color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:4px 11px;border-radius:20px}
 .card{background:var(--white);border:1px solid var(--line);border-radius:16px;padding:20px 20px;margin-bottom:16px}
+/* the seat-map card breaks out of the 820px column on wide screens so the map renders bigger */
+.card.mapcard{width:min(1240px,calc(100vw - 28px));margin-left:calc((100% - min(1240px,100vw - 28px))/2)}
 h1{font-size:23px;margin:0 0 3px;line-height:1.2}
 h2{font-size:18px;margin:0 0 10px}
 .sub{color:var(--ink-55);font-size:14px}
@@ -70,7 +71,8 @@ h2{font-size:18px;margin:0 0 10px}
 .mapctl button{width:38px;height:38px;border-radius:50%;background:var(--white);border:1px solid var(--line);font-size:18px;font-weight:700;line-height:1;color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .mapctl button:active{background:#f3ece0}
 .mapctl .fitb{font-size:13px}
-.gridwrap{overflow:auto;-webkit-overflow-scrolling:touch;max-width:100%;border:1px solid var(--line);border-radius:12px;background:#faf6ee;padding:10px 8px}
+.gridwrap{overflow:auto;-webkit-overflow-scrolling:touch;max-width:100%;border:1px solid var(--line);border-radius:12px;background:#faf6ee;padding:10px 8px;text-align:center}
+.gridwrap .sgrid{text-align:left}
 .maphint{text-align:center;font-size:12.5px;color:var(--ink-55);margin-top:9px}
 .sgrid{display:inline-grid;gap:5px;margin:0 auto;--seat:24px}
 .rl{font-size:10px;font-weight:700;color:var(--ink-55);display:flex;align-items:center;justify-content:center;min-width:16px}
@@ -346,9 +348,9 @@ function renderBook(){
     }).join("")+'<span class="pl"><span class="d" style="background:#efe8da;border:1px dashed #b9ad97"></span>'+L("Taken","已售")+'</span></div>';
   var ctl='<div class="mapctl"><button class="zb" data-z="-1" aria-label="'+L("Zoom out","縮小")+'">\u2212</button><button class="zb" data-z="1" aria-label="'+L("Zoom in","放大")+'">+</button><button class="fitb" id="fitBtn" aria-label="'+L("Fit to screen","全圖")+'" title="'+L("Fit whole map","顯示全圖")+'">\u2922</button></div>';
   $("view").innerHTML=card(showHeaderHtml())
-    + card('<h2>'+L("Choose your seats","選擇座位")+'</h2>'+legend
+    + '<div class="card mapcard">'+'<h2>'+L("Choose your seats","選擇座位")+'</h2>'+legend
        +'<div class="mapbox">'+ctl+floorsTabs+'<div class="gridwrap">'+gridHtml(FLOOR)+'</div><div class="stage">'+L("Stage","舞台")+'</div><div class="maphint">'+L("Use + to zoom in, then slide the map to pick seats","按 + 放大座位圖，左右滑動選位")+'</div></div>'
-       +(SHOW.price_note_en||SHOW.price_note_zh?'<div class="note" style="margin-top:14px">'+esc(L(SHOW.price_note_en||SHOW.price_note_zh,SHOW.price_note_zh||SHOW.price_note_en))+'</div>':''))
+       +(SHOW.price_note_en||SHOW.price_note_zh?'<div class="note" style="margin-top:14px">'+esc(L(SHOW.price_note_en||SHOW.price_note_zh,SHOW.price_note_zh||SHOW.price_note_en))+'</div>':'')+'</div>'
     + summaryBar();
   Array.prototype.forEach.call(document.querySelectorAll("[data-fl]"),function(b){ b.onclick=function(){ FLOOR=+b.getAttribute("data-fl"); renderBook(); }; });
   Array.prototype.forEach.call(document.querySelectorAll(".zb"),function(b){ b.onclick=function(){ applyZoom(+b.getAttribute("data-z")); }; });
@@ -363,7 +365,7 @@ function fitWidth(){
   if(!gw||!MAP) return 24;
   var f=MAP.floors[FLOOR];
   var avail=gw.clientWidth-16-16-(f.cols*5);       // padding, row label, gaps
-  return Math.max(9,Math.min(28,Math.floor(avail/f.cols)));
+  return Math.max(9,Math.min(34,Math.floor(avail/f.cols)));
 }
 function fitZoom(){ ZOOM=fitWidth(); applyZoomNow(); }
 function applyZoom(dz){
