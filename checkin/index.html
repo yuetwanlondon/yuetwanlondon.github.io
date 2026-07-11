@@ -127,6 +127,7 @@ h1{font-size:20px;margin:0 0 4px}
       <select class="in" id="mapShowSel"></select>
       <button class="zb" id="mzOut" aria-label="Zoom out">−</button>
       <button class="zb" id="mzIn" aria-label="Zoom in">+</button>
+      <button class="zb" id="mRef" aria-label="Refresh 重新同步" title="Refresh 重新同步"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.3"/><path d="M21 3v6h-6"/></svg></button>
     </div>
     <div class="camnote" id="mapStat" style="text-align:left;margin-bottom:8px"></div>
     <div id="mapStage"></div>
@@ -346,7 +347,13 @@ function numberFloor(floor){
     for(var c=0;c<floor.cols;c++){ if(floor.cells[r2][c].t==="seat"){ n++; ids[r2+","+c]=rowLabel[r2]+n; } } }
   return { ids:ids, rowLabel:rowLabel };
 }
+/* seat IDs must match the booking pages exactly: multi-floor maps prefix the floor name */
+function floorPfx(i){ return (DMAP&&DMAP.floors.length>1) ? ((DMAP.floors[i].name||("Floor "+(i+1)))+" ") : ""; }
+function bookingsPerShow(){ var m={}; ROSTER.forEach(function(t){ var k=String(t.show_id); m[k]=(m[k]||0)+1; }); return m; }
+
 async function openMapView(){
+  $("mapStat").textContent="Syncing bookings…";
+  await loadRoster();                                    /* always fresh when the tab opens */
   if(DMAP){ fitDZ(); renderDoorMap(); return; }
   $("mapStat").textContent="Loading seat map…";
   await loadDoorMap(SHOW_FILTER);
@@ -357,11 +364,20 @@ async function loadDoorMap(showId){
     if(res&&res.error==="unauthorized"){ showExpired(); return; }
     if(!res||!res.ok){ $("mapStat").textContent="Could not load the seat map — is the backend on book-v3?"; return; }
     DSHOWS=res.shows||[];
+    var per=bookingsPerShow();
     var sel=$("mapShowSel");
-    sel.innerHTML=DSHOWS.length?DSHOWS.map(function(s){ return '<option value="'+esc(s.id)+'">'+esc(s.title)+(s.date?(" · "+esc(s.date)):"")+'</option>'; }).join(""):'<option value="">No shows with a seat map</option>';
-    sel.onchange=function(){ DMAP=null; loadDoorMap(sel.value); };
+    sel.innerHTML=DSHOWS.length?DSHOWS.map(function(s){
+      var n=per[String(s.id)]||0;
+      return '<option value="'+esc(s.id)+'">'+esc(s.title)+(s.date?(" · "+esc(s.date)):"")+' · '+n+' booking'+(n===1?"":"s")+'</option>';
+    }).join(""):'<option value="">No shows with a seat map</option>';
+    sel.onchange=function(){ DMAP=null; $("mapStage").innerHTML=""; loadDoorMap(sel.value); };
     if(res.show&&res.map){ DSHOW=res.show; DMAP=deserializeMap(res.map); sel.value=DSHOW.id; fitDZ(); renderDoorMap(); }
-    else if(DSHOWS.length){ sel.value=DSHOWS[0].id; loadDoorMap(DSHOWS[0].id); }
+    else if(DSHOWS.length){
+      /* default to the show that actually has bookings */
+      var best=DSHOWS[0].id, bn=-1;
+      DSHOWS.forEach(function(s){ var n=per[String(s.id)]||0; if(n>bn){ bn=n; best=s.id; } });
+      sel.value=best; loadDoorMap(best);
+    }
     else $("mapStat").textContent="No shows with a seat map yet.";
   }catch(e){ $("mapStat").textContent="Network error loading the seat map."; }
 }
@@ -375,8 +391,8 @@ function doorSeatIndex(){
 }
 function fitDZ(){
   if(!DMAP||!DMAP.floors.length) return;
+  var cols=1; DMAP.floors.forEach(function(f){ if(f.cols>cols)cols=f.cols; });
   var w=$("doorGrid").parentElement.clientWidth-16-12;
-  var cols=DMAP.floors[0].cols;
   DZ=Math.max(7,Math.min(22,Math.floor((w-cols*3)/cols)));
 }
 function seatColor(t){
@@ -388,21 +404,28 @@ function seatColor(t){
 }
 function renderDoorMap(){
   if(!DMAP||!DMAP.floors.length) return;
-  var f=DMAP.floors[0], num=numberFloor(f), idx=doorSeatIndex();
-  var html='<div class="dgrid" style="--ds:'+DZ+'px;grid-template-columns:12px repeat('+f.cols+',var(--ds))">';
-  for(var r=0;r<f.rows;r++){
-    html+='<div class="drl">'+(num.rowLabel[r]||"")+'</div>';
-    for(var c=0;c<f.cols;c++){
-      var cell=f.cells[r][c];
-      if(cell.t==="empty"){ html+='<div class="ds gap"></div>'; continue; }
-      if(cell.t==="blocked"){ html+='<div class="ds blk"></div>'; continue; }
-      var sid=num.ids[r+","+c];
-      var t=idx[sid];
-      if(t) html+='<div class="ds bk'+(cell.wc?" wc":"")+'" data-bk="'+esc(t.id)+'" title="'+esc(sid+" · "+t.name)+'" style="background:'+seatColor(t)+'"></div>';
-      else html+='<div class="ds av'+(cell.wc?" wc":"")+'" title="'+esc(sid)+'"></div>';
+  var idx=doorSeatIndex();
+  var html="", total=0, sold=0, inN=0, seenBk={};
+  DMAP.floors.forEach(function(f,fi){
+    var num=numberFloor(f), pfx=floorPfx(fi);
+    if(DMAP.floors.length>1) html+='<div style="font-size:12px;font-weight:700;color:#6d655c;margin:'+(fi?'10px':'0')+' 0 5px;text-align:left">'+esc(f.name||("Floor "+(fi+1)))+'</div>';
+    html+='<div class="dgrid" style="--ds:'+DZ+'px;grid-template-columns:12px repeat('+f.cols+',var(--ds))">';
+    for(var r=0;r<f.rows;r++){
+      html+='<div class="drl">'+(num.rowLabel[r]||"")+'</div>';
+      for(var c=0;c<f.cols;c++){
+        var cell=f.cells[r][c];
+        if(cell.t==="empty"){ html+='<div class="ds gap"></div>'; continue; }
+        if(cell.t==="blocked"){ html+='<div class="ds blk"></div>'; continue; }
+        total++;
+        var sid=pfx+num.ids[r+","+c];
+        var t=idx[sid];
+        if(t){ sold++; if(t.checked_in) inN++;
+          html+='<div class="ds bk'+(cell.wc?" wc":"")+'" data-bk="'+esc(t.id)+'" title="'+esc(sid+" · "+t.name)+'" style="background:'+seatColor(t)+'"></div>'; }
+        else html+='<div class="ds av'+(cell.wc?" wc":"")+'" title="'+esc(sid)+'"></div>';
+      }
     }
-  }
-  html+='</div>';
+    html+='</div>';
+  });
   $("doorGrid").innerHTML=html;
   Array.prototype.forEach.call(document.querySelectorAll("#doorGrid [data-bk]"),function(el){
     el.onclick=function(){
@@ -413,11 +436,10 @@ function renderDoorMap(){
       $("mapStage").scrollIntoView({behavior:"smooth",block:"nearest"});
     };
   });
-  var sold=0, inN=0, idxKeys=Object.keys(idx);
-  var seen={};
-  idxKeys.forEach(function(s){ sold++; var t=idx[s]; if(t.checked_in && !seen[t.id+s]) inN++; });
-  var total=0; f.cells.forEach(function(row){ row.forEach(function(cl){ if(cl.t==="seat")total++; }); });
-  $("mapStat").innerHTML="<b>"+inN+"</b> of "+sold+" sold seats checked in · "+(total-sold)+" unsold";
+  var now=new Date();
+  $("mapStat").innerHTML=(DSHOW?('<b>'+esc(DSHOW.title)+'</b> — '):'')
+    +"<b>"+inN+"</b> of "+sold+" sold seats checked in · "+(total-sold)+" unsold"
+    +' · updated '+("0"+now.getHours()).slice(-2)+":"+("0"+now.getMinutes()).slice(-2)+":"+("0"+now.getSeconds()).slice(-2);
   $("mapLegend").innerHTML=
     '<span><i style="background:#f0e9db;border:1px solid #d8cdb8"></i>Unsold 未售</span>'
     +'<span><i style="background:var(--green)"></i>Paid 已付</span>'
@@ -426,7 +448,13 @@ function renderDoorMap(){
     +'<span><i style="background:#16130F"></i>Checked in 已入場</span>';
 }
 $("mzIn").onclick=function(){ DZ=Math.min(34,DZ+4); renderDoorMap(); };
-$("mzOut").onclick=function(){ DZ=Math.max(8,DZ-4); renderDoorMap(); };
+$("mzOut").onclick=function(){ DZ=Math.max(7,DZ-4); renderDoorMap(); };
+$("mRef").onclick=async function(){
+  var b=$("mRef"); b.disabled=true;
+  $("mapStat").textContent="Syncing bookings…";
+  await loadRoster(); renderDoorMap();
+  b.disabled=false;
+};
 window.addEventListener("resize",function(){ clearTimeout(window._ciRz); window._ciRz=setTimeout(function(){ if(curView==="map"&&DMAP){ fitDZ(); renderDoorMap(); } },250); });
 </script>
 </body>
