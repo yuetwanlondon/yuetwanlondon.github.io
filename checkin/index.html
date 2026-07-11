@@ -62,6 +62,23 @@ h1{font-size:20px;margin:0 0 4px}
 .rb.paid{background:#e5f3e6;color:#2f7a3a}.rb.day{background:#fbf1da;color:#8a6410}.rb.un{background:#f0e6e0;color:#8a5a2f}.rb.in{background:#16130f;color:#e7dcc6}
 .racts{display:flex;gap:7px;margin-top:11px}
 .racts .btn{flex:1;padding:9px;font-size:13px;width:auto}
+/* seat-map tab */
+.mctl{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.mctl select{flex:1;min-width:150px}
+.mctl .zb{width:42px;height:42px;border-radius:50%;background:#fff;border:1px solid var(--line);font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0}
+.mapwrap{overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:14px;background:#fff;padding:10px 8px;max-width:100%}
+.dgrid{display:inline-grid;gap:4px;--ds:14px}
+.drl{font-size:10px;font-weight:700;color:#8a8175;display:flex;align-items:center;justify-content:center;min-width:14px}
+.ds{width:var(--ds);height:var(--ds);border-radius:50%;border:1px solid rgba(0,0,0,.1)}
+.ds.gap{visibility:hidden}
+.ds.blk{background:repeating-linear-gradient(45deg,#ddd4c4,#ddd4c4 3px,#cabfa8 3px);opacity:.5;border:none}
+.ds.av{background:#f0e9db;border:1px solid #d8cdb8}
+.ds.bk{cursor:pointer}
+.ds.wc{border-radius:28%}
+.mstagebar{text-align:center;font-size:11px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:#6d655c;background:linear-gradient(#efe7d7,#e7dcc6);border-radius:8px;padding:7px;margin:9px 0 0}
+.mlegend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:11px;font-size:12px;color:#6d655c}
+.mlegend span{display:inline-flex;align-items:center;gap:6px}
+.mlegend i{width:12px;height:12px;border-radius:50%;display:inline-block}
 </style>
 </head>
 <body>
@@ -81,6 +98,7 @@ h1{font-size:20px;margin:0 0 4px}
   <div id="tabs" class="tabs hidden">
     <button class="tab on" data-v="scan">Scan</button>
     <button class="tab" data-v="list">Guest list</button>
+    <button class="tab" data-v="map">Seat map</button>
   </div>
 
   <div id="scan" class="hidden">
@@ -101,6 +119,19 @@ h1{font-size:20px;margin:0 0 4px}
     <div id="rosterList"></div>
   </div>
 
+  <div id="mapView" class="hidden">
+    <div class="mctl">
+      <select class="in" id="mapShowSel"></select>
+      <button class="zb" id="mzOut" aria-label="Zoom out">−</button>
+      <button class="zb" id="mzIn" aria-label="Zoom in">+</button>
+    </div>
+    <div class="camnote" id="mapStat" style="text-align:left;margin-bottom:8px"></div>
+    <div id="mapStage"></div>
+    <div class="mapwrap"><div id="doorGrid"></div><div class="mstagebar">Stage · 舞台</div></div>
+    <div class="mlegend" id="mapLegend"></div>
+    <div class="hint" style="text-align:left">Tap a booked seat to see the booking and check the guest in. 點按已訂座位可查看及辦理入場。</div>
+  </div>
+
 </div>
 
 <script>
@@ -117,6 +148,7 @@ else { $("scan").classList.remove("hidden"); $("tabs").classList.remove("hidden"
 
 /* preload the guest list so scans resolve instantly on the device */
 var R_BY_ID={}, R_BY_TOK={}, ROSTER=[], curView="scan", SHOW_FILTER=new URLSearchParams(location.search).get("show")||"";
+function STAGE(){ return curView==="map" ? $("mapStage") : $("stage"); }
 async function loadRoster(){
   try{
     var res=await post({action:"roster", key:KEY, show:SHOW_FILTER});
@@ -128,17 +160,22 @@ async function loadRoster(){
       R_BY_ID=byId; R_BY_TOK=byTok;
       $("rosterNote").innerHTML=ROSTER.length+" ticket(s) loaded · scans are instant";
       if(curView==="list") renderList();
+      if(curView==="map") renderDoorMap();
     }
   }catch(e){}
 }
-function showExpired(){ $("scan").classList.add("hidden"); $("listView").classList.add("hidden"); $("tabs").classList.add("hidden"); $("expired").classList.remove("hidden"); }
+function showExpired(){ $("scan").classList.add("hidden"); $("listView").classList.add("hidden"); $("mapView").classList.add("hidden"); $("tabs").classList.add("hidden"); $("expired").classList.remove("hidden"); }
 
 Array.prototype.forEach.call(document.querySelectorAll("#tabs .tab"),function(b){
   b.onclick=function(){
     Array.prototype.forEach.call(document.querySelectorAll("#tabs .tab"),function(x){ x.classList.remove("on"); });
     b.classList.add("on"); curView=b.getAttribute("data-v");
-    if(curView==="list"){ $("scan").classList.add("hidden"); $("listView").classList.remove("hidden"); renderList(); }
-    else { $("listView").classList.add("hidden"); $("scan").classList.remove("hidden"); focusManual(); }
+    $("scan").classList.toggle("hidden",curView!=="scan");
+    $("listView").classList.toggle("hidden",curView!=="list");
+    $("mapView").classList.toggle("hidden",curView!=="map");
+    if(curView==="list") renderList();
+    else if(curView==="map") openMapView();
+    else focusManual();
   };
 });
 $("rSearch").addEventListener("input", renderList);
@@ -210,7 +247,7 @@ function renderReviewLocal(t, tokenChecked){
   var btn=t.checked_in
     ? '<button class="btn ghost" id="nextBtn">Next guest</button>'
     : '<div class="acts"><button class="btn green" id="doCheckin">Check in \u2713</button><button class="btn ghost" id="cancelBtn">Skip</button></div>';
-  $("stage").innerHTML=warn
+  STAGE().innerHTML=warn
     +'<div class="review '+pt.c+'">'
     +'<div class="pay">'+pt.t+'</div>'
     +'<div class="paynote">'+pt.note+'</div>'
@@ -230,7 +267,7 @@ $("lookupBtn").onclick=function(){ var v=$("manual").value.trim(); if(!v)return;
 /* lookup -> review (does NOT check in) */
 async function lookup(id,token){
   inFlight=true;
-  $("stage").innerHTML='<div class="review a"><div class="pay">Finding…</div></div>';
+  STAGE().innerHTML='<div class="review a"><div class="pay">Finding…</div></div>';
   try{
     var res=await post({action:"ticketLookup",key:KEY,id:id,token:token});
     inFlight=false;
@@ -251,7 +288,7 @@ function renderReview(res){
   var btn=res.already
     ? '<button class="btn ghost" id="nextBtn">Next guest</button>'
     : '<div class="acts"><button class="btn green" id="doCheckin">Check in \u2713</button><button class="btn ghost" id="cancelBtn">Skip</button></div>';
-  $("stage").innerHTML=warn
+  STAGE().innerHTML=warn
     +'<div class="review '+pt.c+'">'
     +'<div class="pay">'+pt.t+'</div>'
     +'<div class="paynote">'+pt.note+'</div>'
@@ -270,17 +307,124 @@ async function confirmCheckin(){
     var res=await post({action:"checkin",key:KEY,id:CUR.id,token:CUR.token});
     if(res&&res.ok){
       var b=res.booking; try{ if(navigator.vibrate) navigator.vibrate(90); }catch(e){}
-      if(R_BY_ID[b.id]) R_BY_ID[b.id].checked_in=true;
-      $("stage").innerHTML='<div class="result g"><div class="status">CHECKED IN \u2713</div><div style="font-size:19px;font-weight:700;margin-top:6px">'+esc(b.name)+'</div><div class="det" style="margin-top:2px">'+esc(b.count)+' seat(s) · '+esc(b.seats)+'</div></div><button class="btn dark" id="nextBtn">Next guest</button>';
-      $("nextBtn").onclick=reset; focusManual();
+      markRoster(b.id,{checked_in:true});
+      STAGE().innerHTML='<div class="result g"><div class="status">CHECKED IN \u2713</div><div style="font-size:19px;font-weight:700;margin-top:6px">'+esc(b.name)+'</div><div class="det" style="margin-top:2px">'+esc(b.count)+' seat(s) · '+esc(b.seats)+'</div></div><button class="btn dark" id="nextBtn">Next guest</button>';
+      $("nextBtn").onclick=reset;
+      if(curView==="map") renderDoorMap();
+      focusManual();
     } else { showError(res); }
   }catch(e){ showError({error:"Network error — try again."}); }
 }
 function showError(res){
-  $("stage").innerHTML='<div class="result r"><div class="status">'+((res&&res.error&&res.error.indexOf("CANCEL")>-1)?"CANCELLED":"NOT FOUND")+'</div><div class="det" style="margin-top:6px">'+esc((res&&res.error)||"Unknown error")+'</div></div><button class="btn dark" id="nextBtn">Try again</button>';
+  STAGE().innerHTML='<div class="result r"><div class="status">'+((res&&res.error&&res.error.indexOf("CANCEL")>-1)?"CANCELLED":"NOT FOUND")+'</div><div class="det" style="margin-top:6px">'+esc((res&&res.error)||"Unknown error")+'</div></div><button class="btn dark" id="nextBtn">Try again</button>';
   $("nextBtn").onclick=reset;
 }
-function reset(){ $("stage").innerHTML=""; CUR=null; lastScan={code:"",t:0}; focusManual(); }
+function reset(){ $("stage").innerHTML=""; $("mapStage").innerHTML=""; CUR=null; lastScan={code:"",t:0}; focusManual(); }
+
+/* ================= seat-map tab (live door view) ================= */
+var DMAP=null, DSHOW=null, DSHOWS=[], DZ=14;
+function decCell(ch){ if(ch==="x")return{t:"blocked"}; if(ch>="0"&&ch<="9")return{t:"seat",sec:+ch,wc:false}; var c=ch.charCodeAt(0); if(c>=97&&c<=106)return{t:"seat",sec:c-97,wc:true}; return{t:"empty"}; }
+function deserializeMap(raw){
+  var floors=(raw.floors&&raw.floors.length)?raw.floors.map(function(f){
+    var rows=f.rows||(f.grid?f.grid.length:12), cols=f.cols||(f.grid&&f.grid[0]?f.grid[0].length:20);
+    var cells=[];
+    for(var r=0;r<rows;r++){ var line=(f.grid&&f.grid[r])||""; var row=[]; for(var c=0;c<cols;c++) row.push(decCell(line.charAt(c)||".")); cells.push(row); }
+    return { name:f.name||"Main", rows:rows, cols:cols, cells:cells, labelFrom:f.labelFrom||"bottom" };
+  }):[];
+  return { sections:raw.sections||[], floors:floors };
+}
+function colLetter(i){ var s=""; i++; while(i>0){ var m=(i-1)%26; s=String.fromCharCode(65+m)+s; i=Math.floor((i-1)/26); } return s; }
+function numberFloor(floor){
+  var seatRows=[]; for(var r=0;r<floor.rows;r++){ if(floor.cells[r].some(function(c){return c.t==="seat";})) seatRows.push(r); }
+  var order=(floor.labelFrom==="top")?seatRows.slice():seatRows.slice().reverse();
+  var rowLabel={}; order.forEach(function(r,i){ rowLabel[r]=colLetter(i); });
+  var ids={};
+  for(var r2=0;r2<floor.rows;r2++){ if(rowLabel[r2]===undefined)continue; var n=0;
+    for(var c=0;c<floor.cols;c++){ if(floor.cells[r2][c].t==="seat"){ n++; ids[r2+","+c]=rowLabel[r2]+n; } } }
+  return { ids:ids, rowLabel:rowLabel };
+}
+async function openMapView(){
+  if(DMAP){ renderDoorMap(); return; }
+  $("mapStat").textContent="Loading seat map…";
+  await loadDoorMap(SHOW_FILTER);
+}
+async function loadDoorMap(showId){
+  try{
+    var res=await post({action:"doorMap",key:KEY,show:showId||""});
+    if(res&&res.error==="unauthorized"){ showExpired(); return; }
+    if(!res||!res.ok){ $("mapStat").textContent="Could not load the seat map — is the backend on book-v3?"; return; }
+    DSHOWS=res.shows||[];
+    var sel=$("mapShowSel");
+    sel.innerHTML=DSHOWS.length?DSHOWS.map(function(s){ return '<option value="'+esc(s.id)+'">'+esc(s.title)+(s.date?(" · "+esc(s.date)):"")+'</option>'; }).join(""):'<option value="">No shows with a seat map</option>';
+    sel.onchange=function(){ DMAP=null; loadDoorMap(sel.value); };
+    if(res.show&&res.map){ DSHOW=res.show; DMAP=deserializeMap(res.map); sel.value=DSHOW.id; fitDZ(); renderDoorMap(); }
+    else if(DSHOWS.length){ sel.value=DSHOWS[0].id; loadDoorMap(DSHOWS[0].id); }
+    else $("mapStat").textContent="No shows with a seat map yet.";
+  }catch(e){ $("mapStat").textContent="Network error loading the seat map."; }
+}
+function doorSeatIndex(){
+  var idx={};
+  ROSTER.forEach(function(t){
+    if(DSHOW&&String(t.show_id)!==String(DSHOW.id)) return;
+    String(t.seats||"").split(",").forEach(function(s){ s=s.trim(); if(s) idx[s]=t; });
+  });
+  return idx;
+}
+function fitDZ(){
+  if(!DMAP||!DMAP.floors.length) return;
+  var w=$("doorGrid").parentElement.clientWidth-16-14;
+  var cols=DMAP.floors[0].cols;
+  DZ=Math.max(8,Math.min(20,Math.floor((w-cols*4)/cols)));
+}
+function seatColor(t){
+  if(t.checked_in) return "#16130F";
+  var p=String(t.pay_status||"").toLowerCase();
+  if(p==="paid") return "var(--green)";
+  if(p==="pay_on_day") return "var(--amber)";
+  return "var(--red)";
+}
+function renderDoorMap(){
+  if(!DMAP||!DMAP.floors.length) return;
+  var f=DMAP.floors[0], num=numberFloor(f), idx=doorSeatIndex();
+  var html='<div class="dgrid" style="--ds:'+DZ+'px;grid-template-columns:14px repeat('+f.cols+',var(--ds))">';
+  for(var r=0;r<f.rows;r++){
+    html+='<div class="drl">'+(num.rowLabel[r]||"")+'</div>';
+    for(var c=0;c<f.cols;c++){
+      var cell=f.cells[r][c];
+      if(cell.t==="empty"){ html+='<div class="ds gap"></div>'; continue; }
+      if(cell.t==="blocked"){ html+='<div class="ds blk"></div>'; continue; }
+      var sid=num.ids[r+","+c];
+      var t=idx[sid];
+      if(t) html+='<div class="ds bk'+(cell.wc?" wc":"")+'" data-bk="'+esc(t.id)+'" title="'+esc(sid+" · "+t.name)+'" style="background:'+seatColor(t)+'"></div>';
+      else html+='<div class="ds av'+(cell.wc?" wc":"")+'" title="'+esc(sid)+'"></div>';
+    }
+  }
+  html+='</div>';
+  $("doorGrid").innerHTML=html;
+  Array.prototype.forEach.call(document.querySelectorAll("#doorGrid [data-bk]"),function(el){
+    el.onclick=function(){
+      var t=R_BY_ID[el.getAttribute("data-bk")];
+      if(!t) return;
+      CUR={id:t.id, token:t.token||""};
+      renderReviewLocal(t);
+      $("mapStage").scrollIntoView({behavior:"smooth",block:"nearest"});
+    };
+  });
+  var sold=0, inN=0, idxKeys=Object.keys(idx);
+  var seen={};
+  idxKeys.forEach(function(s){ sold++; var t=idx[s]; if(t.checked_in && !seen[t.id+s]) inN++; });
+  var total=0; f.cells.forEach(function(row){ row.forEach(function(cl){ if(cl.t==="seat")total++; }); });
+  $("mapStat").innerHTML="<b>"+inN+"</b> of "+sold+" sold seats checked in · "+(total-sold)+" unsold";
+  $("mapLegend").innerHTML=
+    '<span><i style="background:#f0e9db;border:1px solid #d8cdb8"></i>Unsold 未售</span>'
+    +'<span><i style="background:var(--green)"></i>Paid 已付</span>'
+    +'<span><i style="background:var(--amber)"></i>Pay on day 當日付</span>'
+    +'<span><i style="background:var(--red)"></i>Unpaid 未付</span>'
+    +'<span><i style="background:#16130F"></i>Checked in 已入場</span>';
+}
+$("mzIn").onclick=function(){ DZ=Math.min(34,DZ+4); renderDoorMap(); };
+$("mzOut").onclick=function(){ DZ=Math.max(8,DZ-4); renderDoorMap(); };
+window.addEventListener("resize",function(){ clearTimeout(window._ciRz); window._ciRz=setTimeout(function(){ if(curView==="map"&&DMAP){ fitDZ(); renderDoorMap(); } },250); });
 </script>
 </body>
 </html>
