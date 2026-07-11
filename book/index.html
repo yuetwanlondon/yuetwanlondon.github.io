@@ -67,7 +67,9 @@ h2{font-size:18px;margin:0 0 10px}
 .floors button{font-size:13px;font-weight:600;color:var(--ink-55);background:#f2ece0;border:1px solid var(--line);border-radius:9px;padding:7px 14px}
 .floors button.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 .mapbox{position:relative}
-.mapctl{display:flex;justify-content:flex-end;align-items:center;gap:7px;margin:0 0 8px}
+.maptop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin:0 0 10px}
+.maptop .plegend{margin:0;flex:1;min-width:240px}
+.mapctl{display:flex;align-items:center;gap:7px;margin:0}
 .mapctl button{width:38px;height:38px;border-radius:50%;background:var(--white);border:1px solid var(--line);font-size:18px;font-weight:700;line-height:1;color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .mapctl button:active{background:#f3ece0}
 .mapctl .fitb{font-size:13px}
@@ -95,18 +97,21 @@ h2{font-size:18px;margin:0 0 10px}
 
 /* summary bar */
 .bar2{position:fixed;left:0;right:0;bottom:0;background:var(--white);border-top:1px solid var(--line);box-shadow:0 -6px 24px rgba(22,19,15,.08);padding:12px 16px calc(12px + env(safe-area-inset-bottom));z-index:5}
-.bar2 .in{max-width:1160px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
-.bar2 .info{font-size:13.5px;color:var(--ink-80);line-height:1.4}
+.bar2 .in{max-width:1160px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.bar2 .info{flex:1;min-width:230px}
+.bar2 .btn{width:auto;min-width:170px;padding:12px 40px;margin-left:auto}
+@media(max-width:680px){.bar2 .in{flex-direction:column;align-items:stretch;gap:10px}.bar2 .btn{width:100%;margin-left:0}}
+.bar2 .info{flex:1;min-width:0;display:flex;align-items:center;gap:12px;font-size:13.5px;color:var(--ink-80);line-height:1.4}
+.bar2 .totwrap{white-space:nowrap}
 .bar2 .row1{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
-.bar2 .tot{font-weight:800;font-size:19px;color:var(--ink)}
-.bar2 .cnt{color:var(--ink-55);font-size:13px;font-weight:600}
-.bar2 .chips{display:flex;flex-wrap:wrap;gap:6px;max-height:66px;overflow-y:auto}
+.bar2 .tot{font-weight:800;font-size:18px;color:var(--ink);line-height:1.15}
+.bar2 .cnt{color:var(--ink-55);font-size:12px;font-weight:600}
+.bar2 .chips{flex:1;min-width:0;display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
 .bar2 .schip{display:inline-flex;align-items:center;gap:7px;background:#f3ece0;border:1px solid var(--line);border-radius:20px;padding:4px 5px 4px 11px;font-size:12.5px;font-weight:600;color:var(--ink)}
 .bar2 .schip .pr{color:var(--ink-55);font-weight:600}
 .bar2 .schip .rm{width:19px;height:19px;border-radius:50%;background:rgba(22,19,15,.09);border:none;display:inline-flex;align-items:center;justify-content:center;color:var(--ink-55);cursor:pointer;font-size:14px;line-height:1;padding:0}
 .bar2 .schip .rm:active{background:rgba(22,19,15,.18)}
 .bar2 .seats{color:var(--ink-55);font-size:13px}
-.bar2 .btn{width:100%;margin-top:0}
 
 /* buttons + form */
 .btn{border:1px solid var(--brass);height:auto;background:#fff;color:#6d563a;border-radius:30px;padding:12px 22px;font-size:15px;font-weight:600}
@@ -305,14 +310,14 @@ function render(){
 }
 
 function showHeaderHtml(){
-  var hero=heroFor();
-  var heroHtml = hero ? '<div class="bhero" style="background-image:url(\''+esc(hero)+'\')">'+(SHOW.category?'<span class="bchip">'+esc(SHOW.category)+'</span>':'')+'</div>' : '';
+  /* no hero banner in the booking flow — a wide cropped image wastes a whole screen; keep it compact */
   var t=esc(L(SHOW.title_en||SHOW.title_zh, SHOW.title_zh||SHOW.title_en));
   var v=esc(L(SHOW.venue_en||SHOW.venue_zh, SHOW.venue_zh||SHOW.venue_en));
   var when=[SHOW.date, SHOW.time].filter(Boolean).join(" · ");
   var m=[]; if(when) m.push(esc(when)); if(v) m.push(v);
   if(SHOW.doors) m.push(L("Doors ","開場 ")+esc(SHOW.doors));
-  return heroHtml+'<h1 class="'+(LANG==="zh"?"zh":"")+'">'+t+'</h1><div class="meta">'+m.join("<br>")+'</div>';
+  var chip=SHOW.category?' <span class="pill" style="background:#f3ece0;color:#6d563a">'+esc(SHOW.category)+'</span>':'';
+  return '<h1 class="'+(LANG==="zh"?"zh":"")+'" style="display:inline">'+t+'</h1>'+chip+'<div class="meta" style="margin-top:6px">'+m.join("<br>")+'</div>';
 }
 
 function renderList(){
@@ -321,7 +326,7 @@ function renderList(){
     var t=esc(L(s.title_en||s.title_zh,s.title_zh||s.title_en));
     var when=[s.date,s.time].filter(Boolean).join(" · ");
     var img=(s.hero_image&&String(s.hero_image).trim())?s.hero_image:(EVENT_IMG[s.id]||"");
-    var heroHtml=img?'<div class="lhero" style="background-image:url(\''+esc(img)+'\')">'+(s.category?'<span class="lchip">'+esc(s.category)+'</span>':'')+'</div>':'';
+    var heroHtml='';  /* banner removed — keeps the booking flow compact */
     return '<div class="card">'+heroHtml+'<h2 style="margin-bottom:4px">'+t+'</h2><div class="meta">'+esc(when)+(s.venue_en?("<br>"+esc(L(s.venue_en,s.venue_zh||s.venue_en))):"")+'</div>'
       +'<div style="margin-top:14px"><button class="btn primary" data-show="'+esc(s.id)+'">'+L("Select seats","選擇座位")+'</button></div></div>';
   }).join("");
@@ -350,8 +355,9 @@ function renderBook(){
     }).join("")+'<span class="pl"><span class="d" style="background:#efe8da;border:1px dashed #b9ad97"></span>'+L("Taken","已售")+'</span></div>';
   var ctl='<div class="mapctl"><button class="zb" data-z="-1" aria-label="'+L("Zoom out","縮小")+'">\u2212</button><button class="zb" data-z="1" aria-label="'+L("Zoom in","放大")+'">+</button><button class="fitb" id="fitBtn" aria-label="'+L("Fit to screen","全圖")+'" title="'+L("Fit whole map","顯示全圖")+'">\u2922</button></div>';
   $("view").innerHTML=card(showHeaderHtml())
-    + '<div class="card mapcard">'+'<h2>'+L("Choose your seats","選擇座位")+'</h2>'+legend
-       +'<div class="mapbox">'+ctl+floorsTabs+'<canvas id="mini" class="mini hidden"></canvas><div class="gridwrap">'+gridHtml(FLOOR)+'</div><div class="stage">'+L("Stage","舞台")+'</div><div class="maphint" id="maphint"></div></div>'
+    + '<div class="card mapcard">'+'<h2>'+L("Choose your seats","選擇座位")+'</h2>'
+       +'<div class="maptop">'+legend+ctl+'</div>'
+       +'<div class="mapbox">'+floorsTabs+'<canvas id="mini" class="mini hidden"></canvas><div class="gridwrap">'+gridHtml(FLOOR)+'</div><div class="stage">'+L("Stage","舞台")+'</div><div class="maphint" id="maphint"></div></div>'
        +(SHOW.price_note_en||SHOW.price_note_zh?'<div class="note" style="margin-top:14px">'+esc(L(SHOW.price_note_en||SHOW.price_note_zh,SHOW.price_note_zh||SHOW.price_note_en))+'</div>':'')+'</div>'
     + summaryBar();
   Array.prototype.forEach.call(document.querySelectorAll("[data-fl]"),function(b){ b.onclick=function(){ FLOOR=+b.getAttribute("data-fl"); renderBook(); }; });
@@ -495,7 +501,7 @@ function seatChip(sid){
 function summaryInner(){
   var list=selectedList(), n=list.length;
   if(!n) return '<div class="seats">'+L("Tap seats to select","點選座位")+'</div>';
-  return '<div class="row1"><div class="tot">'+money(total())+'</div><div class="cnt">'+n+' '+L(n===1?"ticket":"tickets","張門票")+'</div></div>'
+  return '<div class="totwrap"><div class="tot">'+money(total())+'</div><div class="cnt">'+n+' '+L(n===1?"ticket":"tickets","張門票")+'</div></div>'
     + '<div class="chips">'+list.map(seatChip).join("")+'</div>';
 }
 function updateSummary(){
