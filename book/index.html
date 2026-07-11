@@ -76,7 +76,8 @@ h2{font-size:18px;margin:0 0 10px}
 .gridwrap{overflow:auto;-webkit-overflow-scrolling:touch;max-width:100%;border:1px solid var(--line);border-radius:12px;background:#faf6ee;padding:10px 8px;text-align:center}
 .gridwrap .sgrid{text-align:left}
 .maphint{text-align:center;font-size:12.5px;color:var(--ink-55);margin-top:9px}
-.mini{display:block;width:100%;border:1px solid var(--line);border-radius:10px;margin:0 0 8px;background:#faf6ee;touch-action:none;cursor:pointer}
+.mini{position:absolute;top:8px;right:8px;width:170px;border:1px solid var(--line);border-radius:10px;background:rgba(250,246,238,.95);box-shadow:0 6px 18px rgba(22,19,15,.2);z-index:6;opacity:0;pointer-events:none;transition:opacity .25s;touch-action:none;cursor:pointer}
+.mini.show{opacity:1;pointer-events:auto}
 .gridwrap.mob{max-height:56vh}
 .sgrid{display:inline-grid;gap:5px;margin:0 auto;--seat:24px}
 .rl{font-size:10px;font-weight:700;color:var(--ink-55);display:flex;align-items:center;justify-content:center;min-width:16px}
@@ -378,13 +379,13 @@ function fitWidth(){
 }
 function fitZoom(){
   var fit=fitWidth();
-  MOBILE = fit<16;                                  /* phone-sized: overview + pan mode */
+  MOBILE = fit<16;                                  /* small screens: overview + pan mode */
   ZOOM = MOBILE ? 36 : fit;
   applyZoomNow();
   setupMini();
   var hint=$("maphint");
   if(hint) hint.textContent = MOBILE
-    ? L("Drag the map to move around, or tap the small overview to jump. Tap seats to select.","拖動座位圖移動，或點上方小圖快速跳位；點座位選位。")
+    ? L("Drag the map to move around — a small overview appears to show where you are; tap it to jump. Tap seats to select.","拖動座位圖移動，小地圖會顯示位置，點小圖可快速跳位；點座位選位。")
     : L("Use + to zoom in, then slide the map to pick seats","按 + 放大座位圖，左右滑動選位");
 }
 function applyZoom(dz){
@@ -393,34 +394,49 @@ function applyZoom(dz){
   applyZoomNow();
   var gw=document.querySelector(".gridwrap");
   if(gw&&!MOBILE&&gw.scrollWidth>gw.clientWidth) gw.scrollLeft=(gw.scrollWidth-gw.clientWidth)/2;
-  if(MOBILE) requestAnimationFrame(drawMini);
+  if(MOBILE){ miniShow(); requestAnimationFrame(drawMini); }
+}
+function miniShow(){
+  var mini=$("mini");
+  if(!mini||!MOBILE) return;
+  mini.classList.add("show");
+  clearTimeout(mini._hide);
+  mini._hide=setTimeout(function(){ if(!mini._drag) mini.classList.remove("show"); },1500);
 }
 function setupMini(){
   var mini=$("mini"), gw=document.querySelector(".gridwrap");
   if(!mini||!gw) return;
   gw.classList.toggle("mob",MOBILE);
-  if(!MOBILE){ mini.classList.add("hidden"); return; }
+  if(!MOBILE){ mini.classList.add("hidden"); mini.classList.remove("show"); return; }
   mini.classList.remove("hidden");
   var f=MAP.floors[FLOOR];
-  var cssW=gw.clientWidth||300;
-  var cssH=Math.max(64,Math.min(150,Math.round(cssW*(f.rows+1)/f.cols)));
+  var cssW=Math.min(180,Math.max(130,Math.round(gw.clientWidth*0.45)));
+  var cssH=Math.max(44,Math.min(130,Math.round(cssW*(f.rows+1)/f.cols)));
   var dpr=window.devicePixelRatio||1;
   mini.width=Math.round(cssW*dpr); mini.height=Math.round(cssH*dpr);
-  mini.style.height=cssH+"px";
-  gw.onscroll=function(){ if(!MOBILE)return; if(mini._raf)return; mini._raf=requestAnimationFrame(function(){ mini._raf=0; drawMini(); }); };
+  mini.style.width=cssW+"px"; mini.style.height=cssH+"px";
+  gw.onscroll=function(){
+    if(!MOBILE) return;
+    miniShow();
+    if(mini._raf) return;
+    mini._raf=requestAnimationFrame(function(){ mini._raf=0; drawMini(); });
+  };
   function jump(e){
     var r=mini.getBoundingClientRect();
     var fx=(e.clientX-r.left)/r.width, fy=(e.clientY-r.top)/r.height;
     gw.scrollLeft=fx*gw.scrollWidth-gw.clientWidth/2;
     gw.scrollTop=fy*gw.scrollHeight-gw.clientHeight/2;
   }
-  mini.onpointerdown=function(e){ e.preventDefault(); if(mini.setPointerCapture){ try{ mini.setPointerCapture(e.pointerId); }catch(err){} } mini._drag=true; jump(e); };
+  mini.onpointerdown=function(e){ e.preventDefault(); if(mini.setPointerCapture){ try{ mini.setPointerCapture(e.pointerId); }catch(err){} } mini._drag=true; mini.classList.add("show"); jump(e); };
   mini.onpointermove=function(e){ if(mini._drag) jump(e); };
-  mini.onpointerup=mini.onpointercancel=function(){ mini._drag=false; };
+  mini.onpointerup=mini.onpointercancel=function(){ mini._drag=false; miniShow(); };
   requestAnimationFrame(function(){                 /* start front-and-centre, by the stage */
     gw.scrollLeft=(gw.scrollWidth-gw.clientWidth)/2;
     gw.scrollTop=gw.scrollHeight;
     drawMini();
+    mini.classList.add("show");                     /* brief hello so people learn it exists */
+    clearTimeout(mini._hide);
+    mini._hide=setTimeout(function(){ if(!mini._drag) mini.classList.remove("show"); },2000);
   });
 }
 function drawMini(){
@@ -431,7 +447,7 @@ function drawMini(){
   var W=mini.width, H=mini.height;
   ctx.clearRect(0,0,W,H);
   var cw=W/(f.cols+1), ch=H/(f.rows+1);
-  var rad=Math.max(1.4,Math.min(cw,ch)*0.38);
+  var rad=Math.max(1.1,Math.min(cw,ch)*0.4);
   for(var r=0;r<f.rows;r++){
     for(var c=0;c<f.cols;c++){
       var cell=f.cells[r][c]; if(cell.t!=="seat") continue;
@@ -511,7 +527,7 @@ function updateSummary(){
   if(info) info.innerHTML=summaryInner();
   var gd=$("goDetails"); if(gd) gd.disabled=!selectedList().length;
   if(gw) gw.scrollLeft=sx;                    // restore, in case the reflow nudged it
-  if(MOBILE) requestAnimationFrame(drawMini);
+  if(MOBILE){ requestAnimationFrame(drawMini); miniShow(); }
 }
 function summaryBar(){
   var n=selectedList().length;
