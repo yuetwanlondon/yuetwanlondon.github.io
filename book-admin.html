@@ -123,8 +123,10 @@ textarea.in{min-height:74px;resize:vertical}
 .gridwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:12px;background:#faf6ee;padding:14px}
 .seatgrid{display:inline-grid;gap:3px;user-select:none;touch-action:pan-x pan-y;--tool-color:#B8893C}
 .grow{display:contents}
-.rowlab{font-size:11px;font-weight:700;color:var(--ink-55);display:flex;align-items:center;justify-content:center;min-width:20px}
-.scell{width:22px;height:22px;border-radius:5px;cursor:pointer;box-sizing:border-box;position:relative;transition:transform .06s ease}
+.rowlab{font-size:11px;font-weight:700;color:var(--ink-55);display:flex;align-items:center;justify-content:center;min-width:20px;cursor:pointer;border-radius:6px}
+.rowlab:hover{background:#efe7d7}
+.rowlab.on{background:var(--ink);color:var(--paper)}
+.scell{width:var(--cell,22px);height:var(--cell,22px);border-radius:5px;cursor:pointer;box-sizing:border-box;position:relative;transition:transform .06s ease}
 .scell.empty{background:transparent;border:1px solid transparent}
 .scell.empty::after{content:"";position:absolute;inset:0;margin:auto;width:4px;height:4px;border-radius:50%;background:rgba(22,19,15,.13);transition:all .09s ease}
 .scell.empty:hover::after{width:78%;height:78%;border-radius:5px;background:var(--tool-color);opacity:.5}
@@ -331,6 +333,7 @@ textarea.in{min-height:74px;resize:vertical}
         <input class="in" id="m_name" placeholder="Venue name (e.g. Shaw Theatre)" style="max-width:340px">
         <div class="dhead-r">
           <button class="btn ghost sm" id="mapBack">← Maps</button>
+          <button class="btn ghost sm" id="qbBtn">Quick build</button>
           <button class="btn ghost sm" id="importBtn">Import layout</button>
           <button class="btn ghost sm" id="printMap">Print chart</button>
           <button class="btn primary sm" id="saveMap">Save map</button>
@@ -361,6 +364,10 @@ textarea.in{min-height:74px;resize:vertical}
           <option value="bottom">Bottom (near stage)</option>
           <option value="top">Top</option>
         </select>
+        <span class="lbl" style="margin-left:10px">Cell</span>
+        <button class="btn ghost sm" id="cellMinus" aria-label="Smaller cells">−</button>
+        <button class="btn ghost sm" id="cellPlus" aria-label="Bigger cells">+</button>
+        <button class="btn ghost sm" id="undoBtn" style="margin-left:10px" disabled>Undo</button>
       </div>
 
       <div id="importPanel" class="hidden" style="border:1px solid var(--line);border-radius:12px;padding:14px 15px;margin:12px 0;background:#fffaf0">
@@ -372,6 +379,31 @@ textarea.in{min-height:74px;resize:vertical}
           <button class="btn ghost sm" id="importCancel">Cancel</button>
           <span class="hint" id="importMsg" style="margin:0;align-self:center"></span>
         </div>
+      </div>
+      <div id="qbPanel" class="hidden" style="border:1px solid var(--line);border-radius:12px;padding:14px 15px;margin:12px 0;background:#fffaf0">
+        <div style="font-weight:700;font-size:14px;margin-bottom:4px">Quick build rows</div>
+        <div class="hint" style="margin:0 0 8px">Read the printed chart from the <b>stage backwards</b> — one line per row, the seat count of each block separated by spaces. E.g. <b>4 6 4</b> = left 4, centre 6, right 4 (with an aisle between blocks); <b>14</b> = one block of 14. Rows are auto-centred. This replaces the current floor; seats use the selected section — paint price zones after.</div>
+        <textarea class="in" id="qbText" rows="7" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;resize:vertical" spellcheck="false" placeholder="4 6 4&#10;6 9 6&#10;6 10 6&#10;…"></textarea>
+        <div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap">
+          <span class="lbl">Aisle width</span><input class="in mini" id="qbAisle" type="number" min="1" max="4" value="2">
+          <button class="btn primary sm" id="qbGo">Build</button>
+          <button class="btn ghost sm" id="qbCancel">Cancel</button>
+          <span class="hint" id="qbMsg" style="margin:0"></span>
+        </div>
+      </div>
+      <div id="rowTools" class="hidden" style="border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:12px 0;background:#fffaf0;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <b id="rtLabel" style="font-size:13px;margin-right:4px"></b>
+        <button class="btn ghost sm" data-rowact="shiftL" title="Move the whole row one column left">◀ Shift</button>
+        <button class="btn ghost sm" data-rowact="shiftR" title="Move the whole row one column right">Shift ▶</button>
+        <button class="btn ghost sm" data-rowact="addL" title="Add a seat at the left end">+ Seat ◀</button>
+        <button class="btn ghost sm" data-rowact="addR" title="Add a seat at the right end">+ Seat ▶</button>
+        <button class="btn ghost sm" data-rowact="remL" title="Remove the left-end seat">− Seat ◀</button>
+        <button class="btn ghost sm" data-rowact="remR" title="Remove the right-end seat">− Seat ▶</button>
+        <button class="btn ghost sm" data-rowact="center" title="Centre this row">Centre</button>
+        <button class="btn ghost sm" data-rowact="dupUp" title="Insert a copy of this row above">Copy ↑</button>
+        <button class="btn ghost sm" data-rowact="dupDown" title="Insert a copy of this row below">Copy ↓</button>
+        <button class="btn ghost sm" data-rowact="del" title="Delete this row" style="color:var(--vermilion-d)">Delete row</button>
+        <button class="btn ghost sm" data-rowact="close" style="margin-left:auto">✕</button>
       </div>
       <div class="gridwrap"><div id="seatGrid" class="seatgrid"></div></div>
       <div class="dstats" id="mapStats"></div>
@@ -740,6 +772,8 @@ function openMap(id){
   if(id){ var found=MAPS.filter(function(x){return x.id===id;})[0]; MAP=found?JSON.parse(JSON.stringify(found)):newMapModel(); }
   else { MAP=newMapModel(); }
   FLOOR=0; SECTION=0; TOOL="seat";
+  SELROW=null; UNDO=[]; $("undoBtn").disabled=true;
+  $("rowTools").classList.add("hidden"); $("qbPanel").classList.add("hidden"); $("importPanel").classList.add("hidden");
   $("m_name").value=MAP.name||"";
   $("m_idhint").textContent=id?("Map ID: "+id+" (fixed)"):"A new map ID will be made from the venue name.";
   $("deleteMap").style.display=id?"":"none";
@@ -756,10 +790,10 @@ function renderFloorTabs(){
     + '<button class="ficon" id="renameFloor" title="Rename this floor">Rename</button>'
     + '<button class="ficon" id="addFloor">+ Floor</button>'
     + (MAP.floors.length>1?'<button class="ficon" id="delFloor" title="Delete this floor">Delete floor</button>':'');
-  Array.prototype.forEach.call(host.querySelectorAll("[data-floor]"),function(b){ b.onclick=function(){ FLOOR=+b.getAttribute("data-floor"); renderFloorTabs(); renderGrid(); renderStats(); }; });
-  $("addFloor").onclick=function(){ MAP.floors.push(newFloor("Floor "+(MAP.floors.length+1))); FLOOR=MAP.floors.length-1; renderFloorTabs(); renderGrid(); renderStats(); };
+  Array.prototype.forEach.call(host.querySelectorAll("[data-floor]"),function(b){ b.onclick=function(){ FLOOR=+b.getAttribute("data-floor"); SELROW=null; $("rowTools").classList.add("hidden"); renderFloorTabs(); renderGrid(); renderStats(); }; });
+  $("addFloor").onclick=function(){ MAP.floors.push(newFloor("Floor "+(MAP.floors.length+1))); FLOOR=MAP.floors.length-1; SELROW=null; $("rowTools").classList.add("hidden"); renderFloorTabs(); renderGrid(); renderStats(); };
   $("renameFloor").onclick=function(){ var n=prompt("Floor name:",MAP.floors[FLOOR].name); if(n!=null){ MAP.floors[FLOOR].name=n.trim()||MAP.floors[FLOOR].name; renderFloorTabs(); } };
-  if($("delFloor")) $("delFloor").onclick=function(){ if(!confirm("Delete this floor and its seats?")) return; MAP.floors.splice(FLOOR,1); FLOOR=0; renderFloorTabs(); renderGrid(); renderStats(); };
+  if($("delFloor")) $("delFloor").onclick=function(){ if(!confirm("Delete this floor and its seats?")) return; snapshot(); MAP.floors.splice(FLOOR,1); FLOOR=0; SELROW=null; $("rowTools").classList.add("hidden"); renderFloorTabs(); renderGrid(); renderStats(); };
 }
 
 /* ---- sections ---- */
@@ -795,20 +829,25 @@ function renderGrid(){
   var f=MAP.floors[FLOOR];
   var num=numberFloor(f);
   var host=$("seatGrid");
-  host.style.gridTemplateColumns="20px repeat("+f.cols+",22px)";
+  host.style.setProperty("--cell",CELL+"px");
+  host.style.gridTemplateColumns="24px repeat("+f.cols+",var(--cell))";
   var rows="";
   for(var r=0;r<f.rows;r++){
-    rows+='<div class="rowlab">'+(num.rowLabel[r]||"")+'</div>';
+    rows+='<div class="rowlab'+(r===SELROW?" on":"")+'" data-rowlab="'+r+'" title="Row tools">'+(num.rowLabel[r]||"·")+'</div>';
     for(var c=0;c<f.cols;c++){
       var cell=f.cells[r][c];
       var cls="scell "+cell.t+(cell.wc?" wc":"");
       var style="";
       if(cell.t==="seat"){ var col=(MAP.sections[cell.sec]&&MAP.sections[cell.sec].color)||"#B8893C"; style=' style="background:'+col+'"'; }
-      rows+='<div class="'+cls+'" data-r="'+r+'" data-c="'+c+'"'+style+'></div>';
+      var tt=num.ids[r+","+c]?(' title="'+num.ids[r+","+c]+'"'):"";
+      rows+='<div class="'+cls+'" data-r="'+r+'" data-c="'+c+'"'+style+tt+'></div>';
     }
   }
   var stage='<div class="dstage">Stage · \u821e\u53f0</div>';   // row A sits nearest the stage
   host.innerHTML=(f.labelFrom==="top"?stage:"")+rows+(f.labelFrom==="top"?"":stage);
+  Array.prototype.forEach.call(host.querySelectorAll("[data-rowlab]"),function(el){
+    el.onclick=function(){ selectRow(+el.getAttribute("data-rowlab")); };
+  });
   updateToolColor();
 }
 function updateToolColor(){
@@ -837,7 +876,7 @@ function paintCellEl(r,c){
 (function bindPaint(){
   var g=$("seatGrid");
   function cellFrom(t){ if(t&&t.classList&&t.classList.contains("scell")) return t; return null; }
-  g.addEventListener("pointerdown",function(e){ var el=cellFrom(e.target); if(!el) return; painting=true; applyCell(+el.getAttribute("data-r"),+el.getAttribute("data-c")); });
+  g.addEventListener("pointerdown",function(e){ var el=cellFrom(e.target); if(!el) return; snapshot(); painting=true; applyCell(+el.getAttribute("data-r"),+el.getAttribute("data-c")); });
   g.addEventListener("pointermove",function(e){ if(!painting||e.pointerType!=="mouse") return; var t=document.elementFromPoint(e.clientX,e.clientY); var el=cellFrom(t); if(el) applyCell(+el.getAttribute("data-r"),+el.getAttribute("data-c")); });
   window.addEventListener("pointerup",function(){ if(painting){ painting=false; var gw=g.parentNode; var sx=gw?gw.scrollLeft:0; renderStats(); renderGrid(); if(gw) gw.scrollLeft=sx; } });
 })();
@@ -845,6 +884,7 @@ function paintCellEl(r,c){
 /* ---- size ---- */
 $("applySize").onclick=function(){
   var f=MAP.floors[FLOOR];
+  snapshot();
   var nr=Math.max(1,Math.min(60,parseInt($("m_rows").value,10)||f.rows));
   var nc=Math.max(1,Math.min(80,parseInt($("m_cols").value,10)||f.cols));
   var ng=[];
@@ -890,6 +930,7 @@ function importLayout(){
   var txt=$("importText").value.trim();
   var msg=$("importMsg");
   if(!txt){ msg.textContent="Nothing to import — paste a layout first."; return; }
+  snapshot();
   try{
     if(txt.charAt(0)==="{"){
       var raw=JSON.parse(txt);
@@ -924,8 +965,157 @@ function importLayout(){
   }catch(e){ msg.textContent="Could not import: "+(e&&e.message?e.message:e); }
 }
 
+/* ---- easy-adjust: undo, cell zoom, row tools, quick build ---- */
+var CELL=22, UNDO=[], SELROW=null;
+function snapshot(){
+  try{ UNDO.push(JSON.stringify(serializeMap(MAP))); }catch(e){ return; }
+  if(UNDO.length>30) UNDO.shift();
+  $("undoBtn").disabled=false;
+}
+function undoNow(){
+  if(!UNDO.length) return;
+  var prev=deserializeMap(JSON.parse(UNDO.pop()));
+  MAP.sections=prev.sections; MAP.floors=prev.floors;
+  if(FLOOR>=MAP.floors.length) FLOOR=0;
+  SELROW=null; $("rowTools").classList.add("hidden");
+  renderFloorTabs(); renderSections(); renderGrid(); renderStats();
+  $("undoBtn").disabled=!UNDO.length;
+}
+$("undoBtn").onclick=undoNow;
+$("cellPlus").onclick=function(){ CELL=Math.min(36,CELL+3); renderGrid(); };
+$("cellMinus").onclick=function(){ CELL=Math.max(14,CELL-3); renderGrid(); };
+
+function selectRow(r){
+  var f=MAP.floors[FLOOR];
+  if(SELROW===r){ SELROW=null; $("rowTools").classList.add("hidden"); renderGrid(); return; }
+  SELROW=r;
+  var num=numberFloor(f);
+  $("rtLabel").textContent="Row "+(num.rowLabel[r]||("#"+(r+1)))+" — "+f.cells[r].filter(function(c){return c.t==="seat";}).length+" seats";
+  $("rowTools").classList.remove("hidden");
+  renderGrid();
+}
+function rowSeatEnds(row){
+  var first=-1,last=-1;
+  for(var c=0;c<row.length;c++){ if(row[c].t!=="empty"){ if(first<0)first=c; last=c; } }
+  return {first:first,last:last};
+}
+function growCols(f,n){
+  f.cols+=n;
+  f.cells.forEach(function(row){ for(var i=0;i<n;i++) row.push({t:"empty"}); });
+}
+function rowAct(act){
+  if(SELROW==null) return;
+  var f=MAP.floors[FLOOR], r=SELROW, row=f.cells[r];
+  if(act==="close"){ SELROW=null; $("rowTools").classList.add("hidden"); renderGrid(); return; }
+  snapshot();
+  var e=rowSeatEnds(row);
+  if(act==="shiftR"){
+    if(e.last<0){ UNDO.pop(); return; }
+    if(e.last===f.cols-1) growCols(f,1);
+    row=f.cells[r]; row.pop(); row.unshift({t:"empty"});
+  }
+  else if(act==="shiftL"){
+    if(e.first<=0){ UNDO.pop(); alert("Row is already at the left edge — shift other rows right instead."); return; }
+    row.shift(); row.push({t:"empty"});
+  }
+  else if(act==="addL"||act==="addR"){
+    var sec=SECTION;
+    if(e.first<0){ var mid=Math.floor(f.cols/2); f.cells[r][mid]={t:"seat",sec:sec,wc:false}; }
+    else if(act==="addL"){
+      if(e.first===0){ UNDO.pop(); alert("No room on the left — Shift ▶ this row first."); return; }
+      var nb=row[e.first]; f.cells[r][e.first-1]={t:"seat",sec:(nb.t==="seat"?nb.sec:sec),wc:false};
+    }else{
+      if(e.last===f.cols-1) growCols(f,1);
+      var nb2=f.cells[r][e.last]; f.cells[r][e.last+1]={t:"seat",sec:(nb2.t==="seat"?nb2.sec:sec),wc:false};
+    }
+  }
+  else if(act==="remL"||act==="remR"){
+    var idx=-1;
+    for(var c=0;c<row.length;c++){ if(row[c].t==="seat"){ if(act==="remL"){ idx=c; break; } idx=c; } }
+    if(idx<0){ UNDO.pop(); return; }
+    f.cells[r][idx]={t:"empty"};
+  }
+  else if(act==="center"){
+    if(e.first<0){ UNDO.pop(); return; }
+    var width=e.last-e.first+1;
+    var chunk=row.slice(e.first,e.last+1);
+    var lead=Math.floor((f.cols-width)/2);
+    var nr=[]; for(var i=0;i<f.cols;i++) nr.push({t:"empty"});
+    for(var j=0;j<width;j++) nr[lead+j]=chunk[j];
+    f.cells[r]=nr;
+  }
+  else if(act==="dupUp"||act==="dupDown"){
+    var copy=JSON.parse(JSON.stringify(row));
+    var at=(act==="dupUp")?r:r+1;
+    f.cells.splice(at,0,copy); f.rows++;
+    SELROW=at;
+  }
+  else if(act==="del"){
+    if(!confirm("Delete this whole row?")){ UNDO.pop(); return; }
+    f.cells.splice(r,1); f.rows--;
+    if(f.rows===0){ f.rows=1; f.cells=[[]]; for(var k=0;k<f.cols;k++) f.cells[0].push({t:"empty"}); }
+    SELROW=null; $("rowTools").classList.add("hidden");
+  }
+  renderGrid(); renderStats();
+  if(SELROW!=null) selectRowRefresh();
+}
+function selectRowRefresh(){
+  var f=MAP.floors[FLOOR];
+  if(SELROW==null||SELROW>=f.rows) return;
+  var num=numberFloor(f);
+  $("rtLabel").textContent="Row "+(num.rowLabel[SELROW]||("#"+(SELROW+1)))+" — "+f.cells[SELROW].filter(function(c){return c.t==="seat";}).length+" seats";
+}
+Array.prototype.forEach.call($("rowTools").querySelectorAll("[data-rowact]"),function(b){
+  b.onclick=function(){ rowAct(b.getAttribute("data-rowact")); };
+});
+
+/* quick build: one line per row (front row first), block counts split by spaces */
+function quickBuild(){
+  var msg=$("qbMsg");
+  var aisle=Math.max(1,Math.min(4,parseInt($("qbAisle").value,10)||2));
+  var lines=$("qbText").value.split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean);
+  if(!lines.length){ msg.textContent="Type at least one row first."; return; }
+  var rows=[];
+  for(var i=0;i<lines.length;i++){
+    var nums=lines[i].split(/[\s,+xX]+/).map(function(n){ return parseInt(n,10); }).filter(function(n){ return n>0; });
+    if(!nums.length){ msg.textContent="Line "+(i+1)+" has no seat counts."; return; }
+    if(nums.length>4){ msg.textContent="Line "+(i+1)+": max 4 blocks per row."; return; }
+    rows.push(nums);
+  }
+  var cols=0;
+  rows.forEach(function(nums){
+    var span=nums.reduce(function(a,b){return a+b;},0)+aisle*(nums.length-1);
+    if(span>cols) cols=span;
+  });
+  if(cols>80||rows.length>60){ msg.textContent="Too big — max 60 rows × 80 cols."; return; }
+  snapshot();
+  var f=MAP.floors[FLOOR];
+  f.rows=rows.length; f.cols=cols; f.labelFrom="bottom";
+  var cells=[];
+  /* input is front (stage) first; on screen the stage is at the bottom, so reverse */
+  rows.slice().reverse().forEach(function(nums){
+    var span=nums.reduce(function(a,b){return a+b;},0)+aisle*(nums.length-1);
+    var start=Math.floor((cols-span)/2);
+    var line=[]; for(var c=0;c<cols;c++) line.push({t:"empty"});
+    var pos=start;
+    nums.forEach(function(count,bi){
+      for(var k=0;k<count;k++){ line[pos]={t:"seat",sec:SECTION,wc:false}; pos++; }
+      if(bi<nums.length-1) pos+=aisle;
+    });
+    cells.push(line);
+  });
+  f.cells=cells;
+  SELROW=null; $("rowTools").classList.add("hidden");
+  renderGrid(); renderStats();
+  var ct=countSeats(MAP);
+  msg.textContent="Built "+rows.length+" rows, "+ct.total+" seats total. Now paint price zones, then Save map.";
+}
+$("qbBtn").onclick=function(){ $("qbPanel").classList.toggle("hidden"); $("importPanel").classList.add("hidden"); $("qbMsg").textContent=""; };
+$("qbCancel").onclick=function(){ $("qbPanel").classList.add("hidden"); };
+$("qbGo").onclick=quickBuild;
+
 /* ---- wire designer buttons + nav ---- */
-$("importBtn").onclick=function(){ $("importPanel").classList.toggle("hidden"); $("importMsg").textContent=""; };
+$("importBtn").onclick=function(){ $("importPanel").classList.toggle("hidden"); $("qbPanel").classList.add("hidden"); $("importMsg").textContent=""; };
 $("importCancel").onclick=function(){ $("importPanel").classList.add("hidden"); };
 $("importGo").onclick=importLayout;
 $("newMap").onclick=function(){ openMap(null); };
