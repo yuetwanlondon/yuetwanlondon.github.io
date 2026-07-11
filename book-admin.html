@@ -331,6 +331,7 @@ textarea.in{min-height:74px;resize:vertical}
         <input class="in" id="m_name" placeholder="Venue name (e.g. Shaw Theatre)" style="max-width:340px">
         <div class="dhead-r">
           <button class="btn ghost sm" id="mapBack">← Maps</button>
+          <button class="btn ghost sm" id="importBtn">Import layout</button>
           <button class="btn ghost sm" id="printMap">Print chart</button>
           <button class="btn primary sm" id="saveMap">Save map</button>
         </div>
@@ -362,6 +363,16 @@ textarea.in{min-height:74px;resize:vertical}
         </select>
       </div>
 
+      <div id="importPanel" class="hidden" style="border:1px solid var(--line);border-radius:12px;padding:14px 15px;margin:12px 0;background:#fffaf0">
+        <div style="font-weight:700;font-size:14px;margin-bottom:4px">Import a layout</div>
+        <div class="hint" style="margin:0 0 8px">Paste either a whole map as JSON (<b>{"sections":[…],"floors":[{"grid":[…]}]}</b> — replaces sections and all floors), or plain grid lines (one line per row, replaces <b>this floor only</b>): <b>.</b> empty · <b>x</b> blocked · <b>0–9</b> seat in section · <b>a–j</b> wheelchair seat in section.</div>
+        <textarea class="in" id="importText" rows="8" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;white-space:pre;resize:vertical" spellcheck="false"></textarea>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn primary sm" id="importGo">Import</button>
+          <button class="btn ghost sm" id="importCancel">Cancel</button>
+          <span class="hint" id="importMsg" style="margin:0;align-self:center"></span>
+        </div>
+      </div>
       <div class="gridwrap"><div id="seatGrid" class="seatgrid"></div></div>
       <div class="dstats" id="mapStats"></div>
 
@@ -874,7 +885,49 @@ async function deleteMapNow(){
   catch(e){ showGate($("mgate"),"Could not delete (network).",false); }
 }
 
+/* ---- import a layout (JSON whole map, or grid lines for the current floor) ---- */
+function importLayout(){
+  var txt=$("importText").value.trim();
+  var msg=$("importMsg");
+  if(!txt){ msg.textContent="Nothing to import — paste a layout first."; return; }
+  try{
+    if(txt.charAt(0)==="{"){
+      var raw=JSON.parse(txt);
+      if(!raw.floors||!raw.floors.length) throw new Error("JSON has no floors.");
+      var d=deserializeMap(raw);
+      MAP.sections=d.sections;
+      MAP.floors=d.floors;
+      if(raw.name&&!$("m_name").value.trim()) $("m_name").value=String(raw.name);
+      FLOOR=0; SECTION=0;
+    }else{
+      var lines=txt.split(/\r?\n/).filter(function(l){ return l.length; });
+      if(!lines.length) throw new Error("No grid lines found.");
+      var cols=0; lines.forEach(function(l){ if(l.length>cols)cols=l.length; });
+      if(lines.length>60||cols>80) throw new Error("Grid too big — max 60 rows × 80 cols.");
+      var maxSec=0, cells=[];
+      for(var r=0;r<lines.length;r++){
+        var row=[];
+        for(var c=0;c<cols;c++){
+          var cell=decCell(lines[r].charAt(c)||".");
+          if(cell.t==="seat"&&cell.sec>maxSec)maxSec=cell.sec;
+          row.push(cell);
+        }
+        cells.push(row);
+      }
+      while(MAP.sections.length<=maxSec){ MAP.sections.push({name:"Section "+(MAP.sections.length+1),color:SEC_COLORS[MAP.sections.length%SEC_COLORS.length]}); }
+      var f=MAP.floors[FLOOR];
+      f.rows=lines.length; f.cols=cols; f.cells=cells;
+    }
+    renderFloorTabs(); renderSections(); renderGrid(); renderStats();
+    var ct=countSeats(MAP);
+    msg.textContent="Imported — "+ct.total+" seats"+(ct.wc?(", "+ct.wc+" wheelchair"):"")+". Check it, then Save map.";
+  }catch(e){ msg.textContent="Could not import: "+(e&&e.message?e.message:e); }
+}
+
 /* ---- wire designer buttons + nav ---- */
+$("importBtn").onclick=function(){ $("importPanel").classList.toggle("hidden"); $("importMsg").textContent=""; };
+$("importCancel").onclick=function(){ $("importPanel").classList.add("hidden"); };
+$("importGo").onclick=importLayout;
 $("newMap").onclick=function(){ openMap(null); };
 $("mapBack").onclick=function(){ showDesigner(false); };
 $("printMap").onclick=function(){ if(!MAP||!MAP.floors.length){ alert("Open a seat map first."); return; } openPrint(seatMapDoc(MAP)); };
