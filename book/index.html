@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -65,21 +66,21 @@ h2{font-size:18px;margin:0 0 10px}
 .floors button{font-size:13px;font-weight:600;color:var(--ink-55);background:#f2ece0;border:1px solid var(--line);border-radius:9px;padding:7px 14px}
 .floors button.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 .mapbox{position:relative}
-.zoom{position:absolute;top:2px;right:2px;display:flex;flex-direction:column;gap:7px;z-index:3}
-.zoom button{width:34px;height:34px;border-radius:50%;background:var(--white);border:1px solid var(--line);box-shadow:0 4px 14px rgba(22,19,15,.14);font-size:19px;font-weight:700;line-height:1;color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.zoom button:active{background:#f3ece0}
-.gridwrap{overflow:auto;-webkit-overflow-scrolling:touch;padding:6px 2px 10px;max-height:62vh}
-.gridwrap.fit{overflow:visible;max-height:none;cursor:zoom-in}
-.sgrid{display:inline-grid;gap:var(--sgap,5px);margin:0 auto;--seat:24px}
-.maphint{text-align:center;font-size:12.5px;color:var(--ink-55);margin:8px 0 2px}
-.stage.below{margin:12px 0 2px}
+.mapctl{display:flex;justify-content:flex-end;align-items:center;gap:7px;margin:0 0 8px}
+.mapctl button{width:38px;height:38px;border-radius:50%;background:var(--white);border:1px solid var(--line);font-size:18px;font-weight:700;line-height:1;color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mapctl button:active{background:#f3ece0}
+.mapctl .fitb{font-size:13px}
+.gridwrap{overflow:auto;-webkit-overflow-scrolling:touch;max-width:100%;border:1px solid var(--line);border-radius:12px;background:#faf6ee;padding:10px 8px}
+.maphint{text-align:center;font-size:12.5px;color:var(--ink-55);margin-top:9px}
+.sgrid{display:inline-grid;gap:5px;margin:0 auto;--seat:24px}
 .rl{font-size:10px;font-weight:700;color:var(--ink-55);display:flex;align-items:center;justify-content:center;min-width:16px}
 .st{width:var(--seat,24px);height:var(--seat,24px);border-radius:50%;border:1px solid rgba(0,0,0,.12);position:relative;transition:transform .06s ease}
 .st.gap{visibility:hidden}
 .st.blk{background:repeating-linear-gradient(45deg,#ddd4c4,#ddd4c4 3px,#cabfa8 3px);opacity:.5;border:none}
 .st.av{cursor:pointer}
 .st.av:hover{transform:scale(1.08)}
-.st.taken{background:#cfc7b8!important;border-color:#bcb3a1;cursor:not-allowed;opacity:.55}
+.st.taken{background:#efe8da!important;border:1px dashed #b9ad97;cursor:not-allowed;opacity:.8}
+.st.taken::after{content:"";position:absolute;left:18%;right:18%;top:calc(50% - 1px);height:2px;background:#b9ad97;transform:rotate(-45deg);border-radius:2px}
 .st.sel{box-shadow:0 0 0 2px #fff,0 0 0 5px var(--ink);z-index:1}
 .wc-dot{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36%;height:36%;border-radius:50%;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.3)}
 
@@ -222,7 +223,7 @@ function numberFloor(floor){
 }
 
 /* ---- state ---- */
-var SHOW=null, MAP=null, TAKEN={}, SELECTED={}, SEAT_META={}, PRICES=[], FLOOR=0, VIEWSTATE="book", ZOOM=24, MODE=null;
+var SHOW=null, MAP=null, TAKEN={}, SELECTED={}, SEAT_META={}, PRICES=[], FLOOR=0, VIEWSTATE="book", ZOOM=24;
 
 function priceOf(sec){ var p=PRICES[sec]; var a=p?parseFloat(p.amount):NaN; return isNaN(a)?0:a; }
 function selectedList(){ return Object.keys(SELECTED); }
@@ -271,7 +272,7 @@ async function loadShow(id){
     SHOW=res.show; MAP=res.map?deserializeMap(res.map):null; TAKEN={}; (res.taken||[]).forEach(function(s){ TAKEN[s]=true; }); SELECTED={};
     try{ PRICES=JSON.parse(SHOW.prices_json||"[]")||[]; }catch(e){ PRICES=[]; }
     if(String(SHOW.status).toLowerCase()!=="on_sale"){ VIEWSTATE="closed"; render(); return; }
-    FLOOR=0; MODE=null; VIEWSTATE="book"; buildSeatMeta(); render();
+    FLOOR=0; VIEWSTATE="book"; buildSeatMeta(); render();
   }catch(e){ $("view").innerHTML=card('<div class="gate">'+L("Couldn't load this show.","載入失敗。")+'</div>'); }
 }
 
@@ -324,78 +325,60 @@ function renderList(){
 }
 function renderClosed(){ $("view").innerHTML=card(showHeaderHtml()+'<div class="note" style="margin-top:16px">'+L("Booking for this show isn't open at the moment. Please check back soon.","此演出暫未開放購票，請稍後再來。")+'</div>'); }
 
-function secAvail(){
-  var tot={}, tak={};
+function sectionRemaining(){
+  var rem={};
   Object.keys(SEAT_META).forEach(function(sid){
-    var s=SEAT_META[sid].sec||0;
-    tot[s]=(tot[s]||0)+1;
-    if(TAKEN[sid]) tak[s]=(tak[s]||0)+1;
+    var sec=SEAT_META[sid].sec||0;
+    if(rem[sec]==null)rem[sec]=0;
+    if(!TAKEN[sid])rem[sec]++;
   });
-  return {tot:tot,tak:tak};
+  return rem;
 }
-function computeFit(cols){
-  var vw=($("view").clientWidth||360)-46-16; // card padding + row-label column
-  return Math.max(4,Math.min(40,Math.floor((vw-2*cols)/cols)));
-}
-function seatGap(px){ return px>=14?5:(px>=8?3:2); }
 function renderBook(){
   if(!MAP){ $("view").innerHTML=card(showHeaderHtml()+'<div class="note" style="margin-top:16px">'+L("Online seat selection isn't available for this show yet — please contact us to book.","此演出暫未開放網上選位，請與我們聯絡購票。")+'</div>'); return; }
-  var f=MAP.floors[FLOOR];
-  var fit=computeFit(f.cols);
-  if(MODE===null){ if(fit>=18){ MODE="zoom"; ZOOM=Math.min(34,fit); } else MODE="fit"; }
-  var av=secAvail();
-  var floorsTabs = MAP.floors.length>1 ? '<div class="floors">'+MAP.floors.map(function(fl,i){ return '<button class="'+(i===FLOOR?"on":"")+'" data-fl="'+i+'">'+esc(fl.name||("Floor "+(i+1)))+'</button>'; }).join("")+'</div>' : '';
+  var floorsTabs = MAP.floors.length>1 ? '<div class="floors">'+MAP.floors.map(function(f,i){ return '<button class="'+(i===FLOOR?"on":"")+'" data-fl="'+i+'">'+esc(f.name||("Floor "+(i+1)))+'</button>'; }).join("")+'</div>' : '';
+  var rem=sectionRemaining();
   var legend='<div class="plegend">'+MAP.sections.map(function(s,i){
-      if(!av.tot[i]) return "";
-      var pr=priceOf(i), left=av.tot[i]-(av.tak[i]||0);
-      return '<span class="pl"><span class="d" style="background:'+esc(s.color)+'"></span>'+esc(s.name)
-        +(pr?(' <span class="pr">'+money(pr)+'</span>'):'')
-        +' <span class="pr">· '+(left>0?(left+" "+L("left","剩")):L("sold out","售罄"))+'</span></span>';
-    }).join("")+'<span class="pl"><span class="d" style="background:#cfc7b8"></span>'+L("Taken","已售")+'</span></div>';
-  var zoom='<div class="zoom">'
-    +'<button class="zb" data-z="1" aria-label="'+L("Zoom in","放大")+'">+</button>'
-    +'<button class="zb" data-z="-1" aria-label="'+L("Zoom out","縮小")+'">\u2212</button>'
-    +'<button id="fitBtn" aria-label="'+L("Full map","全圖")+'" title="'+L("Full map","全圖")+'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button></div>';
-  var stageBar='<div class="stage'+(f.labelFrom!=="top"?" below":"")+'">'+L("Stage","舞台")+'</div>';
-  var hint=(MODE==="fit")?('<div class="maphint">'+L("Tap the map to zoom in and pick your seats","點擊座位圖放大選位")+'</div>'):"";
-  var mapInner=(f.labelFrom==="top")
-    ? stageBar+floorsTabs+'<div class="gridwrap'+(MODE==="fit"?" fit":"")+'">'+gridHtml(FLOOR)+'</div>'+hint
-    : floorsTabs+'<div class="gridwrap'+(MODE==="fit"?" fit":"")+'">'+gridHtml(FLOOR)+'</div>'+stageBar+hint;
+      var pr=priceOf(i), prTxt=pr?money(pr):"";
+      var showPr=pr&&String(s.name).indexOf(prTxt)===-1;   // don't print "£10 £10" when the section is named after its price
+      var left=(rem[i]!=null)?(' <span class="pr">· '+rem[i]+' '+L("left","剩")+'</span>'):"";
+      return '<span class="pl"><span class="d" style="background:'+esc(s.color)+'"></span>'+esc(s.name)+(showPr?(' <span class="pr">'+prTxt+'</span>'):'')+left+'</span>';
+    }).join("")+'<span class="pl"><span class="d" style="background:#efe8da;border:1px dashed #b9ad97"></span>'+L("Taken","已售")+'</span></div>';
+  var ctl='<div class="mapctl"><button class="zb" data-z="-1" aria-label="'+L("Zoom out","縮小")+'">\u2212</button><button class="zb" data-z="1" aria-label="'+L("Zoom in","放大")+'">+</button><button class="fitb" id="fitBtn" aria-label="'+L("Fit to screen","全圖")+'" title="'+L("Fit whole map","顯示全圖")+'">\u2922</button></div>';
   $("view").innerHTML=card(showHeaderHtml())
     + card('<h2>'+L("Choose your seats","選擇座位")+'</h2>'+legend
-       +'<div class="mapbox">'+zoom+mapInner+'</div>'
+       +'<div class="mapbox">'+ctl+floorsTabs+'<div class="gridwrap">'+gridHtml(FLOOR)+'</div><div class="stage">'+L("Stage","舞台")+'</div><div class="maphint">'+L("Use + to zoom in, then slide the map to pick seats","按 + 放大座位圖，左右滑動選位")+'</div></div>'
        +(SHOW.price_note_en||SHOW.price_note_zh?'<div class="note" style="margin-top:14px">'+esc(L(SHOW.price_note_en||SHOW.price_note_zh,SHOW.price_note_zh||SHOW.price_note_en))+'</div>':''))
     + summaryBar();
   Array.prototype.forEach.call(document.querySelectorAll("[data-fl]"),function(b){ b.onclick=function(){ FLOOR=+b.getAttribute("data-fl"); renderBook(); }; });
-  Array.prototype.forEach.call(document.querySelectorAll(".zb"),function(b){ b.onclick=function(){ if(MODE==="fit"){ MODE="zoom"; ZOOM=34; renderBook(); return; } applyZoom(+b.getAttribute("data-z")); }; });
-  $("fitBtn").onclick=function(){ MODE="fit"; renderBook(); };
-  var gw=document.querySelector(".gridwrap");
-  if(gw&&MODE==="fit"){
-    gw.onclick=function(e){
-      var g=gw.querySelector(".sgrid"); if(!g) return;
-      var r=g.getBoundingClientRect();
-      var rx=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
-      var ry=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));
-      MODE="zoom"; ZOOM=34; renderBook();
-      requestAnimationFrame(function(){
-        var gw2=document.querySelector(".gridwrap"); if(!gw2) return;
-        var g2=gw2.querySelector(".sgrid"); if(!g2) return;
-        gw2.scrollLeft=rx*g2.offsetWidth-gw2.clientWidth/2;
-        gw2.scrollTop=ry*g2.offsetHeight-gw2.clientHeight/2;
-      });
-    };
-  }
+  Array.prototype.forEach.call(document.querySelectorAll(".zb"),function(b){ b.onclick=function(){ applyZoom(+b.getAttribute("data-z")); }; });
+  var fb=$("fitBtn"); if(fb) fb.onclick=fitZoom;
   var sbar=$("sbar"); if(sbar) sbar.addEventListener("click",function(e){ var rm=e.target.closest?e.target.closest("[data-rm]"):null; if(rm){ deselectSeat(rm.getAttribute("data-rm")); } });
   bindSeatTaps();
   $("goDetails").onclick=function(){ if(!selectedList().length) return; VIEWSTATE="details"; render(); };
+  fitZoom();
 }
+function fitWidth(){
+  var gw=document.querySelector(".gridwrap");
+  if(!gw||!MAP) return 24;
+  var f=MAP.floors[FLOOR];
+  var avail=gw.clientWidth-16-16-(f.cols*5);       // padding, row label, gaps
+  return Math.max(9,Math.min(28,Math.floor(avail/f.cols)));
+}
+function fitZoom(){ ZOOM=fitWidth(); applyZoomNow(); }
 function applyZoom(dz){
-  ZOOM=Math.max(18,Math.min(48,ZOOM+dz*4));
+  var fit=fitWidth();
+  ZOOM=Math.max(fit,Math.min(44,ZOOM+dz*5));
+  applyZoomNow();
+  var gw=document.querySelector(".gridwrap");     // keep the view centred as it grows
+  if(gw&&gw.scrollWidth>gw.clientWidth) gw.scrollLeft=(gw.scrollWidth-gw.clientWidth)/2;
+}
+function applyZoomNow(){
   var g=document.querySelector(".sgrid"); if(!g||!MAP) return;
   g.style.setProperty("--seat",ZOOM+"px");
-  g.style.setProperty("--sgap",seatGap(ZOOM)+"px");
   g.style.gridTemplateColumns="16px repeat("+MAP.floors[FLOOR].cols+","+ZOOM+"px)";
 }
+window.addEventListener("resize",function(){ clearTimeout(window._bkrz); window._bkrz=setTimeout(function(){ if(MAP&&VIEWSTATE==="book"&&ZOOM<=fitWidth()) fitZoom(); },250); });
 function deselectSeat(sid){
   if(!SELECTED[sid]) return; delete SELECTED[sid];
   Array.prototype.forEach.call(document.querySelectorAll(".st.sel"),function(el){ if(el.getAttribute("data-sid")===sid) el.classList.remove("sel"); });
@@ -404,11 +387,9 @@ function deselectSeat(sid){
 
 function gridHtml(fi){
   var f=MAP.floors[fi], num=numberFloor(f), pfx=floorPrefix(fi);
-  var px=(MODE==="fit")?computeFit(f.cols):ZOOM;
-  var gap=seatGap(px);
-  var html='<div class="sgrid" style="--seat:'+px+'px;--sgap:'+gap+'px;grid-template-columns:16px repeat('+f.cols+','+px+'px)">';
+  var html='<div class="sgrid" style="--seat:'+ZOOM+'px;grid-template-columns:16px repeat('+f.cols+','+ZOOM+'px)">';
   for(var r=0;r<f.rows;r++){
-    html+='<div class="rl">'+(px>=12?(num.rowLabel[r]||""):"")+'</div>';
+    html+='<div class="rl">'+(num.rowLabel[r]||"")+'</div>';
     for(var c=0;c<f.cols;c++){
       var cell=f.cells[r][c];
       if(cell.t==="empty"){ html+='<div class="st gap"></div>'; continue; }
@@ -424,7 +405,6 @@ function gridHtml(fi){
   return html+'</div>';
 }
 function bindSeatTaps(){
-  if(MODE==="fit") return; /* overview: taps zoom in (handled on the gridwrap) instead of selecting */
   Array.prototype.forEach.call(document.querySelectorAll(".st.av"),function(el){
     el.onclick=function(){
       var gw=document.querySelector(".gridwrap"); var sx=gw?gw.scrollLeft:0;   // where the user is, before any change
