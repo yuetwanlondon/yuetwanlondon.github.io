@@ -63,12 +63,15 @@ h1{font-size:20px;margin:0 0 4px}
 .racts{display:flex;gap:7px;margin-top:11px}
 .racts .btn{flex:1;padding:9px;font-size:13px;width:auto}
 /* seat-map tab */
+#mapView{width:min(1100px,calc(100vw - 24px));margin-left:calc((100% - min(1100px,100vw - 24px))/2)}
+#mapView .review,#mapView .result,#mapView .warn{max-width:560px;margin-left:auto;margin-right:auto}
 .mctl{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
 .mctl select{flex:1;min-width:150px}
 .mctl .zb{width:42px;height:42px;border-radius:50%;background:#fff;border:1px solid var(--line);font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0}
-.mapwrap{overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:14px;background:#fff;padding:10px 8px;max-width:100%}
-.dgrid{display:inline-grid;gap:4px;--ds:14px}
-.drl{font-size:10px;font-weight:700;color:#8a8175;display:flex;align-items:center;justify-content:center;min-width:14px}
+.mapwrap{overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:14px;background:#fff;padding:10px 8px;max-width:100%;text-align:center}
+.mapwrap .dgrid{text-align:left}
+.dgrid{display:inline-grid;gap:3px;--ds:14px}
+.drl{font-size:10px;font-weight:700;color:#8a8175;display:flex;align-items:center;justify-content:center;min-width:12px}
 .ds{width:var(--ds);height:var(--ds);border-radius:50%;border:1px solid rgba(0,0,0,.1)}
 .ds.gap{visibility:hidden}
 .ds.blk{background:repeating-linear-gradient(45deg,#ddd4c4,#ddd4c4 3px,#cabfa8 3px);opacity:.5;border:none}
@@ -344,7 +347,7 @@ function numberFloor(floor){
   return { ids:ids, rowLabel:rowLabel };
 }
 async function openMapView(){
-  if(DMAP){ renderDoorMap(); return; }
+  if(DMAP){ fitDZ(); renderDoorMap(); return; }
   $("mapStat").textContent="Loading seat map…";
   await loadDoorMap(SHOW_FILTER);
 }
@@ -372,9 +375,9 @@ function doorSeatIndex(){
 }
 function fitDZ(){
   if(!DMAP||!DMAP.floors.length) return;
-  var w=$("doorGrid").parentElement.clientWidth-16-14;
+  var w=$("doorGrid").parentElement.clientWidth-16-12;
   var cols=DMAP.floors[0].cols;
-  DZ=Math.max(8,Math.min(20,Math.floor((w-cols*4)/cols)));
+  DZ=Math.max(7,Math.min(22,Math.floor((w-cols*3)/cols)));
 }
 function seatColor(t){
   if(t.checked_in) return "#16130F";
@@ -386,7 +389,7 @@ function seatColor(t){
 function renderDoorMap(){
   if(!DMAP||!DMAP.floors.length) return;
   var f=DMAP.floors[0], num=numberFloor(f), idx=doorSeatIndex();
-  var html='<div class="dgrid" style="--ds:'+DZ+'px;grid-template-columns:14px repeat('+f.cols+',var(--ds))">';
+  var html='<div class="dgrid" style="--ds:'+DZ+'px;grid-template-columns:12px repeat('+f.cols+',var(--ds))">';
   for(var r=0;r<f.rows;r++){
     html+='<div class="drl">'+(num.rowLabel[r]||"")+'</div>';
     for(var c=0;c<f.cols;c++){

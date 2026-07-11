@@ -41,14 +41,14 @@ a{color:var(--vermilion-d)}
 .top .lg .dot{width:7px;height:7px;border-radius:50%;background:var(--vermilion)}
 .top .lang{background:transparent;color:var(--paper);border:1px solid rgba(244,236,221,.28);border-radius:30px;padding:6px 13px;font-size:12.5px;font-weight:600}
 
-.bkpage{max-width:820px;margin:0 auto;padding:calc(var(--nav-h,58px) + 18px) 16px 140px}
+.bkpage{max-width:1160px;margin:0 auto;padding:calc(var(--nav-h,58px) + 18px) 16px 140px}
 .bkback{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;color:var(--ink-55);margin:0 0 14px;text-decoration:none}
 .bkback:hover{color:var(--vermilion-d)}
 .lhero{height:150px;border-radius:12px;background-size:cover;background-position:center;background-color:#2a2118;position:relative;margin-bottom:14px}
 .lchip{position:absolute;left:12px;top:12px;background:var(--vermilion);color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:4px 11px;border-radius:20px}
 .card{background:var(--white);border:1px solid var(--line);border-radius:16px;padding:20px 20px;margin-bottom:16px}
+.card.narrow{max-width:720px;margin-left:auto;margin-right:auto}
 /* the seat-map card breaks out of the 820px column on wide screens so the map renders bigger */
-.card.mapcard{width:min(1240px,calc(100vw - 28px));margin-left:calc((100% - min(1240px,100vw - 28px))/2)}
 h1{font-size:23px;margin:0 0 3px;line-height:1.2}
 h2{font-size:18px;margin:0 0 10px}
 .sub{color:var(--ink-55);font-size:14px}
@@ -93,7 +93,7 @@ h2{font-size:18px;margin:0 0 10px}
 
 /* summary bar */
 .bar2{position:fixed;left:0;right:0;bottom:0;background:var(--white);border-top:1px solid var(--line);box-shadow:0 -6px 24px rgba(22,19,15,.08);padding:12px 16px calc(12px + env(safe-area-inset-bottom));z-index:5}
-.bar2 .in{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.bar2 .in{max-width:1160px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
 .bar2 .info{font-size:13.5px;color:var(--ink-80);line-height:1.4}
 .bar2 .row1{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 .bar2 .tot{font-weight:800;font-size:19px;color:var(--ink)}
@@ -451,7 +451,7 @@ function renderDetails(){
         +'<select class="in ac" data-acat="'+esc(sid)+'"><option value="Adult">'+L("Adult","成人")+'</option><option value="Child">'+L("Child","兒童")+'</option><option value="Concession">'+L("Concession","優惠")+'</option><option value="Senior">'+L("Senior","長者")+'</option></select></div>';
     }).join("")) : '';
   $("view").innerHTML=card(showHeaderHtml())
-    + card('<h2>'+L("Your details","聯絡資料")+'</h2>'
+    + '<div class="card narrow">'+'<h2>'+L("Your details","聯絡資料")+'</h2>'
       + '<div class="seats" style="color:var(--ink-55);font-size:13.5px;margin-bottom:6px">'+seats.length+' '+L("seat(s)","座位")+': '+esc(seats.join(", "))+' · '+money(total())+' '+L("(indicative)","（參考價）")+'</div>'
       + '<label class="f">'+L("Full name","姓名")+'</label><input class="in" id="d_name" autocomplete="name">'
       + '<label class="f">'+L("Email","電郵")+'</label><input class="in" id="d_email" type="email" autocomplete="email">'
@@ -459,7 +459,7 @@ function renderDetails(){
       + att
       + '<div class="note" style="margin-top:16px">'+L("This reserves your seats. We'll email or contact you to confirm and arrange payment — you don't pay online now.","此為預訂座位。我們會與您聯絡確認及安排付款，毋須即時網上付款。")+'</div>'
       + '<div class="gate hidden" id="dgate"></div>'
-      + '<div style="display:flex;gap:9px;margin-top:18px"><button class="btn primary" id="submitBk">'+L("Reserve seats","確認預訂")+'</button><button class="btn ghost" id="backBk">'+L("Back","返回")+'</button></div>');
+      + '<div style="display:flex;gap:9px;margin-top:18px"><button class="btn primary" id="submitBk">'+L("Reserve seats","確認預訂")+'</button><button class="btn ghost" id="backBk">'+L("Back","返回")+'</button></div>'+'</div>';
   $("backBk").onclick=function(){ VIEWSTATE="book"; render(); };
   $("submitBk").onclick=submitBooking;
 }
@@ -486,12 +486,12 @@ function cssq(s){ return String(s).replace(/"/g,'\\"'); }
 function renderConfirm(){
   var seats=(LAST.seats||[]).join(", ");
   $("view").innerHTML=card(showHeaderHtml())
-    + card('<div class="big-ok"><h2>'+L("Seats reserved","已成功預訂")+' ✓</h2>'
+    + '<div class="card narrow">'+'<div class="big-ok"><h2>'+L("Seats reserved","已成功預訂")+' ✓</h2>'
       + '<div class="sub">'+L("Your booking reference","您的預訂編號")+'</div>'
       + '<div class="ref">'+esc(LAST.booking)+'</div>'
       + '<div class="meta" style="text-align:left">'+L("Seats","座位")+': <b>'+esc(seats)+'</b></div>'
       + '<div class="note" style="margin-top:18px;text-align:left">'+L("Thank you! Your seats are held under your name. We'll be in touch by email to confirm and arrange payment. Please keep your reference number.","多謝支持！座位已為您保留，我們將以電郵聯絡確認及安排付款，請保留您的預訂編號。")+'</div>'
-      + '</div>');
+      + '</div>'+'</div>';
 }
 </script>
 </body>
