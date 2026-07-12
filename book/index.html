@@ -79,10 +79,8 @@ h2{font-size:18px;margin:0 0 10px}
 .mini{position:absolute;top:8px;right:8px;width:170px;border:1px solid var(--line);border-radius:10px;background:rgba(250,246,238,.95);box-shadow:0 6px 18px rgba(22,19,15,.2);z-index:6;opacity:0;pointer-events:none;transition:opacity .25s;touch-action:none;cursor:pointer}
 .mini.show{opacity:1;pointer-events:auto}
 .gridwrap.mob{height:58vh;max-height:none;overflow:hidden;position:relative;touch-action:none;overscroll-behavior:contain}
-.zwheel{display:none;position:absolute;left:50%;transform:translateX(-50%);bottom:10px;width:min(88%,420px);height:44px;border-radius:22px;background:rgba(22,19,15,.72);box-shadow:0 6px 18px rgba(22,19,15,.28);z-index:5;touch-action:none;cursor:ew-resize}
+.zwheel{display:none;position:absolute;left:50%;transform:translateX(-50%);bottom:8px;width:min(64%,300px);height:28px;border-radius:14px;background:rgba(22,19,15,.55);box-shadow:0 4px 14px rgba(22,19,15,.22);z-index:5;touch-action:none;cursor:ew-resize}
 .gridwrap.mob .zwheel{display:block}
-.zlabel{display:none;position:absolute;left:50%;transform:translateX(-50%);bottom:58px;z-index:5;font-family:var(--grot);font-size:12px;font-weight:800;color:#F4ECDD;background:rgba(22,19,15,.72);border-radius:20px;padding:3px 11px;pointer-events:none}
-.gridwrap.mob .zlabel{display:block}
 .sgrid.abs{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
 .st .sn{font-size:calc(var(--seat,24px)*.28);font-weight:700;color:rgba(255,255,255,.95);line-height:1;letter-spacing:-.02em;pointer-events:none}
 .st.taken .sn{color:#b9ad97}
@@ -109,7 +107,7 @@ h2{font-size:18px;margin:0 0 10px}
 .bar2 .in{max-width:1160px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .bar2 .info{flex:1;min-width:230px}
 .bar2 .btn{width:auto;min-width:170px;padding:12px 40px;margin-left:auto}
-@media(max-width:680px){.bar2 .in{flex-direction:column;align-items:stretch;gap:10px}.bar2 .btn{width:100%;margin-left:0}}
+@media(max-width:680px){.bar2 .in{flex-wrap:nowrap;gap:10px}.bar2 .btn{min-width:0;padding:12px 18px;font-size:14.5px}.bar2 .tot{font-size:16px}}
 .bar2 .info{flex:1;min-width:0;display:flex;align-items:center;gap:12px;font-size:13.5px;color:var(--ink-80);line-height:1.4}
 .bar2 .totwrap{white-space:nowrap}
 .bar2 .row1{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
@@ -366,7 +364,7 @@ function renderBook(){
   $("view").innerHTML=card(showHeaderHtml())
     + '<div class="card mapcard">'+'<h2>'+L("Choose your seats","選擇座位")+'</h2>'
        +'<div class="maptop">'+legend+ctl+'</div>'
-       +'<div class="mapbox">'+floorsTabs+'<canvas id="mini" class="mini hidden"></canvas><div class="gridwrap">'+gridHtml(FLOOR)+'<canvas id="zwheel" class="zwheel"></canvas><div class="zlabel" id="zlabel"></div></div><div class="stage">'+L("Stage","舞台")+'</div><div class="maphint" id="maphint"></div></div>'
+       +'<div class="mapbox">'+floorsTabs+'<canvas id="mini" class="mini hidden"></canvas><div class="gridwrap">'+gridHtml(FLOOR)+'<canvas id="zwheel" class="zwheel"></canvas></div><div class="stage">'+L("Stage","舞台")+'</div><div class="maphint" id="maphint"></div></div>'
        +(SHOW.price_note_en||SHOW.price_note_zh?'<div class="note" style="margin-top:14px">'+esc(L(SHOW.price_note_en||SHOW.price_note_zh,SHOW.price_note_zh||SHOW.price_note_en))+'</div>':'')+'</div>'
     + summaryBar();
   Array.prototype.forEach.call(document.querySelectorAll("[data-fl]"),function(b){ b.onclick=function(){ FLOOR=+b.getAttribute("data-fl"); renderBook(); }; });
@@ -517,7 +515,7 @@ function initGestures(){
 function drawWheel(){
   var z=$("zwheel"); if(!z||!MOBILE) return;
   var dpr=window.devicePixelRatio||1;
-  var cssW=z.clientWidth||300, cssH=44;
+  var cssW=z.clientWidth||300, cssH=28;
   if(z.width!==Math.round(cssW*dpr)){ z.width=Math.round(cssW*dpr); z.height=Math.round(cssH*dpr); }
   var ctx=z.getContext("2d"), W=z.width, H=z.height;
   ctx.clearRect(0,0,W,H);
@@ -528,18 +526,16 @@ function drawWheel(){
   ctx.lineCap="round";
   for(var l=start;l<=lmax+1e-6;l+=step){
     var x=W/2+(l-logS)*K;
-    if(x<10*dpr||x>W-10*dpr) continue;
+    if(x<8*dpr||x>W-8*dpr) continue;
     var big=Math.abs(l/0.4-Math.round(l/0.4)*1)<0.012;
     var fade=1-Math.min(1,Math.abs(x-W/2)/(W/2))*0.65;
     ctx.strokeStyle="rgba(244,236,221,"+(0.85*fade).toFixed(2)+")";
     ctx.lineWidth=(big?2.4:1.3)*dpr;
-    var th=(big?12:7)*dpr;
+    var th=(big?8:4.5)*dpr;
     ctx.beginPath(); ctx.moveTo(x,H/2-th); ctx.lineTo(x,H/2+th); ctx.stroke();
   }
   ctx.strokeStyle="#C8402E"; ctx.lineWidth=3*dpr;   /* fixed centre marker */
-  ctx.beginPath(); ctx.moveTo(W/2,H/2-15*dpr); ctx.lineTo(W/2,H/2+15*dpr); ctx.stroke();
-  var lab=$("zlabel");
-  if(lab) lab.textContent=(Math.round((PAN.s||1)*10)/10).toFixed(1)+"\u00d7";
+  ctx.beginPath(); ctx.moveTo(W/2,H/2-10*dpr); ctx.lineTo(W/2,H/2+10*dpr); ctx.stroke();
 }
 function initWheel(gw){
   var z=$("zwheel"); if(!z) return;
