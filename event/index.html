@@ -77,7 +77,9 @@ body{padding-bottom:150px}
 .ecard-side.expanded .hd::after{transform:rotate(45deg)}
 .ecard-side dl{display:none;overflow:auto;-webkit-overflow-scrolling:touch;flex:1 1 auto}
 .ecard-side.expanded dl{display:block}
-.ecard-side .act{flex:none;padding:14px 20px calc(16px + env(safe-area-inset-bottom))}
+.ecard-side .act{flex:none;display:flex;flex-direction:row-reverse;gap:10px;padding:14px 20px calc(16px + env(safe-area-inset-bottom))}
+.ecard-side .act .btn{flex:1;width:auto}
+.ecard-side .act .btn + .btn{margin-top:0}
 }
 </style></head><body>
 
