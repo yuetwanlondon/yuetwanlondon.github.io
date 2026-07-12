@@ -78,10 +78,18 @@ h2{font-size:18px;margin:0 0 10px}
 .maphint{text-align:center;font-size:12.5px;color:var(--ink-55);margin-top:9px}
 .mini{position:absolute;top:8px;right:8px;width:170px;border:1px solid var(--line);border-radius:10px;background:rgba(250,246,238,.95);box-shadow:0 6px 18px rgba(22,19,15,.2);z-index:6;opacity:0;pointer-events:none;transition:opacity .25s;touch-action:none;cursor:pointer}
 .mini.show{opacity:1;pointer-events:auto}
-.gridwrap.mob{max-height:56vh}
+.gridwrap.mob{height:58vh;max-height:none;overflow:hidden;position:relative;touch-action:none;overscroll-behavior:contain}
+.zwheel{display:none;position:absolute;left:50%;transform:translateX(-50%);bottom:10px;width:min(88%,420px);height:44px;border-radius:22px;background:rgba(22,19,15,.72);box-shadow:0 6px 18px rgba(22,19,15,.28);z-index:5;touch-action:none;cursor:ew-resize}
+.gridwrap.mob .zwheel{display:block}
+.zlabel{display:none;position:absolute;left:50%;transform:translateX(-50%);bottom:58px;z-index:5;font-family:var(--grot);font-size:12px;font-weight:800;color:#F4ECDD;background:rgba(22,19,15,.72);border-radius:20px;padding:3px 11px;pointer-events:none}
+.gridwrap.mob .zlabel{display:block}
+.sgrid.abs{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+.st .sn{font-size:calc(var(--seat,24px)*.28);font-weight:700;color:rgba(255,255,255,.95);line-height:1;letter-spacing:-.02em;pointer-events:none}
+.st.taken .sn{color:#b9ad97}
+.sgrid.nosn .sn{display:none}
 .sgrid{display:inline-grid;gap:5px;margin:0 auto;--seat:24px}
 .rl{font-size:10px;font-weight:700;color:var(--ink-55);display:flex;align-items:center;justify-content:center;min-width:16px}
-.st{width:var(--seat,24px);height:var(--seat,24px);border-radius:50%;border:1px solid rgba(0,0,0,.12);position:relative;transition:transform .06s ease}
+.st{width:var(--seat,24px);height:var(--seat,24px);border-radius:50%;border:1px solid rgba(0,0,0,.12);position:relative;transition:transform .06s ease;display:flex;align-items:center;justify-content:center}
 .st.gap{visibility:hidden}
 .st.blk{background:repeating-linear-gradient(45deg,#ddd4c4,#ddd4c4 3px,#cabfa8 3px);opacity:.5;border:none}
 .st.av{cursor:pointer}
@@ -358,69 +366,203 @@ function renderBook(){
   $("view").innerHTML=card(showHeaderHtml())
     + '<div class="card mapcard">'+'<h2>'+L("Choose your seats","選擇座位")+'</h2>'
        +'<div class="maptop">'+legend+ctl+'</div>'
-       +'<div class="mapbox">'+floorsTabs+'<canvas id="mini" class="mini hidden"></canvas><div class="gridwrap">'+gridHtml(FLOOR)+'</div><div class="stage">'+L("Stage","舞台")+'</div><div class="maphint" id="maphint"></div></div>'
+       +'<div class="mapbox">'+floorsTabs+'<canvas id="mini" class="mini hidden"></canvas><div class="gridwrap">'+gridHtml(FLOOR)+'<canvas id="zwheel" class="zwheel"></canvas><div class="zlabel" id="zlabel"></div></div><div class="stage">'+L("Stage","舞台")+'</div><div class="maphint" id="maphint"></div></div>'
        +(SHOW.price_note_en||SHOW.price_note_zh?'<div class="note" style="margin-top:14px">'+esc(L(SHOW.price_note_en||SHOW.price_note_zh,SHOW.price_note_zh||SHOW.price_note_en))+'</div>':'')+'</div>'
     + summaryBar();
   Array.prototype.forEach.call(document.querySelectorAll("[data-fl]"),function(b){ b.onclick=function(){ FLOOR=+b.getAttribute("data-fl"); renderBook(); }; });
   Array.prototype.forEach.call(document.querySelectorAll(".zb"),function(b){ b.onclick=function(){ applyZoom(+b.getAttribute("data-z")); }; });
-  var fb=$("fitBtn"); if(fb) fb.onclick=function(){ if(MOBILE){ OVERVIEW?exitOverviewAt(0.5,1):enterOverview(); } else fitZoom(); };
+  var fb=$("fitBtn"); if(fb) fb.onclick=function(){ if(MOBILE) fitView(); else fitZoom(); };
   var sbar=$("sbar"); if(sbar) sbar.addEventListener("click",function(e){ var rm=e.target.closest?e.target.closest("[data-rm]"):null; if(rm){ deselectSeat(rm.getAttribute("data-rm")); } });
   bindSeatTaps();
   $("goDetails").onclick=function(){ if(!selectedList().length) return; VIEWSTATE="details"; render(); };
   fitZoom();
 }
-var MOBILE=false, OVERVIEW=false;
-function enterOverview(){
-  if(!MOBILE||OVERVIEW) return;
-  OVERVIEW=true;
-  ZOOM=fitWidth();
-  applyZoomNow();
-  var mini=$("mini"); if(mini) mini.classList.remove("show");
-  var hint=$("maphint"); if(hint) hint.textContent=L("Whole map — tap anywhere to zoom in and pick seats","全圖模式：點任何位置放大選位");
-}
-function exitOverviewAt(fx,fy){
-  if(!MOBILE) return;
-  OVERVIEW=false;
-  ZOOM=36;
-  applyZoomNow();
-  var gw=document.querySelector(".gridwrap");
-  requestAnimationFrame(function(){
-    if(gw){ gw.scrollLeft=fx*gw.scrollWidth-gw.clientWidth/2; gw.scrollTop=fy*gw.scrollHeight-gw.clientHeight/2; }
-    drawMini(); miniShow();
-    var hint=$("maphint"); if(hint) hint.textContent=L("Drag the map to move around — a small overview appears to show where you are; tap it to jump. Tap seats to select.","拖動座位圖移動，小地圖會顯示位置，點小圖可快速跳位；點座位選位。");
-  });
-}
+var MOBILE=false;
+/* =============== cinema-app gesture engine (mobile) ===============
+   The map lives inside a fixed viewport that owns every touch:
+   1 finger pans, 2 fingers pinch-zoom the MAP (never the page),
+   double-tap zooms, tap selects. Opens fitted to the whole theatre. */
+var PAN={x:0,y:0,s:1}, FITS=1, CW=0, CH=0, PTRS={}, NPTRS=0, TAPINFO=null, LASTTAP=0, PINCH=null;
 function fitWidth(){
   var gw=document.querySelector(".gridwrap");
   if(!gw||!MAP) return 24;
   var f=MAP.floors[FLOOR];
-  var avail=gw.clientWidth-16-16-(f.cols*5);       /* padding, row label, gaps */
+  var avail=gw.clientWidth-16-16-(f.cols*5);
   return Math.max(6,Math.min(34,Math.floor(avail/f.cols)));
 }
 function fitZoom(){
   var fit=fitWidth();
-  MOBILE = fit<16;                                  /* small screens: overview + pan mode */
-  OVERVIEW=false;
+  MOBILE = fit<16;
   ZOOM = MOBILE ? 36 : fit;
   applyZoomNow();
-  setupMini();
   var hint=$("maphint");
   if(hint) hint.textContent = MOBILE
-    ? L("Drag the map to move around — a small overview appears to show where you are; tap it to jump. Tap seats to select.","拖動座位圖移動，小地圖會顯示位置，點小圖可快速跳位；點座位選位。")
+    ? L("Pinch to zoom, drag to move, tap a seat to select. Tap the small overview to jump.","雙指縮放、拖動移動、點座位選位；點小地圖可快速跳位。")
     : L("Use + to zoom in, then slide the map to pick seats","按 + 放大座位圖，左右滑動選位");
+  initGestures();
+  setupMini();
 }
 function applyZoom(dz){
-  if(MOBILE){
-    if(OVERVIEW){ if(dz>0) exitOverviewAt(0.5,1); return; }
-    if(dz<0&&ZOOM<=26){ enterOverview(); return; }
-    ZOOM=Math.max(26,Math.min(48,ZOOM+dz*5));
+  if(MOBILE){ var gw=document.querySelector(".gridwrap"); if(!gw)return;
+    var r=gw.getBoundingClientRect();
+    zoomToPoint(PAN.s*(dz>0?1.35:1/1.35), r.left+r.width/2, r.top+r.height/2);
+    return;
   }
-  else{ var fit=fitWidth(); ZOOM=Math.max(fit,Math.min(44,ZOOM+dz*5)); }
+  var fit=fitWidth(); ZOOM=Math.max(fit,Math.min(44,ZOOM+dz*5));
   applyZoomNow();
-  var gw=document.querySelector(".gridwrap");
-  if(gw&&!MOBILE&&gw.scrollWidth>gw.clientWidth) gw.scrollLeft=(gw.scrollWidth-gw.clientWidth)/2;
-  if(MOBILE){ miniShow(); requestAnimationFrame(drawMini); }
+  var gw2=document.querySelector(".gridwrap");
+  if(gw2&&gw2.scrollWidth>gw2.clientWidth) gw2.scrollLeft=(gw2.scrollWidth-gw2.clientWidth)/2;
 }
+function panApply(){
+  var g=document.querySelector(".sgrid"), gw=document.querySelector(".gridwrap");
+  if(!g||!gw) return;
+  var vw=gw.clientWidth, vh=gw.clientHeight, M=40;
+  /* clamp: keep the map on screen; centre it when smaller than the viewport */
+  if(CW*PAN.s<=vw) PAN.x=(vw-CW*PAN.s)/2;
+  else PAN.x=Math.min(M,Math.max(vw-CW*PAN.s-M,PAN.x));
+  if(CH*PAN.s<=vh) PAN.y=(vh-CH*PAN.s)/2;
+  else PAN.y=Math.min(M,Math.max(vh-CH*PAN.s-M,PAN.y));
+  g.style.transform="translate("+PAN.x+"px,"+PAN.y+"px) scale("+PAN.s+")";
+  g.classList.toggle("nosn",PAN.s<0.6);
+  drawWheel();
+  if(!panApply._raf){ panApply._raf=requestAnimationFrame(function(){ panApply._raf=0; drawMini(); }); }
+}
+function zoomToPoint(newS,clientX,clientY){
+  var gw=document.querySelector(".gridwrap"); if(!gw) return;
+  newS=Math.max(FITS*0.95,Math.min(2.4,newS));
+  var r=gw.getBoundingClientRect();
+  var px=(clientX-r.left-PAN.x)/PAN.s, py=(clientY-r.top-PAN.y)/PAN.s;
+  PAN.s=newS;
+  PAN.x=(clientX-r.left)-px*newS;
+  PAN.y=(clientY-r.top)-py*newS;
+  panApply(); miniShow();
+}
+function fitView(){
+  var gw=document.querySelector(".gridwrap"); if(!gw) return;
+  PAN.s=FITS;
+  PAN.x=(gw.clientWidth-CW*FITS)/2;
+  PAN.y=(gw.clientHeight-CH*FITS)/2;
+  panApply();
+}
+function initGestures(){
+  var gw=document.querySelector(".gridwrap"), g=document.querySelector(".sgrid");
+  if(!gw||!g) return;
+  gw.classList.toggle("mob",MOBILE);
+  var zbs=document.querySelectorAll(".mapctl .zb");
+  Array.prototype.forEach.call(zbs,function(b){ b.style.display=MOBILE?"none":""; }); /* the wheel replaces +/- on phones */
+  if(!MOBILE){ g.style.transform=""; g.classList.remove("nosn"); return; }
+  g.classList.add("abs");
+  CW=g.offsetWidth; CH=g.offsetHeight;
+  FITS=Math.min((gw.clientWidth-8)/CW,(gw.clientHeight-8)/CH,1);
+  PTRS={}; NPTRS=0; PINCH=null;
+  initWheel(gw);
+  fitView();                                        /* open on the whole theatre, like a cinema app */
+  gw.onpointerdown=function(e){
+    e.preventDefault();
+    try{ gw.setPointerCapture(e.pointerId); }catch(err){}
+    PTRS[e.pointerId]={x:e.clientX,y:e.clientY}; NPTRS++;
+    if(NPTRS===1) TAPINFO={x:e.clientX,y:e.clientY,t:Date.now(),moved:0};
+    if(NPTRS===2){
+      TAPINFO=null;
+      var ids=Object.keys(PTRS), a=PTRS[ids[0]], b=PTRS[ids[1]];
+      PINCH={d0:Math.hypot(a.x-b.x,a.y-b.y),s0:PAN.s};
+    }
+  };
+  gw.onpointermove=function(e){
+    var p=PTRS[e.pointerId]; if(!p) return;
+    var dx=e.clientX-p.x, dy=e.clientY-p.y;
+    p.x=e.clientX; p.y=e.clientY;
+    if(NPTRS===1){
+      if(TAPINFO) TAPINFO.moved+=Math.abs(dx)+Math.abs(dy);
+      PAN.x+=dx; PAN.y+=dy; panApply(); miniShow();
+    } else if(NPTRS===2&&PINCH){
+      var ids=Object.keys(PTRS), a=PTRS[ids[0]], b=PTRS[ids[1]];
+      var d=Math.hypot(a.x-b.x,a.y-b.y);
+      zoomToPoint(PINCH.s0*d/Math.max(1,PINCH.d0),(a.x+b.x)/2,(a.y+b.y)/2);
+    }
+  };
+  gw.onpointerup=gw.onpointercancel=function(e){
+    if(PTRS[e.pointerId]){ delete PTRS[e.pointerId]; NPTRS=Math.max(0,NPTRS-1); }
+    if(NPTRS<2) PINCH=null;
+    if(e.type==="pointerup"&&TAPINFO&&NPTRS===0){
+      var dt=Date.now()-TAPINFO.t;
+      if(TAPINFO.moved<10&&dt<450){
+        var now=Date.now();
+        if(now-LASTTAP<320){                          /* double-tap: toggle fit <-> close-up */
+          LASTTAP=0;
+          if(PAN.s>FITS*1.6) fitView(); else zoomToPoint(1,e.clientX,e.clientY);
+        } else {
+          LASTTAP=now;
+          if(PAN.s<0.55){ zoomToPoint(1,e.clientX,e.clientY); } /* too small to pick — zoom in here */
+          else {
+            var el=document.elementFromPoint(e.clientX,e.clientY);
+            var seat=el&&el.closest?el.closest(".st.av"):null;
+            if(seat) toggleSeatEl(seat);
+          }
+        }
+      }
+      TAPINFO=null;
+    }
+  };
+  /* belt-and-braces: stop iOS Safari pinching the page when the gesture starts on the map */
+  if(!gw._noPageZoom){
+    gw._noPageZoom=true;
+    ["gesturestart","gesturechange","gestureend"].forEach(function(ev){
+      gw.addEventListener(ev,function(e){ e.preventDefault(); },{passive:false});
+    });
+    gw.addEventListener("touchmove",function(e){ if(MOBILE) e.preventDefault(); },{passive:false});
+  }
+}
+/* ---- iPhone-camera-style zoom wheel: swipe the dial to zoom; the tick ruler slides under a fixed marker ---- */
+function drawWheel(){
+  var z=$("zwheel"); if(!z||!MOBILE) return;
+  var dpr=window.devicePixelRatio||1;
+  var cssW=z.clientWidth||300, cssH=44;
+  if(z.width!==Math.round(cssW*dpr)){ z.width=Math.round(cssW*dpr); z.height=Math.round(cssH*dpr); }
+  var ctx=z.getContext("2d"), W=z.width, H=z.height;
+  ctx.clearRect(0,0,W,H);
+  var K=150*dpr;                                    /* px per log-unit of zoom */
+  var logS=Math.log(PAN.s||1);
+  var lmin=Math.log(Math.max(0.01,FITS*0.95)), lmax=Math.log(2.4);
+  var step=0.08, start=Math.ceil(lmin/step)*step;
+  ctx.lineCap="round";
+  for(var l=start;l<=lmax+1e-6;l+=step){
+    var x=W/2+(l-logS)*K;
+    if(x<10*dpr||x>W-10*dpr) continue;
+    var big=Math.abs(l/0.4-Math.round(l/0.4)*1)<0.012;
+    var fade=1-Math.min(1,Math.abs(x-W/2)/(W/2))*0.65;
+    ctx.strokeStyle="rgba(244,236,221,"+(0.85*fade).toFixed(2)+")";
+    ctx.lineWidth=(big?2.4:1.3)*dpr;
+    var th=(big?12:7)*dpr;
+    ctx.beginPath(); ctx.moveTo(x,H/2-th); ctx.lineTo(x,H/2+th); ctx.stroke();
+  }
+  ctx.strokeStyle="#C8402E"; ctx.lineWidth=3*dpr;   /* fixed centre marker */
+  ctx.beginPath(); ctx.moveTo(W/2,H/2-15*dpr); ctx.lineTo(W/2,H/2+15*dpr); ctx.stroke();
+  var lab=$("zlabel");
+  if(lab) lab.textContent=(Math.round((PAN.s||1)*10)/10).toFixed(1)+"\u00d7";
+}
+function initWheel(gw){
+  var z=$("zwheel"); if(!z) return;
+  var drag=null;
+  z.onpointerdown=function(e){
+    e.preventDefault(); e.stopPropagation();
+    try{ z.setPointerCapture(e.pointerId); }catch(err){}
+    drag={x:e.clientX,s:PAN.s};
+    miniShow();
+  };
+  z.onpointermove=function(e){
+    if(!drag) return;
+    e.stopPropagation();
+    var K=150;                                      /* css px per log-unit — matches drawWheel */
+    var dx=e.clientX-drag.x;
+    var r=gw.getBoundingClientRect();
+    /* slide the dial left = zoom in, like the camera app */
+    zoomToPoint(drag.s*Math.exp(-dx/K), r.left+r.width/2, r.top+r.height/2);
+  };
+  z.onpointerup=z.onpointercancel=function(e){ e.stopPropagation(); drag=null; };
+  drawWheel();
+}
+
 function miniShow(){
   var mini=$("mini");
   if(!mini||!MOBILE) return;
@@ -431,7 +573,6 @@ function miniShow(){
 function setupMini(){
   var mini=$("mini"), gw=document.querySelector(".gridwrap");
   if(!mini||!gw) return;
-  gw.classList.toggle("mob",MOBILE);
   if(!MOBILE){ mini.classList.add("hidden"); mini.classList.remove("show"); return; }
   mini.classList.remove("hidden");
   var f=MAP.floors[FLOOR];
@@ -440,34 +581,20 @@ function setupMini(){
   var dpr=window.devicePixelRatio||1;
   mini.width=Math.round(cssW*dpr); mini.height=Math.round(cssH*dpr);
   mini.style.width=cssW+"px"; mini.style.height=cssH+"px";
-  gw.addEventListener("click",function(e){
-    if(!MOBILE||!OVERVIEW) return;
-    e.stopPropagation(); e.preventDefault();
-    var rect=gw.getBoundingClientRect();
-    var fx=(e.clientX-rect.left+gw.scrollLeft)/Math.max(1,gw.scrollWidth);
-    var fy=(e.clientY-rect.top+gw.scrollTop)/Math.max(1,gw.scrollHeight);
-    exitOverviewAt(fx,fy);
-  },true);
-  gw.onscroll=function(){
-    if(!MOBILE) return;
-    miniShow();
-    if(mini._raf) return;
-    mini._raf=requestAnimationFrame(function(){ mini._raf=0; drawMini(); });
-  };
   function jump(e){
     var r=mini.getBoundingClientRect();
     var fx=(e.clientX-r.left)/r.width, fy=(e.clientY-r.top)/r.height;
-    gw.scrollLeft=fx*gw.scrollWidth-gw.clientWidth/2;
-    gw.scrollTop=fy*gw.scrollHeight-gw.clientHeight/2;
+    PAN.x=gw.clientWidth/2-fx*CW*PAN.s;
+    PAN.y=gw.clientHeight/2-fy*CH*PAN.s;
+    if(PAN.s<=FITS*1.05) PAN.s=1;                    /* jumping implies wanting detail */
+    panApply();
   }
-  mini.onpointerdown=function(e){ e.preventDefault(); if(mini.setPointerCapture){ try{ mini.setPointerCapture(e.pointerId); }catch(err){} } mini._drag=true; mini.classList.add("show"); jump(e); };
+  mini.onpointerdown=function(e){ e.preventDefault(); e.stopPropagation(); if(mini.setPointerCapture){ try{ mini.setPointerCapture(e.pointerId); }catch(err){} } mini._drag=true; mini.classList.add("show"); jump(e); };
   mini.onpointermove=function(e){ if(mini._drag) jump(e); };
   mini.onpointerup=mini.onpointercancel=function(){ mini._drag=false; miniShow(); };
-  requestAnimationFrame(function(){                 /* start front-and-centre, by the stage */
-    gw.scrollLeft=(gw.scrollWidth-gw.clientWidth)/2;
-    gw.scrollTop=gw.scrollHeight;
+  requestAnimationFrame(function(){
     drawMini();
-    mini.classList.add("show");                     /* brief hello so people learn it exists */
+    mini.classList.add("show");
     clearTimeout(mini._hide);
     mini._hide=setTimeout(function(){ if(!mini._drag) mini.classList.remove("show"); },2000);
   });
@@ -479,8 +606,8 @@ function drawMini(){
   var ctx=mini.getContext("2d");
   var W=mini.width, H=mini.height;
   ctx.clearRect(0,0,W,H);
-  var cw=W/(f.cols+1), ch=H/(f.rows+1);
-  var rad=Math.max(1.1,Math.min(cw,ch)*0.4);
+  var cw2=W/(f.cols+1), ch2=H/(f.rows+1);
+  var rad=Math.max(1.1,Math.min(cw2,ch2)*0.4);
   for(var r=0;r<f.rows;r++){
     for(var c=0;c<f.cols;c++){
       var cell=f.cells[r][c]; if(cell.t!=="seat") continue;
@@ -490,20 +617,21 @@ function drawMini(){
       else if(TAKEN[sid]) col="#ded6c4";
       else col=(MAP.sections[cell.sec]&&MAP.sections[cell.sec].color)||"#B8893C";
       ctx.fillStyle=col;
-      ctx.beginPath(); ctx.arc((c+1)*cw,(r+0.7)*ch,rad,0,6.2832); ctx.fill();
+      ctx.beginPath(); ctx.arc((c+1)*cw2,(r+0.7)*ch2,rad,0,6.2832); ctx.fill();
     }
   }
-  if(gw.scrollWidth>0&&gw.scrollHeight>0){
-    var x=gw.scrollLeft/gw.scrollWidth*W, w=Math.min(gw.clientWidth/gw.scrollWidth,1)*W;
-    var y=gw.scrollTop/gw.scrollHeight*H, hh=Math.min(gw.clientHeight/gw.scrollHeight,1)*H;
+  if(CW>0&&CH>0){
+    var vx=-PAN.x/PAN.s/CW*W, vw=gw.clientWidth/PAN.s/CW*W;
+    var vy=-PAN.y/PAN.s/CH*H, vh=gw.clientHeight/PAN.s/CH*H;
     ctx.strokeStyle="#C8402E"; ctx.lineWidth=Math.max(2,1.6*(window.devicePixelRatio||1));
-    ctx.strokeRect(x+1,y+1,Math.max(8,w-2),Math.max(8,hh-2));
+    ctx.strokeRect(Math.max(0,vx)+1,Math.max(0,vy)+1,Math.min(vw,W)-2,Math.min(vh,H)-2);
   }
 }
 function applyZoomNow(){
   var g=document.querySelector(".sgrid"); if(!g||!MAP) return;
   g.style.setProperty("--seat",ZOOM+"px");
   g.style.gridTemplateColumns="16px repeat("+MAP.floors[FLOOR].cols+","+ZOOM+"px)";
+  if(!MOBILE) g.classList.toggle("nosn",ZOOM<20);
 }
 window.addEventListener("resize",function(){ clearTimeout(window._bkrz); window._bkrz=setTimeout(function(){ if(MAP&&VIEWSTATE==="book") fitZoom(); },250); });
 function deselectSeat(sid){
@@ -521,24 +649,30 @@ function gridHtml(fi){
       var cell=f.cells[r][c];
       if(cell.t==="empty"){ html+='<div class="st gap"></div>'; continue; }
       if(cell.t==="blocked"){ html+='<div class="st blk"></div>'; continue; }
-      var sid=pfx+num.ids[r+","+c];
+      var lid=num.ids[r+","+c];
+      var sid=pfx+lid;
       var col=(MAP.sections[cell.sec]&&MAP.sections[cell.sec].color)||"#B8893C";
       var cls="st", style='background:'+col;
       if(TAKEN[sid]) cls+=" taken";
       else { cls+=" av"; if(SELECTED[sid]) cls+=" sel"; }
-      html+='<div class="'+cls+'" data-sid="'+esc(sid)+'" title="'+esc(sid)+'" style="'+style+'">'+(cell.wc?'<span class="wc-dot"></span>':'')+'</div>';
+      html+='<div class="'+cls+'" data-sid="'+esc(sid)+'" title="'+esc(sid)+'" style="'+style+'">'+(cell.wc?'<span class="wc-dot"></span>':'')+'<span class="sn">'+esc(lid)+'</span></div>';
     }
   }
   return html+'</div>';
 }
+function toggleSeatEl(el){
+  if(!el||!el.classList.contains("av")) return;
+  var sid=el.getAttribute("data-sid");
+  if(SELECTED[sid]){ delete SELECTED[sid]; el.classList.remove("sel"); }
+  else { if(selectedList().length>=12){ return; } SELECTED[sid]=true; el.classList.add("sel"); }
+  updateSummary();                 // update in place — never re-render the grid
+}
 function bindSeatTaps(){
   Array.prototype.forEach.call(document.querySelectorAll(".st.av"),function(el){
     el.onclick=function(){
-      var gw=document.querySelector(".gridwrap"); var sx=gw?gw.scrollLeft:0;   // where the user is, before any change
-      var sid=el.getAttribute("data-sid");
-      if(SELECTED[sid]){ delete SELECTED[sid]; el.classList.remove("sel"); }
-      else { if(selectedList().length>=12){ return; } SELECTED[sid]=true; el.classList.add("sel"); }
-      updateSummary();                 // update in place — never re-render the grid
+      if(MOBILE) return;               // the gesture engine handles taps on phones
+      var gw=document.querySelector(".gridwrap"); var sx=gw?gw.scrollLeft:0;
+      toggleSeatEl(el);
       if(gw) gw.scrollLeft=sx;         // hold the horizontal scroll exactly where it was
     };
   });
