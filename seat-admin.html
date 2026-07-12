@@ -76,6 +76,9 @@ button{font-family:inherit;cursor:pointer}
 .st.mate{box-shadow:0 0 0 3px var(--brass-l)}
 .st.hit{outline:3px solid var(--vermilion-d);outline-offset:2px}
 .st.dim{opacity:.22}
+#grid.movemode .sc.emt{border:1.5px dashed #cbbfa6;border-radius:50%}
+#grid.movemode .sc.emt.over{border-color:var(--vermilion);background:rgba(200,64,46,.12)}
+.st.dragging{opacity:.35}
 #mapinner{display:inline-block;min-width:100%;text-align:center}
 #mapinner .sgrid{text-align:initial}
 .stagebar{margin:14px 24px 2px;background:var(--vermilion-d);color:#fff;border-radius:8px;text-align:center;font-size:12.5px;font-weight:700;letter-spacing:.12em;padding:7px 0}
@@ -184,14 +187,18 @@ label.f{display:block;font-size:11.5px;font-weight:600;letter-spacing:.03em;text
 
     <div id="editBar" class="hidden" style="background:#fffaf0;border:1px solid var(--line);border-left:3px solid var(--brass);border-radius:12px;padding:11px 13px;margin-bottom:12px">
       <div style="font-size:13px;font-weight:700;margin-bottom:8px">Edit map · tap or drag over seats to repaint 點按或掃過座位以修改
-        <span style="font-weight:500;color:var(--ink-55)"> — structural changes (add/remove/block seats) live in the map designer, since they renumber seats.</span></div>
+        <span style="font-weight:500;color:var(--ink-55)"> — drag seats with the Move tool; add/remove/block stays in the map designer.</span></div>
       <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
         <span id="editChips" style="display:flex;flex-wrap:wrap;gap:6px"></span>
         <button class="btn" id="wcTool" style="padding:7px 11px;font-size:12.5px">Wheelchair 輪椅位</button>
+        <button class="btn" id="moveTool" style="padding:7px 11px;font-size:12.5px">Move seat 移位</button>
         <span style="flex:1"></span>
         <button class="btn primary" id="saveMapBtn" style="padding:7px 13px;font-size:12.5px">Save map 儲存</button>
         <button class="btn ghost" id="editCancel" style="padding:7px 11px;font-size:12.5px">Cancel</button>
         <span id="editMsg" style="font-size:12px;color:var(--ink-55)"></span>
+      </div>
+      <div id="numWarn" class="hidden" style="margin-top:8px;font-size:12.5px;font-weight:600;color:var(--vermilion-d)"></div>
+      <div style="display:none">
       </div>
     </div>
 
@@ -292,7 +299,7 @@ function numberFloor(floor){
 /* ---- state ---- */
 var AUTH=null, SHOWS=[], SHOW=null, MAP=null, PRICES=[], FLOOR=0, NUM=null;
 var SEATBK={}, BOOKINGS=[], SEL={}, ZOOM=34, MODE="pay", QUERY="", TIMER=null, PINNED=false;
-var RAWMAP=null, EDIT={on:false,sec:0,wc:false}, MOVE=null, EDIT_BK=null, PAINTING=false;
+var RAWMAP=null, EDIT={on:false,sec:0,wc:false,move:false}, MOVE=null, EDIT_BK=null, PAINTING=false, BASE_IDS=null, DRAG=null;
 
 function priceOf(sec){ var p=PRICES[sec]; var a=p?parseFloat(p.amount):NaN; return isNaN(a)?0:a; }
 function money(n){ return "£"+(Math.round(n*100)/100).toString().replace(/\.00$/,""); }
@@ -401,10 +408,10 @@ function renderGrid(){
                else{ col=(MAP.sections[cell.sec]&&MAP.sections[cell.sec].color)||"#B8893C"; }
                sty='background:'+col+';'; }
         else{ var bc=(MAP.sections[cell.sec]&&MAP.sections[cell.sec].color)||"#B8893C"; sty='border-color:'+bc+';'; }
-        html+='<div class="'+cls+'" data-sid="'+esc(sid)+'" data-sec="'+cell.sec+'" style="'+sty+'">'+esc(sid)+'</div>';
+        html+='<div class="'+cls+'" data-sid="'+esc(sid)+'" data-sec="'+cell.sec+'" data-r="'+r+'" data-c="'+c+'" style="'+sty+'">'+esc(sid)+'</div>';
       }
       else if(cell.t==="blocked") html+='<div class="st blocked"></div>';
-      else html+='<div class="sc"></div>';
+      else html+='<div class="sc'+(EDIT.on?" emt":"")+'" data-er="'+r+'" data-ec="'+c+'"></div>';
     }
   }
   html+='</div>';
@@ -466,18 +473,51 @@ function renderLegend(){
 /* ---- seat interactions ---- */
 function bindSeats(){
   var host=$("grid");
+  host.classList.toggle("movemode",EDIT.on&&EDIT.move);
+  host.style.touchAction=(EDIT.on&&EDIT.move)?"none":"";
   host.onpointerdown=function(e){
     if(!EDIT.on)return;
-    PAINTING=true;
     var el=e.target.closest?e.target.closest(".st[data-sid]"):null;
+    if(EDIT.move){
+      if(!el)return;
+      e.preventDefault();
+      DRAG={r:+el.getAttribute("data-r"),c:+el.getAttribute("data-c"),el:el};
+      el.classList.add("dragging");
+      return;
+    }
+    PAINTING=true;
     if(el)paintSeat(el);
   };
   host.onpointerover=function(e){
-    if(!EDIT.on||!PAINTING)return;
+    if(!EDIT.on||!PAINTING||EDIT.move)return;
     var el=e.target.closest?e.target.closest(".st[data-sid]"):null;
     if(el)paintSeat(el);
   };
-  document.addEventListener("pointerup",function(){ PAINTING=false; });
+  host.onpointermove=function(e){
+    if(!DRAG)return;
+    e.preventDefault();
+    var t=document.elementFromPoint(e.clientX,e.clientY);
+    var tgt=t&&t.closest?t.closest(".sc.emt"):null;
+    Array.prototype.forEach.call(host.querySelectorAll(".sc.emt.over"),function(n){ n.classList.remove("over"); });
+    if(tgt)tgt.classList.add("over");
+  };
+  document.addEventListener("pointerup",function(e){
+    PAINTING=false;
+    if(!DRAG)return;
+    var t=document.elementFromPoint(e.clientX,e.clientY);
+    var tgt=t&&t.closest?t.closest(".sc.emt"):null;
+    var d=DRAG; DRAG=null;
+    if(d.el)d.el.classList.remove("dragging");
+    if(tgt){
+      var f=MAP.floors[FLOOR];
+      var tr=+tgt.getAttribute("data-er"), tc=+tgt.getAttribute("data-ec");
+      f.cells[tr][tc]=f.cells[d.r][d.c];
+      f.cells[d.r][d.c]={t:"empty"};
+      renderGrid(); renderStats();
+      checkNumbering();
+      $("editMsg").textContent="Unsaved changes — press Save map. 尚未儲存";
+    }
+  });
   host.onclick=function(e){
     var el=e.target.closest?e.target.closest(".st[data-sid]"):null;
     if(!el)return;
@@ -702,12 +742,44 @@ function renderEditChips(){
       +'<span style="width:10px;height:10px;border-radius:50%;background:'+esc(s.color)+';display:inline-block"></span>'+esc(s.name)+'</button>';
   }).join("");
   host.querySelectorAll("[data-esec]").forEach(function(b){
-    b.onclick=function(){ EDIT.sec=+b.getAttribute("data-esec"); EDIT.wc=false; renderEditChips(); syncWcBtn(); };
+    b.onclick=function(){ EDIT.sec=+b.getAttribute("data-esec"); EDIT.wc=false; EDIT.move=false; renderEditChips(); syncWcBtn(); syncMoveBtn(); renderGrid(); };
   });
 }
 function syncWcBtn(){
   var b=$("wcTool");
   b.style.background=EDIT.wc?"var(--ink)":""; b.style.color=EDIT.wc?"var(--paper)":"";
+}
+function syncMoveBtn(){
+  var b=$("moveTool");
+  b.style.background=EDIT.move?"var(--ink)":""; b.style.color=EDIT.move?"var(--paper)":"";
+}
+function snapshotIds(){
+  var out={};
+  MAP.floors.forEach(function(fl,fi){
+    var nm=numberFloor(fl);
+    Object.keys(nm.ids).forEach(function(rc){ out[fi+"|"+nm.ids[rc]]=rc; });
+  });
+  return out;
+}
+function checkNumbering(){
+  if(!BASE_IDS)return;
+  var now=snapshotIds();
+  var affected=[];
+  Object.keys(SEATBK).forEach(function(sid){
+    var k=FLOOR+"|"+sid;
+    if(BASE_IDS[k]!==now[k]) affected.push(sid);
+  });
+  var w=$("numWarn"), sv=$("saveMapBtn");
+  if(affected.length){
+    affected.sort();
+    w.textContent="\u26a0 This move renumbers seats under existing bookings ("+affected.join(", ")+") — guests would end up in the wrong chairs. Undo it (drag back or Cancel) before saving. \u6b64\u79fb\u52d5\u6703\u6539\u8b8a\u5df2\u552e\u5ea7\u4f4d\u7de8\u865f\uff0c\u8acb\u5148\u9084\u539f\u3002";
+    w.classList.remove("hidden");
+    sv.disabled=true;
+  } else {
+    w.classList.add("hidden");
+    w.textContent="";
+    sv.disabled=false;
+  }
 }
 function encodeFloors(){
   return MAP.floors.map(function(f){
@@ -728,10 +800,11 @@ function encodeFloors(){
 $("editBtn").onclick=function(){
   if(!MAP||!RAWMAP){ toast("This show has no seat map."); return; }
   EDIT.on=!EDIT.on; MOVE=null; SEL={}; PINNED=false; $("pop").classList.remove("on");
-  if(EDIT.on){ MODE="sec"; renderEditChips(); syncWcBtn(); $("editMsg").textContent=""; }
+  if(EDIT.on){ MODE="sec"; EDIT.move=false; EDIT.wc=false; BASE_IDS=snapshotIds(); renderEditChips(); syncWcBtn(); syncMoveBtn(); $("editMsg").textContent=""; $("numWarn").classList.add("hidden"); $("saveMapBtn").disabled=false; }
   syncModeUI(); renderGrid(); renderLegend(); renderSelbar();
 };
-$("wcTool").onclick=function(){ EDIT.wc=!EDIT.wc; renderEditChips(); syncWcBtn(); };
+$("wcTool").onclick=function(){ EDIT.wc=!EDIT.wc; if(EDIT.wc)EDIT.move=false; renderEditChips(); syncWcBtn(); syncMoveBtn(); renderGrid(); };
+$("moveTool").onclick=function(){ EDIT.move=!EDIT.move; if(EDIT.move)EDIT.wc=false; renderEditChips(); syncWcBtn(); syncMoveBtn(); renderGrid(); };
 $("editCancel").onclick=async function(){
   EDIT.on=false; syncModeUI();
   await openShow(SHOW.id);                                    /* reload discards local edits */
