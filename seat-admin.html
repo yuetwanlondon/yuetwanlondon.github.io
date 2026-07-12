@@ -76,7 +76,9 @@ button{font-family:inherit;cursor:pointer}
 .st.mate{box-shadow:0 0 0 3px var(--brass-l)}
 .st.hit{outline:3px solid var(--vermilion-d);outline-offset:2px}
 .st.dim{opacity:.22}
-.stagebar{margin:14px auto 2px;background:var(--vermilion-d);color:#fff;border-radius:8px;text-align:center;font-size:12.5px;font-weight:700;letter-spacing:.12em;padding:7px 0;max-width:520px}
+#mapinner{display:inline-block;min-width:100%;text-align:center}
+#mapinner .sgrid{text-align:initial}
+.stagebar{margin:14px 24px 2px;background:var(--vermilion-d);color:#fff;border-radius:8px;text-align:center;font-size:12.5px;font-weight:700;letter-spacing:.12em;padding:7px 0}
 .legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:12px;font-size:12px;color:var(--ink-55);align-items:center}
 .legend .li{display:inline-flex;align-items:center;gap:6px}
 .legend .sw{width:13px;height:13px;border-radius:50%;border:2px solid transparent}
@@ -172,15 +174,36 @@ label.f{display:block;font-size:11.5px;font-weight:600;letter-spacing:.03em;text
       <button class="btn" id="zoomIn" aria-label="Bigger seats"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></button>
       <div class="srch"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="srchIn" placeholder="Find name / phone / ref…"></div>
       <button class="btn" id="refreshBtn"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.3M21 3v6h-6"/></svg>Refresh</button>
+      <button class="btn" id="editBtn"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Edit map 編輯</button>
+      <button class="btn" id="csvBtn"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M4 19h16"/></svg>CSV</button>
       <button class="btn" id="printBtn"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg>Print</button>
       <span class="stamp" id="stamp"></span>
     </div>
 
     <div class="stats" id="stats"></div>
+
+    <div id="editBar" class="hidden" style="background:#fffaf0;border:1px solid var(--line);border-left:3px solid var(--brass);border-radius:12px;padding:11px 13px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px">Edit map · tap or drag over seats to repaint 點按或掃過座位以修改
+        <span style="font-weight:500;color:var(--ink-55)"> — structural changes (add/remove/block seats) live in the map designer, since they renumber seats.</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+        <span id="editChips" style="display:flex;flex-wrap:wrap;gap:6px"></span>
+        <button class="btn" id="wcTool" style="padding:7px 11px;font-size:12.5px">Wheelchair 輪椅位</button>
+        <span style="flex:1"></span>
+        <button class="btn primary" id="saveMapBtn" style="padding:7px 13px;font-size:12.5px">Save map 儲存</button>
+        <button class="btn ghost" id="editCancel" style="padding:7px 11px;font-size:12.5px">Cancel</button>
+        <span id="editMsg" style="font-size:12px;color:var(--ink-55)"></span>
+      </div>
+    </div>
+
+    <div id="moveBar" class="hidden" style="background:#eef4fb;border:1px solid var(--line);border-left:3px solid var(--onday);border-radius:12px;padding:11px 13px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <div style="font-size:13.5px;font-weight:600" id="moveMsg"></div>
+      <span style="flex:1"></span>
+      <button class="btn primary" id="moveGo" style="padding:7px 13px;font-size:12.5px" disabled>Confirm move 確認換位</button>
+      <button class="btn ghost" id="moveCancel" style="padding:7px 11px;font-size:12.5px">Cancel</button>
+    </div>
     <div class="floors" id="floorTabs"></div>
     <div class="mapbox">
-      <div id="grid"></div>
-      <div class="stagebar">STAGE 舞台</div>
+      <div id="mapinner"><div id="grid"></div><div class="stagebar">STAGE 舞台</div></div>
     </div>
     <div class="legend" id="legend"></div>
   </div>
@@ -193,6 +216,7 @@ label.f{display:block;font-size:11.5px;font-weight:600;letter-spacing:.03em;text
   <div class="tt" id="selTot"></div>
   <div class="sp"></div>
   <button class="btn" id="selClear">Clear</button>
+  <button class="btn" id="selHold">Hold 保留</button>
   <button class="btn primary" id="selBook">Add booking 新增</button>
 </div>
 
@@ -268,6 +292,7 @@ function numberFloor(floor){
 /* ---- state ---- */
 var AUTH=null, SHOWS=[], SHOW=null, MAP=null, PRICES=[], FLOOR=0, NUM=null;
 var SEATBK={}, BOOKINGS=[], SEL={}, ZOOM=34, MODE="pay", QUERY="", TIMER=null, PINNED=false;
+var RAWMAP=null, EDIT={on:false,sec:0,wc:false}, MOVE=null, EDIT_BK=null, PAINTING=false;
 
 function priceOf(sec){ var p=PRICES[sec]; var a=p?parseFloat(p.amount):NaN; return isNaN(a)?0:a; }
 function money(n){ return "£"+(Math.round(n*100)/100).toString().replace(/\.00$/,""); }
@@ -308,7 +333,9 @@ async function openShow(id){
   try{ PRICES=JSON.parse(SHOW.prices_json||"[]")||[]; }catch(e){ PRICES=[]; }
   var res=await post({action:"maps",pass:AUTH.pass});
   var raw=(res&&res.ok&&res.maps)?res.maps.filter(function(m){return m.id===SHOW.map_id;})[0]:null;
+  RAWMAP=raw?{id:raw.id,name:raw.name}:null;
   MAP=raw?deserializeMap(raw):null;
+  EDIT.on=false; MOVE=null; syncModeUI();
   FLOOR=0; SEL={};
   await loadBookings();
   fitZoom(); renderAll();
@@ -363,9 +390,14 @@ function renderGrid(){
       if(cell.t==="seat"){
         var sid=NUM.ids[r+","+c];
         var b=SEATBK[sid];
-        var cls="st"+(cell.wc?" wc":"")+(b?" sold":"")+(SEL[sid]?" sel":"");
+        var cls="st"+(cell.wc?" wc":"")+(b?" sold":"")+(SEL[sid]?" sel":"")+((MOVE&&MOVE.picks&&MOVE.picks[sid])?" sel":"");
         var sty;
-        if(b){ var col; if(MODE==="pay"){ var p=String(b.pay_status||"unpaid"); col=(p==="paid")?"var(--paid)":(p==="pay_on_day")?"var(--onday)":"var(--unpaid)"; }
+        if(EDIT.on){
+          var ec=(MAP.sections[cell.sec]&&MAP.sections[cell.sec].color)||"#B8893C";
+          sty='background:'+ec+';'+(b?'box-shadow:0 0 0 2px var(--ink) inset;':'');
+          cls+=" sold";                                       /* white label on the tier colour */
+        }
+        else if(b){ var col; if(MODE==="pay"){ var p=String(b.pay_status||"unpaid"); col=(p==="paid")?"var(--paid)":(p==="pay_on_day")?"var(--onday)":"var(--unpaid)"; }
                else{ col=(MAP.sections[cell.sec]&&MAP.sections[cell.sec].color)||"#B8893C"; }
                sty='background:'+col+';'; }
         else{ var bc=(MAP.sections[cell.sec]&&MAP.sections[cell.sec].color)||"#B8893C"; sty='border-color:'+bc+';'; }
@@ -396,7 +428,26 @@ function renderStats(){
     +'<div class="stat paid"><div class="n">'+paid+'</div><div class="l">Paid 已付</div></div>'
     +'<div class="stat onday"><div class="n">'+onday+'</div><div class="l">On day 當日</div></div>'
     +'<div class="stat unpaid"><div class="n">'+unpaid+'</div><div class="l">Unpaid 未付</div></div>'
-    +'<div class="stat"><div class="n">'+money(rev)+'</div><div class="l">Indicative 參考金額</div></div>';
+    +'<div class="stat"><div class="n">'+money(rev)+'</div><div class="l">Indicative 參考金額</div></div>'
+    +tierStats();
+}
+function tierStats(){
+  if(!MAP)return "";
+  var per={};
+  MAP.floors.forEach(function(fl){
+    var nm=numberFloor(fl);
+    for(var r=0;r<fl.rows;r++)for(var c=0;c<fl.cols;c++){
+      var cl=fl.cells[r][c]; if(cl.t!=="seat")continue;
+      var s=per[cl.sec]||(per[cl.sec]={t:0,s:0});
+      s.t++;
+      if(SEATBK[nm.ids[r+","+c]])s.s++;
+    }
+  });
+  return MAP.sections.map(function(s,i){
+    var d=per[i]||{t:0,s:0};
+    if(!d.t)return "";
+    return '<div class="stat"><div class="n" style="color:'+esc(s.color)+'">'+d.s+' / '+d.t+'</div><div class="l">'+esc(s.name)+'</div></div>';
+  }).join("");
 }
 function renderLegend(){
   var host=$("legend");
@@ -415,10 +466,33 @@ function renderLegend(){
 /* ---- seat interactions ---- */
 function bindSeats(){
   var host=$("grid");
+  host.onpointerdown=function(e){
+    if(!EDIT.on)return;
+    PAINTING=true;
+    var el=e.target.closest?e.target.closest(".st[data-sid]"):null;
+    if(el)paintSeat(el);
+  };
+  host.onpointerover=function(e){
+    if(!EDIT.on||!PAINTING)return;
+    var el=e.target.closest?e.target.closest(".st[data-sid]"):null;
+    if(el)paintSeat(el);
+  };
+  document.addEventListener("pointerup",function(){ PAINTING=false; });
   host.onclick=function(e){
     var el=e.target.closest?e.target.closest(".st[data-sid]"):null;
     if(!el)return;
     var sid=el.getAttribute("data-sid");
+    if(EDIT.on)return;                                        /* painting handled above */
+    if(MOVE){                                                 /* picking new seats for a booking */
+      if(SEATBK[sid]&&MOVE.bk.id!==SEATBK[sid].id)return;     /* someone else's seat */
+      if(MOVE.picks[sid])delete MOVE.picks[sid];
+      else{ if(Object.keys(MOVE.picks).length>=MOVE.need)return; MOVE.picks[sid]=1; }
+      el.classList.toggle("sel",!!MOVE.picks[sid]);
+      var got=Object.keys(MOVE.picks).length;
+      $("moveMsg").textContent="Moving "+MOVE.bk.id+" ("+esc(MOVE.bk.name)+") — pick "+MOVE.need+" seat(s): "+got+" / "+MOVE.need+" chosen";
+      $("moveGo").disabled=got!==MOVE.need;
+      return;
+    }
     if(SEATBK[sid]){ PINNED=true; showPop(SEATBK[sid],el); }
     else{
       if(SEL[sid])delete SEL[sid]; else SEL[sid]={sec:+el.getAttribute("data-sec")};
@@ -472,6 +546,8 @@ function showPop(b,anchor){
     +'<button class="btn" data-pay="paid">Paid</button>'
     +'<button class="btn" data-pay="pay_on_day">On day</button>'
     +'<button class="btn" data-pay="unpaid">Unpaid</button>'
+    +'<button class="btn" data-move="1">Move seats 換位</button>'
+    +'<button class="btn" data-edit="1">Edit 編輯</button>'
     +'<button class="btn danger" data-cancel="1">Cancel booking</button>'
     +'</div>';
   p.querySelector(".x").onclick=function(){ p.classList.remove("on"); PINNED=false; };
@@ -483,6 +559,8 @@ function showPop(b,anchor){
       else{ toast((res&&res.error)||"Could not update."); btn.disabled=false; }
     };
   });
+  p.querySelector("[data-move]").onclick=function(){ startMove(b); };
+  p.querySelector("[data-edit]").onclick=function(){ startEditBk(b); };
   p.querySelector("[data-cancel]").onclick=async function(){
     if(!confirm("Cancel booking "+b.id+" ("+b.seats+")? The seats go back on sale."))return;
     var res=await post({action:"bookingPatch",pass:AUTH.pass,id:b.id,patch:{status:"cancelled"}});
@@ -538,16 +616,38 @@ function renderSelbar(){
   bar.classList.add("on");
 }
 $("selClear").onclick=function(){ SEL={}; renderGrid(); renderSelbar(); };
+$("selHold").onclick=async function(){
+  var seats=selList(); if(!seats.length)return;
+  if(!confirm("Hold "+seats.join(", ")+" (blocked from sale until released)?"))return;
+  try{
+    var res=await post({action:"admin_book",pass:AUTH.pass,show:SHOW.id,seats:seats,
+      name:"HOLD 保留",phone:"",email:"",pay_status:"unpaid",notes:"Held by admin — release by cancelling this booking",amount:"",send_email:false});
+    if(res&&res.ok){ toast("Held "+seats.join(", ")+" — release via Cancel booking"); SEL={}; await loadBookings(); renderAll(); }
+    else toast((res&&res.error)||"Could not hold.");
+  }catch(e){ toast("Network error."); }
+};
 $("selBook").onclick=function(){
   $("dSeats").textContent=selList().join(", ")+" · "+money(selTotal())+" indicative 參考價";
   gate($("bGate"),"",true); $("bGate").className="gate";
   $("drawer").classList.add("on");
   setTimeout(function(){ $("bName").focus(); },80);
 };
-$("bCancel").onclick=function(){ $("drawer").classList.remove("on"); };
+$("bCancel").onclick=function(){ $("drawer").classList.remove("on"); EDIT_BK=null; $("bSave").textContent="Save booking"; };
 $("drawer").addEventListener("click",function(e){ if(e.target===this)this.classList.remove("on"); });
 $("bSave").onclick=async function(){
   var name=$("bName").value.trim(), phone=$("bPhone").value.trim(), email=$("bEmail").value.trim();
+  if(EDIT_BK){
+    if(!name){ gate($("bGate"),"Enter the buyer's name.",false); return; }
+    var eb=$("bSave"); eb.disabled=true; eb.textContent="Saving…";
+    try{
+      var r2=await post({action:"bookingPatch",pass:AUTH.pass,id:EDIT_BK.id,
+        patch:{name:name,phone:phone,email:email,notes:$("bNotes").value.trim(),pay_status:$("bPay").value}});
+      if(r2&&r2.ok){ toast("Updated "+EDIT_BK.id); EDIT_BK=null; $("drawer").classList.remove("on"); $("bSave").textContent="Save booking"; await loadBookings(); renderAll(); }
+      else gate($("bGate"),(r2&&r2.error)||"Could not save — backend needs book-v4.",false);
+    }catch(e){ gate($("bGate"),"Network error.",false); }
+    eb.disabled=false; if(EDIT_BK)eb.textContent="Save changes 儲存修改";
+    return;
+  }
   if(!name){ gate($("bGate"),"Enter the buyer's name.",false); return; }
   if(phone.replace(/\D/g,"").length<6){ gate($("bGate"),"Enter a phone number (at least 6 digits).",false); return; }
   if($("bSend").checked&&email.indexOf("@")<1){ gate($("bGate"),"Add an email address, or untick the confirmation email.",false); return; }
@@ -569,6 +669,131 @@ $("bSave").onclick=async function(){
     }else gate($("bGate"),(res&&res.error)||"Something went wrong.",false);
   }catch(e){ gate($("bGate"),"Network error — please try again.",false); }
   btn.disabled=false; btn.textContent="Save booking";
+};
+
+
+/* ================= v2 admin functions: edit map, move & edit bookings, holds, CSV ================= */
+function cellAt(sid){
+  var f=MAP.floors[FLOOR], num=numberFloor(f);
+  for(var r=0;r<f.rows;r++)for(var c=0;c<f.cols;c++){
+    if(num.ids[r+","+c]===sid) return f.cells[r][c];
+  }
+  return null;
+}
+function paintSeat(el){
+  var sid=el.getAttribute("data-sid");
+  var cell=cellAt(sid); if(!cell)return;
+  if(EDIT.wc){ cell.wc=!cell.wc; }
+  else { cell.sec=EDIT.sec; }
+  renderGrid(); renderStats();
+  $("editMsg").textContent="Unsaved changes — press Save map. 尚未儲存";
+}
+function syncModeUI(){
+  $("editBar").classList.toggle("hidden",!EDIT.on);
+  $("moveBar").classList.toggle("hidden",!MOVE);
+  var eb=$("editBtn");
+  if(eb){ eb.style.background=EDIT.on?"var(--ink)":""; eb.style.color=EDIT.on?"var(--paper)":""; }
+}
+function renderEditChips(){
+  var host=$("editChips");
+  host.innerHTML=MAP.sections.map(function(s,i){
+    var on=(!EDIT.wc&&EDIT.sec===i);
+    return '<button class="btn" data-esec="'+i+'" style="padding:7px 11px;font-size:12.5px;'+(on?('background:'+esc(s.color)+';border-color:'+esc(s.color)+';color:#fff'):'')+'">'
+      +'<span style="width:10px;height:10px;border-radius:50%;background:'+esc(s.color)+';display:inline-block"></span>'+esc(s.name)+'</button>';
+  }).join("");
+  host.querySelectorAll("[data-esec]").forEach(function(b){
+    b.onclick=function(){ EDIT.sec=+b.getAttribute("data-esec"); EDIT.wc=false; renderEditChips(); syncWcBtn(); };
+  });
+}
+function syncWcBtn(){
+  var b=$("wcTool");
+  b.style.background=EDIT.wc?"var(--ink)":""; b.style.color=EDIT.wc?"var(--paper)":"";
+}
+function encodeFloors(){
+  return MAP.floors.map(function(f){
+    var grid=[];
+    for(var r=0;r<f.rows;r++){
+      var line="";
+      for(var c=0;c<f.cols;c++){
+        var cl=f.cells[r][c];
+        if(cl.t==="seat") line += cl.wc ? String.fromCharCode(97+cl.sec) : String(cl.sec);
+        else if(cl.t==="blocked") line+="x";
+        else line+=".";
+      }
+      grid.push(line);
+    }
+    return { name:f.name, rows:f.rows, cols:f.cols, labelFrom:f.labelFrom||"bottom", grid:grid };
+  });
+}
+$("editBtn").onclick=function(){
+  if(!MAP||!RAWMAP){ toast("This show has no seat map."); return; }
+  EDIT.on=!EDIT.on; MOVE=null; SEL={}; PINNED=false; $("pop").classList.remove("on");
+  if(EDIT.on){ MODE="sec"; renderEditChips(); syncWcBtn(); $("editMsg").textContent=""; }
+  syncModeUI(); renderGrid(); renderLegend(); renderSelbar();
+};
+$("wcTool").onclick=function(){ EDIT.wc=!EDIT.wc; renderEditChips(); syncWcBtn(); };
+$("editCancel").onclick=async function(){
+  EDIT.on=false; syncModeUI();
+  await openShow(SHOW.id);                                    /* reload discards local edits */
+  toast("Edits discarded 已還原");
+};
+$("saveMapBtn").onclick=async function(){
+  var btn=$("saveMapBtn"); btn.disabled=true; btn.textContent="Saving…";
+  try{
+    var res=await post({action:"saveMap",pass:AUTH.pass,map:{id:RAWMAP.id,name:RAWMAP.name,floors:encodeFloors(),sections:MAP.sections}});
+    if(res&&res.ok){ toast("Map saved — visitors see the new tiers now. 已儲存"); EDIT.on=false; syncModeUI(); renderGrid(); }
+    else toast((res&&res.error)||"Could not save the map.");
+  }catch(e){ toast("Network error — map not saved."); }
+  btn.disabled=false; btn.textContent="Save map 儲存";
+};
+
+/* ---- move a booking to different seats ---- */
+function startMove(b){
+  MOVE={bk:b, need:String(b.seats||"").split(",").filter(function(s){return s.trim();}).length, picks:{}};
+  PINNED=false; $("pop").classList.remove("on"); SEL={}; renderSelbar();
+  $("moveMsg").textContent="Moving "+b.id+" ("+esc(b.name)+") — pick "+MOVE.need+" seat(s): 0 / "+MOVE.need+" chosen";
+  $("moveGo").disabled=true;
+  syncModeUI();
+  toast("Tap "+MOVE.need+" available seat(s) for "+b.name);
+}
+$("moveCancel").onclick=function(){ MOVE=null; syncModeUI(); renderGrid(); };
+$("moveGo").onclick=async function(){
+  if(!MOVE)return;
+  var seats=Object.keys(MOVE.picks).sort();
+  var btn=$("moveGo"); btn.disabled=true; btn.textContent="Moving…";
+  try{
+    var res=await post({action:"bookingPatch",pass:AUTH.pass,id:MOVE.bk.id,patch:{seats:seats.join(",")}});
+    if(res&&res.ok){ toast("Moved "+MOVE.bk.id+" → "+seats.join(", ")); MOVE=null; syncModeUI(); await loadBookings(); renderAll(); }
+    else if(res&&/unknown|not allowed|Already/.test(String(res.error||""))){ toast(res.error||"Backend needs book-v4 — redeploy Code.gs."); }
+    else toast((res&&res.error)||"Could not move.");
+  }catch(e){ toast("Network error."); }
+  btn.textContent="Confirm move 確認換位";
+};
+
+/* ---- edit a booking's details (reuses the drawer) ---- */
+function startEditBk(b){
+  EDIT_BK=b; PINNED=false; $("pop").classList.remove("on");
+  $("dSeats").textContent=b.id+" · "+b.seats;
+  $("bName").value=b.name||""; $("bPhone").value=b.phone||""; $("bEmail").value=b.email||"";
+  $("bNotes").value=b.notes||""; $("bPay").value=(["paid","pay_on_day","unpaid"].indexOf(String(b.pay_status))>-1)?b.pay_status:"unpaid";
+  $("bSend").checked=false;
+  $("bSave").textContent="Save changes 儲存修改";
+  $("bGate").className="gate";
+  $("drawer").classList.add("on");
+}
+
+/* ---- CSV export ---- */
+$("csvBtn").onclick=function(){
+  if(!SHOW)return;
+  var rows=[["ref","name","phone","email","seats","count","pay_status","status","amount","booked_at","checked_in","notes"]];
+  BOOKINGS.forEach(function(b){
+    rows.push([b.id,b.name,b.phone,b.email,b.seats,b.count,b.pay_status,b.status,b.amount_note,b.booking_ts,(b.checkin_ts?"yes":""),b.notes]);
+  });
+  var csv=rows.map(function(r){ return r.map(function(v){ v=String(v==null?"":v); return '"'+v.replace(/"/g,'""')+'"'; }).join(","); }).join("\n");
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}));
+  a.download="bookings-"+SHOW.id+".csv";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
 };
 
 /* ---- zoom / mode / refresh / print ---- */
